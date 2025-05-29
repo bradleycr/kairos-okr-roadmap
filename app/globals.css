@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+@keyframes flash {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+}
+
+.animate-flash {
+  animation: flash 0.3s ease-in-out;
+}
+
+.animate-sweep {
+  animation: sweep 0.4s ease-out forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+@layer utilities {
+  .bg-gradient-radial {
+    background-image: radial-gradient(var(--tw-gradient-stops));
+  }
+
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .filter-none {
+    filter: none;
+  }
+}
+
+/* Custom color extensions */
+.bg-gray-110 {
+  background-color: rgb(248, 248, 248);
+}
+
+.bg-gray-150 {
+  background-color: rgb(245, 245, 245);
+}
+
+.bg-gray-160 {
+  background-color: rgb(242, 242, 242);
+}
+
+.bg-gray-250 {
+  background-color: rgb(235, 235, 235);
+}
+
+.from-gray-110 {
+  --tw-gradient-from: rgb(248, 248, 248);
+}
+
+.to-gray-150 {
+  --tw-gradient-to: rgb(245, 245, 245);
+}
+
+.to-gray-160 {
+  --tw-gradient-to: rgb(242, 242, 242);
+}
+
+.to-gray-250 {
+  --tw-gradient-to: rgb(235, 235, 235);
+}
