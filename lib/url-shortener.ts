@@ -5,8 +5,10 @@
  * for different NFC chip types (NTAG213/215/216/424).
  * Works with iPhone NFC Tools, Android apps, TagWriter, and other NFC programming tools.
  * 
+ * Uses SMART COMPRESSION (base64) instead of truncation to preserve cryptographic integrity.
+ * 
  * @author KairOS Team
- * @version 2.0.0
+ * @version 3.0.0
  */
 
 // --- Universal NFC URL Generation ---
@@ -24,10 +26,10 @@ export function generateiPhoneNFCUrl(
 } {
   // Chip memory constraints for NFC programming
   const chipLimits = {
-    'NTAG213': 137,   // Very limited - need ultra compression
-    'NTAG215': 492,   // Good space - can use standard format
-    'NTAG216': 900,   // Lots of space - can use full format
-    'NTAG424_DNA': 256 // Moderate space - use compressed format
+    'NTAG213': 137,  // Ultra small - need maximum compression
+    'NTAG215': 492,  // Medium space - use smart compression
+    'NTAG216': 900,  // Large space - can use full format
+    'NTAG424_DNA': 256 // Moderate space - use smart compression
   }
   
   const limit = chipLimits[chipType]
@@ -35,24 +37,26 @@ export function generateiPhoneNFCUrl(
   let nfcUrl: string
   let compressionLevel: string
   
-  // Strategy 1: Ultra-compressed for small chips (NTAG213)
-  if (limit <= 150) {
-    // Use minimal parameters - perfect for all NFC Tools
-    const shortUID = chipUID.replace(/:/g, '').substring(0, 8)
-    const shortSig = signature.substring(0, 16)
-    const shortKey = publicKey.substring(0, 16)
-    nfcUrl = `${baseUrl}/nfc?u=${shortUID}&s=${shortSig}&k=${shortKey}`
-    compressionLevel = 'ultra'
+  // Helper function to convert hex to URL-safe base64
+  function hexToBase64(hex: string): string {
+    const bytes = new Uint8Array(hex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)))
+    return btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
   }
-  // Strategy 2: Standard compression for medium chips
-  else if (limit <= 300) {
-    const compactUID = chipUID.replace(/:/g, '').substring(0, 12)
-    const compactSig = signature.substring(0, 24)
-    const compactKey = publicKey.substring(0, 24)
-    nfcUrl = `${baseUrl}/nfc?c=${compactUID}&s=${compactSig}&p=${compactKey}`
-    compressionLevel = 'standard'
+  
+  // Strategy 1: Smart compression with base64 (preserves crypto integrity)
+  if (limit <= 300) {
+    // Convert to base64 for ~31% size reduction while preserving all crypto data
+    const shortUID = chipUID.replace(/:/g, '')
+    const compactSig = hexToBase64(signature)
+    const compactKey = hexToBase64(publicKey)
+    
+    nfcUrl = `${baseUrl}/nfc?u=${shortUID}&s=${compactSig}&k=${compactKey}`
+    compressionLevel = 'smart-base64'
   }
-  // Strategy 3: Full format for large chips
+  // Strategy 2: Full format for large chips
   else {
     nfcUrl = `${baseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${signature}&publicKey=${publicKey}&uid=${chipUID}`
     compressionLevel = 'full'

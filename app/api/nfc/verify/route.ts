@@ -326,14 +326,53 @@ export async function POST(request: NextRequest) {
       const ultraKey = url.searchParams.get('k')
       
       if (ultraUID && ultraSig && ultraKey) {
-        debugLogs.push('🎯 Using ultra-compressed URL parameters (u, s, k)')
+        debugLogs.push('🎯 Using smart-compressed URL parameters (u, s, k) with base64 encoding')
         
-        // Reconstruct from ultra-compressed format
+        // Helper function to decode base64 to hex
+        function base64ToHex(base64: string): string {
+          try {
+            // Add padding if needed and restore URL-safe characters
+            const restored = base64.replace(/-/g, '+').replace(/_/g, '/')
+            const padded = restored + '='.repeat((4 - restored.length % 4) % 4)
+            
+            // Decode base64 to binary
+            const binary = atob(padded)
+            
+            // Convert binary to hex
+            return Array.from(binary)
+              .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
+              .join('')
+          } catch (error) {
+            debugLogs.push(`⚠️ Base64 decode failed, trying as hex: ${error}`)
+            return base64 // Return as-is if decode fails (maybe it's already hex)
+          }
+        }
+        
+        // Reconstruct from smart-compressed format
         const chipUID = `04:${ultraUID.match(/.{2}/g)?.join(':') || ultraUID}`
         
-        // Pad compressed signature and public key back to full length
-        const signature = ultraSig.padEnd(128, '0') // Pad to 128 chars (64 bytes)
-        const publicKey = ultraKey.padEnd(64, '0')  // Pad to 64 chars (32 bytes)
+        // Try to decode as base64 first, fallback to hex with padding
+        let signature = ultraSig
+        let publicKey = ultraKey
+        
+        // Check if it looks like base64 (length and characters)
+        if (ultraSig.length < 120 && /^[A-Za-z0-9\-_]+$/.test(ultraSig)) {
+          signature = base64ToHex(ultraSig)
+          debugLogs.push(`🔄 Decoded signature from base64: ${signature.substring(0, 16)}...`)
+        } else {
+          // Fallback: pad if it's truncated hex
+          signature = ultraSig.padEnd(128, '0')
+          debugLogs.push(`🔄 Using hex signature with padding: ${signature.substring(0, 16)}...`)
+        }
+        
+        if (ultraKey.length < 60 && /^[A-Za-z0-9\-_]+$/.test(ultraKey)) {
+          publicKey = base64ToHex(ultraKey)
+          debugLogs.push(`🔄 Decoded public key from base64: ${publicKey.substring(0, 16)}...`)
+        } else {
+          // Fallback: pad if it's truncated hex
+          publicKey = ultraKey.padEnd(64, '0')
+          debugLogs.push(`🔄 Using hex public key with padding: ${publicKey.substring(0, 16)}...`)
+        }
         
         // Generate DID from public key
         const publicKeyBytes = new Uint8Array(
@@ -347,8 +386,8 @@ export async function POST(request: NextRequest) {
         body.publicKey = publicKey
         
         debugLogs.push(`📱 Reconstructed UID: ${body.chipUID}`)
-        debugLogs.push(`🔑 Reconstructed Public Key: ${body.publicKey.substring(0, 16)}...`)
-        debugLogs.push(`✍️ Reconstructed Signature: ${body.signature.substring(0, 16)}...`)
+        debugLogs.push(`🔑 Final Public Key: ${body.publicKey.substring(0, 16)}... (${body.publicKey.length} chars)`)
+        debugLogs.push(`✍️ Final Signature: ${body.signature.substring(0, 16)}... (${body.signature.length} chars)`)
         debugLogs.push(`🆔 Generated DID: ${body.did}`)
       } else {
         // Strategy 2: Check for compressed parameters (c, s, p) - LEGACY FORMAT
