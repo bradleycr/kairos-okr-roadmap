@@ -6,7 +6,7 @@ export default function NotFound() {
         <h2 className="text-2xl font-mono font-bold bg-gradient-to-r from-gray-800 via-teal-700 to-gray-800 bg-clip-text text-transparent mb-4">
           404: Not Found
         </h2>
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-800 dark:text-gray-200 mb-6">
           The page you're looking for doesn't exist.<br />
           Try checking the URL or return to the home screen.
         </p>

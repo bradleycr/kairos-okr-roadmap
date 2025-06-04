@@ -92,3 +92,89 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Global Text Contrast Override Rules */
+@layer utilities {
+  /* Force high contrast text on all elements */
+  .container, 
+  .container * {
+    color: rgb(17 24 39) !important; /* Dark gray/black text for light backgrounds */
+  }
+  
+  /* Dark mode text overrides */
+  .dark .container,
+  .dark .container * {
+    color: rgb(243 244 246) !important; /* Light text for dark backgrounds */
+  }
+  
+  /* Specific overrides for certain UI components */
+  .container .text-white,
+  .container .text-gray-100,
+  .container .text-gray-200,
+  .container .text-gray-300 {
+    color: rgb(17 24 39) !important; /* Convert light text to dark */
+  }
+  
+  .dark .container .text-white,
+  .dark .container .text-gray-100,
+  .dark .container .text-gray-200,
+  .dark .container .text-gray-300 {
+    color: rgb(243 244 246) !important; /* Keep light text in dark mode */
+  }
+  
+  /* Preserve colored text but ensure contrast */
+  .container .text-purple-600,
+  .container .text-blue-600,
+  .container .text-green-600,
+  .container .text-red-600,
+  .container .text-orange-600,
+  .container .text-indigo-600 {
+    color: inherit !important; /* Keep colored text as-is */
+  }
+  
+  /* Button text overrides */
+  .container button,
+  .container .btn {
+    color: rgb(17 24 39) !important;
+  }
+  
+  .dark .container button,
+  .dark .container .btn {
+    color: rgb(243 244 246) !important;
+  }
+  
+  /* Card and content overrides */
+  .container .card,
+  .container .card *,
+  .container [class*="Card"],
+  .container [class*="Card"] * {
+    color: rgb(17 24 39) !important;
+  }
+  
+  .dark .container .card,
+  .dark .container .card *,
+  .dark .container [class*="Card"],
+  .dark .container [class*="Card"] * {
+    color: rgb(243 244 246) !important;
+  }
+  
+  /* Input and form elements */
+  .container input,
+  .container textarea,
+  .container select,
+  .container label {
+    color: rgb(17 24 39) !important;
+  }
+  
+  .dark .container input,
+  .dark .container textarea,
+  .dark .container select,
+  .dark .container label {
+    color: rgb(243 244 246) !important;
+  }
+  
+  /* Preserve gradient text */
+  .container .bg-clip-text {
+    color: transparent !important; /* Keep gradient text working */
+  }
+}

@@ -167,7 +167,7 @@ export default function ZKMomentsPage() {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm truncate">{installation.name}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{installation.location}</p>
+            <p className="text-xs text-gray-700 dark:text-gray-300 truncate">{installation.location}</p>
           </div>
           {momentCount > 0 && (
             <Badge variant="secondary" className="text-xs">
@@ -197,25 +197,25 @@ export default function ZKMomentsPage() {
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {stats.totalMoments}
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Total Moments</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300">Total Moments</div>
         </Card>
         <Card className="p-4 text-center">
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
             {stats.uniqueInstallations}
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Unique Places</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300">Unique Places</div>
         </Card>
         <Card className="p-4 text-center">
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
             {sessionDurationHours.toFixed(1)}h
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Session Time</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300">Session Time</div>
         </Card>
         <Card className="p-4 text-center">
           <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
             {stats.averageMomentsPerHour.toFixed(1)}
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Moments/Hour</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300">Moments/Hour</div>
         </Card>
       </div>
     )
@@ -239,15 +239,15 @@ export default function ZKMomentsPage() {
         
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500 dark:text-gray-400">Threshold:</span>
+            <span className="text-gray-700 dark:text-gray-300">Threshold:</span>
             <span className="font-mono">{proof.threshold} moments</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500 dark:text-gray-400">Actual Count:</span>
+            <span className="text-gray-700 dark:text-gray-300">Actual Count:</span>
             <span className="font-mono">{proof.actualCount} moments</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500 dark:text-gray-400">Generated:</span>
+            <span className="text-gray-700 dark:text-gray-300">Generated:</span>
             <span className="font-mono">{new Date(proof.timestamp).toLocaleTimeString()}</span>
           </div>
         </div>
@@ -276,7 +276,7 @@ export default function ZKMomentsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Sparkles className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-500 dark:text-gray-400">Initializing crypto identity...</p>
+          <p className="text-gray-700 dark:text-gray-300">Initializing crypto identity...</p>
         </div>
       </div>
     )
@@ -288,7 +288,7 @@ export default function ZKMomentsPage() {
         <Card className="p-8 max-w-md mx-auto text-center">
           <Sparkles className="w-12 h-12 mx-auto mb-4 text-blue-600" />
           <h2 className="text-xl font-bold mb-2">Welcome to ZK Moments</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
             Generate your cryptographic identity to start collecting privacy-preserving moments.
           </p>
           <Button onClick={generateNewIdentity} className="w-full">
@@ -308,7 +308,7 @@ export default function ZKMomentsPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             ZK Moments
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
+          <p className="text-gray-700 dark:text-gray-300 mt-2">
             Privacy-preserving event experiences with zero-knowledge proofs
           </p>
         </div>
@@ -321,7 +321,7 @@ export default function ZKMomentsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold">Your Identity</h3>
-              <p className="text-xs font-mono text-gray-500 dark:text-gray-400 truncate">
+              <p className="text-xs font-mono text-gray-700 dark:text-gray-300 truncate">
                 {identity.did}
               </p>
             </div>
@@ -387,7 +387,7 @@ export default function ZKMomentsPage() {
         )}
 
         {/* Footer */}
-        <div className="text-center text-xs text-gray-400 dark:text-gray-500 py-8">
+        <div className="text-center text-xs text-gray-700 dark:text-gray-300 py-8">
           <p>🔐 All moments are signed locally. Proofs reveal counts without exposing individual moments.</p>
           <p className="mt-1">Ready for ESP32 porting with identical cryptographic guarantees.</p>
         </div>

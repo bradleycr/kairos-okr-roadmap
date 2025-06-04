@@ -1,6 +1,6 @@
-// --- KairOS Navigation: Elegant Cross-Platform Menu ---
-// Beautiful navigation component for accessing all KairOS features
-// Mobile-first design with smooth animations
+// --- KairOS Navigation: Elegant Minimal Glass Design ---
+// Beautiful Apple-inspired navigation with earth tones and glass morphism
+// Responsive and accessible with subtle animations
 
 "use client"
 
@@ -13,7 +13,8 @@ import {
   TestTubeIcon, 
   SettingsIcon,
   SparklesIcon,
-  KeyIcon
+  KeyIcon,
+  UserIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -50,6 +51,12 @@ const navItems: NavItem[] = [
     description: 'NTAG424 chip configuration'
   },
   {
+    href: '/profile',
+    label: 'Profile',
+    icon: <UserIcon className="h-4 w-4" />,
+    description: 'User profile and dashboard'
+  },
+  {
     href: '/zkMoments',
     label: 'ZK Moments',
     icon: <SparklesIcon className="h-4 w-4" />,
@@ -57,7 +64,7 @@ const navItems: NavItem[] = [
   },
   {
     href: '/cryptoDiagnostics',
-    label: 'Crypto Diagnostics',
+    label: 'Diagnostics',
     icon: <SettingsIcon className="h-4 w-4" />,
     description: 'Cryptographic diagnostics'
   }
@@ -67,22 +74,29 @@ export default function Navigation() {
   const pathname = usePathname()
   
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
-      <div className="container mx-auto px-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass-nav animate-fade-slide-up">
+      <div className="container-adaptive">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg">
+          
+          {/* Brand Identity */}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3">
+              <div className="relative p-2.5 bg-gradient-to-br from-sage-400 to-sage-600 rounded-xl shadow-float">
                 <SparklesIcon className="h-5 w-5 text-white" />
+                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded-xl"></div>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                KairOS
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold gradient-text">
+                  KairOS
+                </span>
+                <span className="text-xs text-muted-foreground font-medium hidden sm:block">
+                  by MELD
+                </span>
+              </div>
             </div>
           </div>
           
-          {/* Navigation Links */}
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href
@@ -91,34 +105,40 @@ export default function Navigation() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 interactive focus-ring",
                     isActive 
-                      ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" 
-                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-purple-600 dark:hover:text-purple-400"
+                      ? "bg-sage-100/80 text-sage-700 shadow-minimal backdrop-blur-sm border border-sage-200/50" 
+                      : "text-neutral-600 hover:text-sage-600 hover:bg-white/60 hover:backdrop-blur-sm hover:border hover:border-white/30"
                   )}
                   title={item.description}
                 >
-                  {item.icon}
-                  <span className="hidden lg:block">{item.label}</span>
+                  <span className={cn("transition-colors", 
+                    isActive ? "text-sage-600" : "text-neutral-500"
+                  )}>
+                    {item.icon}
+                  </span>
+                  <span className="hidden lg:block font-medium">
+                    {item.label}
+                  </span>
                 </Link>
               )
             })}
           </div>
           
-          {/* Mobile Menu Button */}
+          {/* Mobile Navigation */}
           <div className="md:hidden">
             <div className="flex items-center gap-1">
-              {navItems.slice(0, 3).map((item) => {
+              {navItems.slice(0, 4).map((item) => {
                 const isActive = pathname === item.href
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "p-2 rounded-lg transition-all duration-200",
+                      "p-2.5 rounded-lg transition-all duration-300 interactive focus-ring",
                       isActive 
-                        ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" 
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        ? "bg-sage-100/80 text-sage-700 shadow-minimal" 
+                        : "text-neutral-600 hover:text-sage-600 hover:bg-white/60"
                     )}
                     title={item.description}
                   >
@@ -126,10 +146,16 @@ export default function Navigation() {
                   </Link>
                 )
               })}
+              
+              {/* Mobile Menu Indicator */}
+              <div className="ml-2 w-1 h-6 bg-gradient-to-b from-sage-300 to-terracotta-300 rounded-full opacity-60"></div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Subtle bottom border gradient */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sage-200/50 to-transparent"></div>
     </nav>
   )
 } 

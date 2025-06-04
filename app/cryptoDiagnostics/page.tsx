@@ -110,7 +110,7 @@ export default function CryptoDiagnostics() {
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-800 p-2 pb-[var(--footer-height,2.7rem)]">
       <Card className="w-full max-w-md p-4 sm:p-6 shadow-2xl rounded-2xl bg-white/95 dark:bg-gray-900/95 border border-gray-200 dark:border-gray-700">
         <h1 className="text-2xl font-mono font-bold text-gray-800 dark:text-gray-100 mb-2 text-center">KairOS Crypto Diagnostics</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-300 font-mono mb-4 text-center">
+        <p className="text-sm text-gray-800 dark:text-gray-200 font-mono mb-4 text-center">
           Real-time cryptographic integrity & decentralization tests
         </p>
         <Button
@@ -149,17 +149,17 @@ export default function CryptoDiagnostics() {
                     {r.label}
                     {r.details.startsWith("did:key:") && <CopyButton value={r.details} label="DID" />}
                   </div>
-                  <div className="font-mono text-xs text-gray-500 dark:text-gray-300 break-all">{r.details}</div>
+                  <div className="font-mono text-xs text-gray-700 dark:text-gray-300 break-all">{r.details}</div>
                 </div>
               </div>
             ))}
           </div>
         )}
-        <div className="mt-6 text-xs text-gray-500 dark:text-gray-300 font-mono text-center">
+        <div className="mt-6 text-xs text-gray-700 dark:text-gray-300 font-mono text-center">
           <div className="mb-2">No keys are ever stored. All verification is local. No backend trust required.</div>
           <div className="mb-2">DID:key is derived per W3C spec (base58btc, multicodec, no Postgres).</div>
           <div className="mb-2">If any test fails, your system is not fully decentralized or verifiable.</div>
-          <div className="mt-4 text-gray-400 dark:text-gray-500">Inspired by Cursive, but exceeds their decentralization & standards.</div>
+          <div className="mt-4 text-gray-700 dark:text-gray-300">Inspired by Cursive, but exceeds their decentralization & standards.</div>
         </div>
       </Card>
     </main>

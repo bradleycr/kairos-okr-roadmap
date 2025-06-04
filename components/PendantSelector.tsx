@@ -1,31 +1,32 @@
-// --- MELD Pendant Selector Component ---
-// Physical pendant simulation with numbered identities for event testing
-// Supports 20-30+ pendants for large-scale event simulation
+// --- MELD Pendant Selector: Elegant Minimal Design ---
+// Beautiful pendant selection with glass morphism and earth tones
+// Supports multiple pendant identities for comprehensive testing
 
 "use client"
 
 import { useState, useEffect } from 'react'
 import { generateKeypair, createDIDFromPublicKey } from '@/lib/crypto/keys'
 import { PendantIdentity } from '@/lib/hal/simulateTap'
-import { Plus, Zap, Shuffle, Download, Upload, Circle } from 'lucide-react'
+import { Plus, Zap, Shuffle, Download, Upload, Circle, Grid3X3, List } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface PendantSelectorProps {
   selectedPendant: PendantIdentity | null
-  onPendantSelect: (pendant: PendantIdentity) => void
+  onPendantChange: (pendant: PendantIdentity) => void
   className?: string
 }
 
-// --- Generate Test Pendant Pool (20-30 for events) ---
+// --- Generate Test Pendant Pool with Earth-Tone Aesthetic ---
 const generateTestPendants = (count: number = 24): Omit<PendantIdentity, 'publicKey' | 'privateKey'>[] => {
   const pendantStyles = [
-    { shape: '⬢', color: '#FF6B6B', material: 'ceramic' },    // Hexagon - Red ceramic
-    { shape: '●', color: '#4ECDC4', material: 'metal' },      // Circle - Teal metal
-    { shape: '◆', color: '#45B7D1', material: 'glass' },      // Diamond - Blue glass
-    { shape: '▲', color: '#96CEB4', material: 'wood' },       // Triangle - Green wood
-    { shape: '■', color: '#FFEAA7', material: 'plastic' },    // Square - Yellow plastic
-    { shape: '◉', color: '#DDA0DD', material: 'stone' },      // Dot circle - Purple stone
-    { shape: '◈', color: '#98D8C8', material: 'crystal' },    // Diamond dot - Mint crystal
-    { shape: '▼', color: '#F7DC6F', material: 'resin' },      // Down triangle - Gold resin
+    { shape: '⬢', color: '#9db59d', material: 'sage ceramic' },      // Hexagon - Sage ceramic
+    { shape: '●', color: '#b09d87', material: 'sand metal' },        // Circle - Sand metal
+    { shape: '◆', color: '#dc764f', material: 'terracotta glass' },  // Diamond - Terracotta glass
+    { shape: '▲', color: '#a892c4', material: 'lavender wood' },     // Triangle - Lavender wood
+    { shape: '■', color: '#c2b5a3', material: 'natural resin' },     // Square - Natural resin
+    { shape: '◉', color: '#769676', material: 'sage stone' },        // Dot circle - Sage stone
+    { shape: '◈', color: '#efbaa0', material: 'warm crystal' },      // Diamond dot - Warm crystal
+    { shape: '▼', color: '#c1b0d6', material: 'soft polymer' },      // Down triangle - Soft polymer
   ]
   
   return Array.from({ length: count }, (_, i) => {
@@ -43,17 +44,15 @@ const generateTestPendants = (count: number = 24): Omit<PendantIdentity, 'public
   })
 }
 
-const TEST_PENDANTS = generateTestPendants(24)
+const TEST_PENDANTS = generateTestPendants(16)
 
 export default function PendantSelector({ 
   selectedPendant, 
-  onPendantSelect,
+  onPendantChange,
   className = "" 
 }: PendantSelectorProps) {
   const [pendants, setPendants] = useState<PendantIdentity[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const [view, setView] = useState<'grid' | 'list'>('grid')
 
   // Initialize test pendants with crypto keys
   useEffect(() => {
@@ -63,6 +62,18 @@ export default function PendantSelector({
         
         for (const testPendant of TEST_PENDANTS) {
           const { privateKey, publicKey } = await generateKeypair()
+          
+          // Validate generated keys
+          if (!(privateKey instanceof Uint8Array) || privateKey.length !== 32) {
+            console.error('Invalid private key generated:', privateKey)
+            continue
+          }
+          
+          if (!(publicKey instanceof Uint8Array) || publicKey.length !== 32) {
+            console.error('Invalid public key generated:', publicKey)
+            continue
+          }
+          
           const did = createDIDFromPublicKey(publicKey)
           
           initializedPendants.push({
@@ -78,7 +89,7 @@ export default function PendantSelector({
         // Auto-select first pendant if none selected
         if (initializedPendants.length > 0) {
           setTimeout(() => {
-            onPendantSelect(initializedPendants[0])
+            onPendantChange(initializedPendants[0])
           }, 100)
         }
       } catch (error) {
@@ -95,14 +106,24 @@ export default function PendantSelector({
     
     try {
       const { privateKey, publicKey } = await generateKeypair()
+      
+      // Validate generated keys
+      if (!(privateKey instanceof Uint8Array) || privateKey.length !== 32) {
+        throw new Error('Invalid private key generated')
+      }
+      
+      if (!(publicKey instanceof Uint8Array) || publicKey.length !== 32) {
+        throw new Error('Invalid public key generated')
+      }
+      
       const did = createDIDFromPublicKey(publicKey)
       
       const pendantNum = String(pendants.length + 1).padStart(3, '0')
       const styles = [
-        { shape: '⬡', color: '#FF8A80', material: 'titanium' },
-        { shape: '◎', color: '#82B1FF', material: 'ceramic' },
-        { shape: '◇', color: '#A5D6A7', material: 'carbon' },
-        { shape: '⬟', color: '#FFAB91', material: 'polymer' },
+        { shape: '⬡', color: '#9db59d', material: 'sage titanium' },
+        { shape: '◎', color: '#dc764f', material: 'warm ceramic' },
+        { shape: '◇', color: '#a892c4', material: 'soft carbon' },
+        { shape: '⬟', color: '#b09d87', material: 'earth polymer' },
       ]
       const style = styles[Math.floor(Math.random() * styles.length)]
       
@@ -118,7 +139,7 @@ export default function PendantSelector({
       }
       
       setPendants(prev => [...prev, newPendant])
-      onPendantSelect(newPendant)
+      onPendantChange(newPendant)
       
     } catch (error) {
       console.error('Failed to generate new pendant:', error)
@@ -127,251 +148,112 @@ export default function PendantSelector({
     }
   }
 
-  // Generate batch of pendants for event testing
-  const generateBatch = async (count: number) => {
-    setIsGenerating(true)
-    
-    try {
-      const newPendants: PendantIdentity[] = []
-      
-      for (let i = 0; i < count; i++) {
-        const { privateKey, publicKey } = await generateKeypair()
-        const did = createDIDFromPublicKey(publicKey)
-        
-        const pendantNum = String(pendants.length + i + 1).padStart(3, '0')
-        const styles = TEST_PENDANTS
-        const style = styles[Math.floor(Math.random() * styles.length)]
-        
-        newPendants.push({
-          id: `pendant-${pendantNum}`,
-          name: `PENDANT-${pendantNum}`,
-          publicKey,
-          privateKey,
-          did,
-          color: style.color,
-          icon: style.icon,
-          material: style.material || 'synthetic'
-        })
-      }
-      
-      setPendants(prev => [...prev, ...newPendants])
-      
-    } catch (error) {
-      console.error('Failed to generate pendant batch:', error)
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
   return (
-    <div className={`bg-slate-800/70 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-700/40 p-8 ${className}`}>
-      {/* Header */}
+    <div className={cn("glass-card rounded-2xl p-6", className)}>
+      {/* Compact Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Zap className="w-6 h-6 text-cyan-400" />
-          <h3 className="text-xl font-bold text-white font-mono">Physical Pendants</h3>
-          <span className="text-sm text-gray-400 font-mono bg-slate-700/50 px-3 py-1 rounded-full">({pendants.length} active)</span>
+          <div className="p-2 bg-gradient-to-br from-sage-400 to-sage-600 rounded-lg shadow-minimal">
+            <Zap className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-neutral-800">Physical Pendants</h3>
+            <p className="text-sm text-neutral-500">{pendants.length} available for testing</p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
-            className="text-sm text-gray-400 hover:text-gray-300 transition-colors font-mono bg-slate-700/50 hover:bg-slate-700 px-3 py-1 rounded-md"
-          >
-            {view === 'grid' ? 'list' : 'grid'}
-          </button>
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="text-sm text-gray-400 hover:text-gray-300 transition-colors font-mono bg-slate-700/50 hover:bg-slate-700 px-3 py-1 rounded-md"
-          >
-            {showAdvanced ? 'basic' : 'debug'}
-          </button>
-        </div>
+        
+        <button
+          onClick={generateNewPendant}
+          disabled={isGenerating}
+          className="flex items-center gap-2 px-3 py-2 glass-button text-neutral-700 rounded-lg hover:text-sage-700 disabled:opacity-50 text-sm font-medium"
+        >
+          <Plus className="w-4 h-4" />
+          {isGenerating ? 'Adding...' : 'Add'}
+        </button>
       </div>
 
-      {/* Selected Pendant Display - Physical pendant style */}
+      {/* Selected Pendant Display - Compact */}
       {selectedPendant && (
-        <div 
-          className="p-5 rounded-xl border-2 mb-5 transition-all bg-slate-900/60 backdrop-blur-sm"
-          style={{ 
-            borderColor: selectedPendant.color,
-            boxShadow: `0 0 20px ${selectedPendant.color}20`
-          }}
-        >
+        <div className="mb-6 p-4 glass-card rounded-xl border transition-all duration-300"
+             style={{ 
+               borderColor: selectedPendant.color + '40',
+               backgroundColor: selectedPendant.color + '08'
+             }}>
           <div className="flex items-center gap-4">
-            {/* Physical pendant representation */}
-            <div className="relative">
-              <div 
-                className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg border-2"
-                style={{ 
-                  backgroundColor: selectedPendant.color,
-                  borderColor: `${selectedPendant.color}50`,
-                  boxShadow: `0 4px 12px ${selectedPendant.color}40, inset 0 2px 4px rgba(255,255,255,0.2)`
-                }}
-              >
-                {selectedPendant.icon}
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-800 animate-pulse"></div>
+            <div 
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shadow-minimal border"
+              style={{ 
+                backgroundColor: selectedPendant.color + '20',
+                borderColor: selectedPendant.color + '40',
+                color: selectedPendant.color
+              }}
+            >
+              {selectedPendant.icon}
             </div>
             
-            <div className="flex-1 min-w-0">
-              <div className="font-bold text-white font-mono text-lg mb-1">{selectedPendant.name}</div>
-              <div className="text-sm text-gray-400 font-mono mb-1">
-                {(selectedPendant as any).material || 'ceramic'} • NFC Type-4
-              </div>
-              <div className="text-xs text-gray-500 font-mono truncate">
-                DID: {selectedPendant.did.substring(0, 35)}...
-              </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-neutral-800">{selectedPendant.name}</h4>
+              <p className="text-sm text-neutral-600">{selectedPendant.material}</p>
             </div>
-            
-            {showAdvanced && (
-              <div className="text-right">
-                <div className="text-xs text-gray-400 font-mono">Signal: -42dBm</div>
-                <div className="text-xs text-gray-400 font-mono">Range: 4cm</div>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* Pendant Grid/List */}
-      {view === 'grid' ? (
-        <div className="grid grid-cols-6 lg:grid-cols-8 gap-2 mb-5 max-h-48 overflow-y-auto p-1">
-          {pendants.map((pendant) => (
+      {/* Compact Pendant Grid */}
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+        {pendants.map((pendant, index) => {
+          const isSelected = selectedPendant?.id === pendant.id
+          
+          return (
             <button
               key={pendant.id}
-              onClick={() => onPendantSelect(pendant)}
-              className={`relative group p-2 rounded-lg transition-all hover:scale-105 ${
-                selectedPendant?.id === pendant.id
-                  ? 'ring-2 ring-current shadow-lg'
-                  : 'hover:shadow-md'
-              }`}
+              onClick={() => onPendantChange(pendant)}
+              className={cn(
+                "relative p-3 rounded-xl border transition-all duration-200 interactive focus-ring group",
+                isSelected
+                  ? "border-2 shadow-minimal bg-white scale-105"
+                  : "border glass-button hover:shadow-minimal hover:scale-102"
+              )}
               style={{
-                ringColor: selectedPendant?.id === pendant.id ? pendant.color : undefined,
+                borderColor: isSelected ? pendant.color : undefined,
+                backgroundColor: isSelected ? pendant.color + '08' : undefined,
+                animationDelay: `${index * 20}ms`
               }}
-              title={`${pendant.name} - ${(pendant as any).material || 'ceramic'}`}
+              title={`${pendant.name} - ${pendant.material}`}
             >
-              {/* Physical pendant mini representation */}
+              {/* Selection Indicator */}
+              {isSelected && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-sage-500 flex items-center justify-center">
+                  <Circle className="w-2 h-2 text-white fill-current" />
+                </div>
+              )}
+              
+              {/* Pendant Visual */}
               <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm mx-auto border"
+                className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-lg font-bold border transition-transform group-hover:scale-110"
                 style={{ 
-                  backgroundColor: pendant.color,
-                  borderColor: `${pendant.color}50`,
-                  boxShadow: `0 2px 6px ${pendant.color}30`
+                  backgroundColor: pendant.color + '20',
+                  borderColor: pendant.color + '40',
+                  color: pendant.color
                 }}
               >
                 {pendant.icon}
               </div>
-              <div className="text-xs font-mono text-gray-300 mt-1 text-center">
+              
+              <div className="text-xs text-neutral-600 text-center mt-2 font-medium">
                 {pendant.name.split('-')[1]}
               </div>
-              
-              {/* Active indicator */}
-              {selectedPendant?.id === pendant.id && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border border-slate-800"></div>
-              )}
             </button>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-1 mb-4 max-h-48 overflow-y-auto">
-          {pendants.map((pendant) => (
-            <button
-              key={pendant.id}
-              onClick={() => onPendantSelect(pendant)}
-              className={`w-full p-2 rounded-lg border transition-all text-left ${
-                selectedPendant?.id === pendant.id
-                  ? 'border-current bg-slate-700/50'
-                  : 'border-slate-600 hover:border-slate-500 hover:bg-slate-700/30'
-              }`}
-              style={{
-                borderColor: selectedPendant?.id === pendant.id ? pendant.color : undefined
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <Circle 
-                  className="w-3 h-3" 
-                  style={{ color: pendant.color }}
-                  fill="currentColor"
-                />
-                <span className="font-mono text-sm text-white">{pendant.name}</span>
-                <span className="text-xs text-gray-400 font-mono">
-                  {(pendant as any).material || 'ceramic'}
-                </span>
-                <div className="flex-1"></div>
-                {selectedPendant?.id === pendant.id && (
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={generateNewPendant}
-          disabled={isGenerating}
-          className="flex items-center justify-center gap-2 px-3 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono"
-        >
-          {isGenerating ? (
-            <>
-              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              sync...
-            </>
-          ) : (
-            <>
-              <Plus className="w-3 h-3" />
-              +1
-            </>
-          )}
-        </button>
-        
-        <button
-          onClick={() => generateBatch(10)}
-          disabled={isGenerating}
-          className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 text-sm font-mono"
-        >
-          <Plus className="w-3 h-3" />
-          +10
-        </button>
-        
-        <button
-          onClick={() => {
-            const shuffled = [...pendants].sort(() => Math.random() - 0.5)
-            if (shuffled.length > 0) {
-              onPendantSelect(shuffled[0])
-            }
-          }}
-          className="px-3 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition-colors"
-          title="Random pendant"
-        >
-          <Shuffle className="w-3 h-3" />
-        </button>
+          )
+        })}
       </div>
 
-      {/* Advanced Debug Section */}
-      {showAdvanced && (
-        <div className="mt-4 pt-4 border-t border-slate-600">
-          <div className="text-sm text-gray-300 space-y-2 font-mono">
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <span className="text-cyan-400">Active Pendants:</span> {pendants.length}
-              </div>
-              <div>
-                <span className="text-purple-400">Crypto Engine:</span> Ed25519
-              </div>
-              <div>
-                <span className="text-emerald-400">NFC Protocol:</span> ISO 14443-4
-              </div>
-              <div>
-                <span className="text-yellow-400">Identity System:</span> DID:key
-              </div>
-            </div>
-            <div className="text-xs text-gray-400 mt-3">
-              Physical pendants contain secure cryptographic identities for event authentication.
-              Each pendant simulates real NFC hardware with unique material properties.
-            </div>
+      {/* Loading State */}
+      {isGenerating && (
+        <div className="text-center py-4">
+          <div className="inline-flex items-center gap-2 px-3 py-2 glass-card rounded-lg">
+            <div className="w-3 h-3 bg-sage-500 rounded-full animate-gentle-pulse"></div>
+            <span className="text-neutral-700 text-sm">Generating keys...</span>
           </div>
         </div>
       )}

@@ -778,9 +778,10 @@ export default function ESP32WearableDevice({
       const stateMapping: Record<string, AuthState> = {
         'idle': 'WAITING',
         'detecting': 'NFC_DETECTED',
-        'authenticating': 'AUTHENTICATED',
-        'executing': 'CONFIRMING',   // Show button press effect during execution
-        'success': 'CONFIRMED'
+        'authenticating': 'NFC_DETECTED',  // Show detection while authenticating
+        'executing': 'AUTHENTICATED',     // Show ready button - TAP AGAIN TO EXECUTE
+        'success': 'CONFIRMING',          // Show "EXECUTING..." during actual execution
+        'completed': 'CONFIRMED'          // Show final success screen
       }
       
       const newAuthState = stateMapping[screenData.nodeState] || 'WAITING'
@@ -803,7 +804,7 @@ export default function ESP32WearableDevice({
           }
           
           // Log successful authentication when confirmed
-          if (newAuthState === 'CONFIRMED') {
+          if (newAuthState === 'CONFIRMING') {
             logPendantInteraction({
               pendantDID: screenData.pendantDID,
               pendantId: screenData.pendantId || 'unknown',

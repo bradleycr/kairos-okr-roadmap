@@ -21,7 +21,7 @@ export default function GlobalError({
             <h2 className="text-2xl font-mono font-bold bg-gradient-to-r from-gray-800 via-teal-700 to-gray-800 bg-clip-text text-transparent mb-4">
               Something went wrong
             </h2>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-800 dark:text-gray-200 mb-6">
               The application encountered a critical error. Please try refreshing the page.
             </p>
             <button

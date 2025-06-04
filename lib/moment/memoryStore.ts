@@ -129,6 +129,13 @@ export function addMoment(moment: TapMoment): void {
   internalStore.moments.push(moment)
   updateNodeStats(moment.nodeId)
   saveMomentsToStorage()
+  
+  // Emit events for real-time UI updates (ensure all components sync)
+  if (typeof window !== 'undefined' && window.dispatchEvent) {
+    window.dispatchEvent(new CustomEvent('momentAdded', { 
+      detail: { moment, nodeId: moment.nodeId, pendantId: moment.pendantId }
+    }))
+  }
 }
 
 /**
