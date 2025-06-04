@@ -297,172 +297,266 @@ function NFCPageContent() {
   }, [parseNFCParameters, executeVerificationFlow])
   
   return (
-    <div className="space-y-6">
-      {/* NFC Status Section */}
-      <div className="nfc-status">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="p-2 border border-gray-300 rounded">
-            <NfcIcon className="h-6 w-6" />
-          </div>
-          <div>
-            <h2 className="text-lg font-medium">NFC Authentication</h2>
-            <p className="mono-text text-gray-600">NTAG424 Dynamic Authentication</p>
-          </div>
-        </div>
-        
-        {/* Progress */}
-        <div className="nfc-progress">
-          <div 
-            className="nfc-progress-bar" 
-            style={{ width: `${verificationState.progress}%` }}
-          />
-        </div>
-        
-        {/* Current Phase */}
-        <p className="mono-text text-sm mb-4">{verificationState.currentPhase}</p>
-        
-        {/* Status Message */}
-        <div className="text-sm text-center py-2">
-          {verificationState.status === 'success' && '✅ Authentication completed successfully'}
-          {verificationState.status === 'failure' && `❌ ${verificationState.error}`}
-          {verificationState.status === 'error' && `⚠️ ${verificationState.error}`}
-          {verificationState.status === 'verifying' && '🔄 Authenticating...'}
-          {verificationState.status === 'initializing' && '⏳ Initializing...'}
-        </div>
-      </div>
-      
-      {/* Authentication Flow */}
-      <div className="state-flow">
-        <div className="state-flow-title">// Two-Tap Cryptographic Authentication Flow</div>
-        <div className="space-y-3">
-          {VERIFICATION_PHASES.map((phase, index) => (
-            <div key={index} className="flex items-center gap-3">
-              <span className="mono-text text-xs w-4">{index + 1}</span>
-              <div className="flex-1">
-                <div className="text-sm font-medium">{phase.name}</div>
-                <div className="mono-text text-xs text-gray-600">{phase.description}</div>
-              </div>
-              <div 
-                className={`w-2 h-2 rounded-full ${
-                  verificationState.progress >= (index + 1) * 16.67 
-                    ? 'bg-black' 
-                    : 'bg-gray-300'
-                }`} 
-              />
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 pt-3 border-t border-gray-200">
-          <p className="mono-text text-xs text-gray-600">
-            State Machine: idle → detecting → authenticating → executing → success → idle<br/>
-            Security: AES-128 signature verification with NTAG424-based identity<br/>
-            UX Pattern: Single tap triggers full authentication flow
-          </p>
-        </div>
-      </div>
-      
-      {/* Verification Results */}
-      {verificationState.status === 'success' && (
-        <div className="device-card">
-          <h3 className="text-sm font-medium mb-3">Verification Results</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="device-spec-item">
-              <span className="mono-text">Chip Authenticated: ✓</span>
-            </div>
-            <div className="device-spec-item">
-              <span className="mono-text">Secret Valid: ✓</span>
-            </div>
-            <div className="device-spec-item">
-              <span className="mono-text">ZK Proof Generated: ✓</span>
-            </div>
-            <div className="device-spec-item">
-              <span className="mono-text">Moment Captured: ✓</span>
-            </div>
-          </div>
-          {verificationState.verificationTime && (
-            <p className="mono-text text-xs text-gray-600 mt-3">
-              Verification time: {verificationState.verificationTime}ms
-            </p>
-          )}
-        </div>
-      )}
-      
-      {/* Chip Information */}
-      {nfcParams.chipUID && (
-        <div className="device-card">
-          <h3 className="text-sm font-medium mb-3">Chip Information</h3>
-          <div className="space-y-2">
-            <div>
-              <span className="mono-text text-xs text-gray-600">Chip UID</span>
-              <div className="mono-text">{nfcParams.chipUID}</div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-blue-500 rounded-lg">
+              <NfcIcon className="h-8 w-8 text-white" />
             </div>
             <div>
-              <span className="mono-text text-xs text-gray-600">Timestamp</span>
-              <div className="mono-text">
-                {nfcParams.timestamp ? new Date(parseInt(nfcParams.timestamp)).toLocaleString() : 'N/A'}
-              </div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                NFC Authentication
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                NTAG424 Dynamic Authentication for KairOS
+              </p>
             </div>
-            {nfcParams.counter && (
-              <div>
-                <span className="mono-text text-xs text-gray-600">Access Counter</span>
-                <div className="mono-text">{nfcParams.counter}</div>
-              </div>
-            )}
-          </div>
-          <div className="device-specs mt-3">
-            <span className="device-spec-item">NTAG424</span>
-            <span className="device-spec-item">ISO 14443-4</span>
-            <span className="device-spec-item">AES-128</span>
           </div>
         </div>
-      )}
-      
-      {/* Action Buttons */}
-      <div className="flex gap-3">
-        {(verificationState.status === 'failure' || verificationState.status === 'error') && (
-          <button 
-            onClick={retryVerification}
-            disabled={isRetrying}
-            className="btn-minimal primary flex-1"
-          >
-            {isRetrying ? 'Retrying...' : 'Retry Authentication'}
-          </button>
-        )}
         
-        {verificationState.status === 'success' && (
-          <>
-            <button 
-              onClick={() => router.push('/zkMoments')}
-              className="btn-minimal primary flex-1"
-            >
-              View My Moments
-            </button>
-            <button 
-              onClick={() => router.push('/')}
-              className="btn-minimal"
-            >
-              Home
-            </button>
-          </>
-        )}
-        
-        <button 
-          onClick={() => router.push('/nfc-test')}
-          className="btn-minimal"
-        >
-          Test NFC
-        </button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Verification Panel */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Status Card */}
+            <Card className="border-blue-200 dark:border-blue-800">
+              <CardHeader className="bg-blue-50 dark:bg-blue-900/20">
+                <CardTitle className="flex items-center gap-2">
+                  {verificationState.status === 'verifying' && <LoaderIcon className="h-5 w-5 animate-spin text-blue-600" />}
+                  {verificationState.status === 'success' && <CheckCircleIcon className="h-5 w-5 text-green-600" />}
+                  {verificationState.status === 'failure' && <XCircleIcon className="h-5 w-5 text-red-600" />}
+                  {verificationState.status === 'error' && <XCircleIcon className="h-5 w-5 text-red-600" />}
+                  {verificationState.status === 'initializing' && <ClockIcon className="h-5 w-5 text-gray-600" />}
+                  
+                  Authentication Status
+                </CardTitle>
+                <CardDescription>
+                  {verificationState.currentPhase}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Progress</span>
+                    <span>{verificationState.progress}%</span>
+                  </div>
+                  <Progress value={verificationState.progress} className="h-3" />
+                </div>
+                
+                {/* Status Message */}
+                <Alert className={
+                  verificationState.status === 'success' ? 'border-green-200 bg-green-50' :
+                  verificationState.status === 'failure' || verificationState.status === 'error' ? 'border-red-200 bg-red-50' :
+                  'border-blue-200 bg-blue-50'
+                }>
+                  {verificationState.status === 'success' && <CheckCircleIcon className="h-4 w-4 text-green-600" />}
+                  {(verificationState.status === 'failure' || verificationState.status === 'error') && <XCircleIcon className="h-4 w-4 text-red-600" />}
+                  {verificationState.status === 'verifying' && <LoaderIcon className="h-4 w-4 text-blue-600 animate-spin" />}
+                  <AlertDescription>
+                    {verificationState.status === 'success' && 'NFC authentication completed successfully! Your moment has been captured and verified.'}
+                    {verificationState.status === 'failure' && `Authentication failed: ${verificationState.error}`}
+                    {verificationState.status === 'error' && `Configuration error: ${verificationState.error}`}
+                    {verificationState.status === 'verifying' && 'Authenticating your NFC chip and generating cryptographic proofs...'}
+                    {verificationState.status === 'initializing' && 'Initializing NFC authentication flow...'}
+                  </AlertDescription>
+                </Alert>
+                
+                {/* Verification Results */}
+                {verificationState.status === 'success' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheckIcon className="h-4 w-4 text-green-600" />
+                        <span className="text-sm">Chip Authenticated</span>
+                        <Badge variant="outline" className="text-green-600">✓</Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <KeyIcon className="h-4 w-4 text-green-600" />
+                        <span className="text-sm">Secret Valid</span>
+                        <Badge variant="outline" className="text-green-600">✓</Badge>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <ZapIcon className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm">ZK Proof Generated</span>
+                        <Badge variant="outline" className="text-purple-600">✓</Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <SmartphoneIcon className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm">Moment Captured</span>
+                        <Badge variant="outline" className="text-blue-600">✓</Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  {(verificationState.status === 'failure' || verificationState.status === 'error') && (
+                    <Button 
+                      onClick={retryVerification}
+                      disabled={isRetrying}
+                      className="flex-1"
+                    >
+                      {isRetrying ? (
+                        <>
+                          <LoaderIcon className="h-4 w-4 mr-2 animate-spin" />
+                          Retrying...
+                        </>
+                      ) : (
+                        'Retry Authentication'
+                      )}
+                    </Button>
+                  )}
+                  
+                  {verificationState.status === 'success' && (
+                    <>
+                      <Button 
+                        onClick={() => router.push('/zkMoments')}
+                        className="flex-1"
+                      >
+                        <ArrowRightIcon className="h-4 w-4 mr-2" />
+                        View My Moments
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => router.push('/')}
+                      >
+                        <HomeIcon className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => router.push('/nfc-test')}
+                  >
+                    Test NFC
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Debug Logs */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Authentication Logs</CardTitle>
+                <CardDescription>
+                  Real-time verification process details
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-64 p-4">
+                  <div className="space-y-1">
+                    {verificationState.debugLogs.map((log, index) => (
+                      <div 
+                        key={index} 
+                        className="text-xs font-mono p-2 rounded bg-gray-50 dark:bg-gray-800 border"
+                      >
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Sidebar - Chip Info */}
+          <div className="space-y-6">
+            {/* Chip Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <NfcIcon className="h-5 w-5 text-blue-600" />
+                  Chip Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {nfcParams.chipUID ? (
+                  <>
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Chip UID</div>
+                      <div className="font-mono text-sm">{nfcParams.chipUID}</div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Timestamp</div>
+                      <div className="font-mono text-sm">
+                        {nfcParams.timestamp ? new Date(parseInt(nfcParams.timestamp)).toLocaleString() : 'N/A'}
+                      </div>
+                    </div>
+                    
+                    {nfcParams.counter && (
+                      <>
+                        <Separator />
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">Access Counter</div>
+                          <div className="font-mono text-sm">{nfcParams.counter}</div>
+                        </div>
+                      </>
+                    )}
+                    
+                    <Separator />
+                    
+                    <div className="space-y-2">
+                      <Badge variant="outline" className="text-blue-600">
+                        NTAG424 Compatible
+                      </Badge>
+                      <Badge variant="outline" className="text-green-600">
+                        ISO 14443-4
+                      </Badge>
+                      <Badge variant="outline" className="text-purple-600">
+                        AES-128 Secured
+                      </Badge>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    No chip information available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Authentication Phases */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Authentication Flow</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {VERIFICATION_PHASES.map((phase, index) => (
+                  <div 
+                    key={index}
+                    className={`flex items-start gap-3 p-2 rounded transition-colors ${
+                      verificationState.progress >= (index + 1) * 16.67 
+                        ? 'bg-green-50 dark:bg-green-900/20' 
+                        : 'bg-gray-50 dark:bg-gray-800'
+                    }`}
+                  >
+                    <div className={`mt-1 w-2 h-2 rounded-full ${
+                      verificationState.progress >= (index + 1) * 16.67 
+                        ? 'bg-green-500' 
+                        : 'bg-gray-300'
+                    }`} />
+                    <div>
+                      <div className="text-sm font-medium">{phase.name}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        {phase.description}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
-      
-      {/* Debug Logs */}
-      {verificationState.debugLogs.length > 0 && (
-        <div className="debug-panel">
-          <div className="text-xs font-medium mb-2">Authentication Logs</div>
-          {verificationState.debugLogs.map((log, index) => (
-            <div key={index} className="text-xs mb-1">{log}</div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -470,18 +564,26 @@ function NFCPageContent() {
 // Loading component for Suspense fallback
 function NFCPageLoading() {
   return (
-    <div className="nfc-status">
-      <div className="flex items-center justify-center gap-3 mb-4">
-        <div className="p-2 border border-gray-300 rounded">
-          <NfcIcon className="h-6 w-6" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-blue-500 rounded-lg">
+              <NfcIcon className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                NFC Authentication
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                Loading NFC parameters...
+              </p>
+            </div>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-medium">NFC Authentication</h2>
-          <p className="mono-text text-gray-600">Loading NFC parameters...</p>
+        <div className="flex items-center justify-center py-12">
+          <LoaderIcon className="h-8 w-8 animate-spin text-blue-600" />
         </div>
-      </div>
-      <div className="animate-minimal-pulse">
-        <LoaderIcon className="h-6 w-6 mx-auto" />
       </div>
     </div>
   )
