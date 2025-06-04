@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -60,7 +60,8 @@ const VERIFICATION_PHASES = [
   { name: '✅ Authentication Complete', description: 'NFC authentication successful' }
 ]
 
-export default function NFCPage() {
+// Create wrapper component for useSearchParams
+function NFCPageContent() {
   const { toast } = useToast()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -557,5 +558,42 @@ export default function NFCPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Loading component for Suspense fallback
+function NFCPageLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-blue-500 rounded-lg">
+              <NfcIcon className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                NFC Authentication
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                Loading NFC parameters...
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <LoaderIcon className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Main component with Suspense boundary
+export default function NFCPage() {
+  return (
+    <Suspense fallback={<NFCPageLoading />}>
+      <NFCPageContent />
+    </Suspense>
   )
 } 
