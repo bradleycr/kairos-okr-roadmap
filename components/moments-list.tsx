@@ -24,7 +24,7 @@ export default function MomentsList({ moments }: MomentsListProps) {
           >
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-semibold">{timeStr}</span>
-              <span className="text-xs text-gray-400 bg-gray-200 px-2 py-1 rounded-full">#{index + 1}</span>
+              <span className="text-xs text-gray-700 bg-gray-200 px-2 py-1 rounded-full">#{index + 1}</span>
             </div>
             <div className="text-xs text-gray-500 mt-2 truncate">{shortDID}</div>
           </div>

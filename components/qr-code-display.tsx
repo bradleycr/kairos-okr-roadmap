@@ -1,22 +1,27 @@
 "use client"
 
+import React from "react"
 import { QRCodeSVG } from "qrcode.react"
 
-interface QRCodeDisplayProps {
-  sessionId: string
-}
-
-export default function QRCodeDisplay({ sessionId }: QRCodeDisplayProps) {
-  const simulateUrl = `${window.location.origin}/simulate?session=${sessionId}`
+const QRCodeDisplay: React.FC<{ sessionId: string }> = ({ sessionId }) => {
+  const sessionUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/?session=${sessionId}`
+    : `https://kairos.example.com/?session=${sessionId}`
 
   return (
-    <div className="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-200">
-      <p className="text-sm font-mono text-gray-600 mb-3">📱 Scan to simulate wearable</p>
-      <div className="flex justify-center">
-        <QRCodeSVG value={simulateUrl} size={120} level="M" includeMargin={true} />
-      </div>
-      <p className="text-xs text-gray-700 font-mono mt-2 font-semibold">Scan to simulate NFC pendant pairing.</p>
-      <p className="text-xs text-gray-400 font-mono mt-1">Session: {sessionId}</p>
+    <div className="flex flex-col items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm max-w-xs">
+      <p className="text-sm font-mono text-gray-600 mb-3">📱 Connect to Session</p>
+      
+      <QRCodeSVG value={sessionUrl} size={120} level="M" includeMargin={true} />
+      
+      <p className="text-xs text-gray-700 font-mono mt-2 font-semibold text-center">
+        Scan to join KairOS session
+      </p>
+      <p className="text-xs text-gray-500 font-mono mt-1 text-center">
+        Session: {sessionId}
+      </p>
     </div>
   )
 }
+
+export default QRCodeDisplay
