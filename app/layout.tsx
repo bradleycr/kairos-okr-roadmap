@@ -2,6 +2,8 @@
 // This layout wraps the entire application in a poetic, cross-platform shell.
 import type { Metadata } from 'next'
 import './globals.css'
+import Navigation from '@/components/Navigation'
+import { Toaster } from '@/components/ui/toaster'
 
 // --- Universal Metadata: Crafted with intention ---
 export const metadata: Metadata = {
@@ -20,8 +22,16 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <div style={{ minHeight: '100vh' }} className="relative">
+          {/* Navigation */}
+          <Navigation />
+          
           {/* Main Content */}
-          {children}
+          <main className="pt-16">
+            {children}
+          </main>
+          
+          {/* Toast Notifications */}
+          <Toaster />
         </div>
       </body>
     </html>
