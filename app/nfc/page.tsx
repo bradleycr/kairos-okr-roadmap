@@ -24,7 +24,11 @@ import {
   HomeIcon,
   UserIcon,
   AlertTriangleIcon,
-  RefreshCwIcon
+  RefreshCwIcon,
+  BugIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  CopyIcon
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -44,6 +48,11 @@ interface NFCVerificationState {
   momentCaptured?: boolean
   sessionToken?: string
   momentId?: string
+  
+  // Debug Info
+  urlParameters?: Record<string, string>
+  apiResponse?: any
+  reconstructedParameters?: Record<string, string>
 }
 
 interface NFCParams {
@@ -78,18 +87,38 @@ function NFCPageContent() {
   })
   
   const [nfcParams, setNFCParams] = useState<NFCParams>({})
+  const [showDebugLogs, setShowDebugLogs] = useState(false)
   
   // --- Parse URL Parameters ---
   const parseNFCParameters = useCallback((): NFCParams => {
+    const allParams: Record<string, string> = {}
+    searchParams.forEach((value, key) => {
+      allParams[key] = value
+    })
+    
+    // Store original URL parameters for debugging
+    setVerificationState(prev => ({
+      ...prev,
+      urlParameters: allParams,
+      debugLogs: [...prev.debugLogs, `🔍 Raw URL params: ${JSON.stringify(allParams)}`]
+    }))
+    
     // Strategy 1: Check for ultra-short URL pattern (from /n/[id] redirect)
     const source = searchParams.get('source')
     if (source === 'short_url') {
-      return {
+      const params = {
         did: searchParams.get('did') || undefined,
         signature: searchParams.get('signature') || undefined,
         publicKey: searchParams.get('publicKey') || undefined,
         chipUID: searchParams.get('uid') || undefined
       }
+      
+      setVerificationState(prev => ({
+        ...prev,
+        debugLogs: [...prev.debugLogs, '📱 Strategy 1: Short URL format detected', `✅ Parsed: ${JSON.stringify(params)}`]
+      }))
+      
+      return params
     }
     
     // Strategy 2: Check for iPhone NFC ultra-compressed format (u, s, k)
@@ -107,6 +136,26 @@ function NFCPageContent() {
       
       // Generate DID from public key
       const did = `did:key:z${publicKey.substring(0, 32)}`
+      
+      const reconstructed = { chipUID, signature, publicKey, did }
+      
+      setVerificationState(prev => ({
+        ...prev,
+        reconstructedParameters: {
+          'Original u': ultraUID,
+          'Original s': ultraSig,
+          'Original k': ultraKey,
+          'Reconstructed UID': chipUID,
+          'Padded signature': signature,
+          'Padded public key': publicKey,
+          'Generated DID': did
+        },
+        debugLogs: [...prev.debugLogs, 
+          '📱 Strategy 2: Ultra-compressed format (u,s,k) detected',
+          `🔧 Original: u=${ultraUID}, s=${ultraSig}, k=${ultraKey}`,
+          `🔄 Reconstructed: ${JSON.stringify(reconstructed)}`
+        ]
+      }))
       
       return { did, signature, publicKey, chipUID }
     }
@@ -127,6 +176,26 @@ function NFCPageContent() {
       // Generate DID from public key
       const did = `did:key:z${publicKey.substring(0, 32)}`
       
+      const reconstructed = { chipUID, signature, publicKey, did }
+      
+      setVerificationState(prev => ({
+        ...prev,
+        reconstructedParameters: {
+          'Original c': compressedUID,
+          'Original s': compressedSig,
+          'Original p': compressedKey,
+          'Reconstructed UID': chipUID,
+          'Padded signature': signature,
+          'Padded public key': publicKey,
+          'Generated DID': did
+        },
+        debugLogs: [...prev.debugLogs, 
+          '📱 Strategy 3: Compressed format (c,s,p) detected',
+          `🔧 Original: c=${compressedUID}, s=${compressedSig}, p=${compressedKey}`,
+          `🔄 Reconstructed: ${JSON.stringify(reconstructed)}`
+        ]
+      }))
+      
       return { did, signature, publicKey, chipUID }
     }
     
@@ -137,15 +206,27 @@ function NFCPageContent() {
     const fullUID = searchParams.get('uid')
     
     if (fullDID && fullSig && fullKey && fullUID) {
-      return {
+      const params = {
         did: fullDID,
         signature: fullSig,
         publicKey: fullKey,
         chipUID: fullUID
       }
+      
+      setVerificationState(prev => ({
+        ...prev,
+        debugLogs: [...prev.debugLogs, '📱 Strategy 4: Full format detected', `✅ Parsed: ${JSON.stringify(params)}`]
+      }))
+      
+      return params
     }
     
     // No valid parameters found
+    setVerificationState(prev => ({
+      ...prev,
+      debugLogs: [...prev.debugLogs, '❌ No valid NFC parameters found in URL']
+    }))
+    
     return {}
   }, [searchParams])
   
@@ -166,6 +247,11 @@ function NFCPageContent() {
       }
     }
     
+    setVerificationState(prev => ({
+      ...prev,
+      debugLogs: [...prev.debugLogs, `🚀 Sending API request to /api/nfc/verify`, `📦 Request body: ${JSON.stringify(requestBody, null, 2)}`]
+    }))
+    
     const response = await fetch('/api/nfc/verify', {
       method: 'POST',
       headers: {
@@ -174,11 +260,21 @@ function NFCPageContent() {
       body: JSON.stringify(requestBody)
     })
     
+    const responseData = await response.json()
+    
+    setVerificationState(prev => ({
+      ...prev,
+      apiResponse: responseData,
+      debugLogs: [...prev.debugLogs, 
+        `📡 API Response (${response.status}): ${JSON.stringify(responseData, null, 2)}`
+      ]
+    }))
+    
     if (!response.ok) {
-      throw new Error(`Authentication failed`)
+      throw new Error(`Authentication failed: ${response.status} - ${responseData.error || 'Unknown error'}`)
     }
     
-    return response.json()
+    return responseData
   }, [])
   
   // --- Execute Verification Flow ---
@@ -259,12 +355,45 @@ function NFCPageContent() {
     }
   }, [executeVerificationFlow, parseNFCParameters])
 
+  // --- Copy Debug Info Function ---
+  const copyDebugInfo = useCallback(() => {
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      verificationState,
+      urlParameters: verificationState.urlParameters,
+      reconstructedParameters: verificationState.reconstructedParameters,
+      nfcParams,
+      apiResponse: verificationState.apiResponse,
+      debugLogs: verificationState.debugLogs
+    }
+    
+    navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
+    toast({
+      title: "Debug info copied!",
+      description: "Full debug information copied to clipboard",
+    })
+  }, [verificationState, nfcParams, toast])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Minimal Auth Card */}
         <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
           <CardContent className="p-8 text-center">
+            
+            {/* Debug Icon - Top Right Corner */}
+            <div className="absolute top-4 right-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDebugLogs(!showDebugLogs)}
+                className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+              >
+                <BugIcon className="h-4 w-4" />
+              </Button>
+            </div>
             
             {/* Status Icon */}
             <div className="mb-6">
@@ -322,6 +451,80 @@ function NFCPageContent() {
                     {verificationState.error}
                   </AlertDescription>
                 </Alert>
+              </div>
+            )}
+            
+            {/* Debug Logs Section */}
+            {showDebugLogs && (
+              <div className="mb-6 text-left">
+                <div className="bg-gray-50 rounded-lg p-4 border">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <BugIcon className="h-4 w-4" />
+                      Debug Information
+                    </h3>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={copyDebugInfo}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <CopyIcon className="h-3 w-3 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                  
+                  <ScrollArea className="h-48">
+                    <div className="space-y-2 text-xs font-mono">
+                      {/* URL Parameters */}
+                      {verificationState.urlParameters && (
+                        <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                          <div className="font-semibold text-blue-700 mb-1">📍 URL Parameters:</div>
+                          {Object.entries(verificationState.urlParameters).map(([key, value]) => (
+                            <div key={key} className="text-blue-600">
+                              {key}: {value}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Reconstructed Parameters */}
+                      {verificationState.reconstructedParameters && (
+                        <div className="bg-purple-50 p-2 rounded border border-purple-200">
+                          <div className="font-semibold text-purple-700 mb-1">🔄 Reconstructed:</div>
+                          {Object.entries(verificationState.reconstructedParameters).map(([key, value]) => (
+                            <div key={key} className="text-purple-600">
+                              {key}: {String(value).substring(0, 50)}{String(value).length > 50 ? '...' : ''}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* API Response */}
+                      {verificationState.apiResponse && (
+                        <div className="bg-green-50 p-2 rounded border border-green-200">
+                          <div className="font-semibold text-green-700 mb-1">📡 API Response:</div>
+                          <div className="text-green-600">
+                            Status: {verificationState.apiResponse.verified ? '✅ Verified' : '❌ Failed'}
+                          </div>
+                          <div className="text-green-600">
+                            Error: {verificationState.apiResponse.error || 'None'}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Debug Logs */}
+                      <div className="bg-gray-100 p-2 rounded border">
+                        <div className="font-semibold text-gray-700 mb-1">📋 Debug Logs:</div>
+                        {verificationState.debugLogs.map((log, index) => (
+                          <div key={index} className="text-gray-600 py-0.5">
+                            {log}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </div>
               </div>
             )}
             
