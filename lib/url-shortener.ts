@@ -1,17 +1,136 @@
 /**
  * 🎯 KairOS Universal NFC URL Generator
  * 
- * Generates optimized URLs for NFC programming apps with maximum compatibility
+ * Generates cryptographically robust URLs for NFC programming apps with maximum compatibility
  * for different NFC chip types (NTAG213/215/216/424).
  * Works with iPhone NFC Tools, Android apps, TagWriter, and other NFC programming tools.
  * 
  * Uses SMART COMPRESSION (base64) instead of truncation to preserve cryptographic integrity.
+ * Includes comprehensive validation and testing capabilities.
  * 
  * @author KairOS Team
- * @version 3.0.0
+ * @version 4.0.0 - Enhanced Crypto Validation
  */
 
-// --- Universal NFC URL Generation ---
+// --- Enhanced Base64 Encoding Functions ---
+function safeBase64Encode(hexString: string): string {
+  try {
+    // Convert hex to bytes
+    const bytes = new Uint8Array(hexString.match(/.{2}/g)?.map(byte => parseInt(byte, 16)) || [])
+    
+    // Convert to base64 using browser API
+    let base64 = btoa(String.fromCharCode(...bytes))
+    
+    // Make URL-safe
+    base64 = base64
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '') // Remove padding for shorter URLs
+    
+    return base64
+  } catch (error) {
+    console.warn('Base64 encoding failed, falling back to hex truncation:', error)
+    return hexString.substring(0, 32) // Fallback to truncated hex
+  }
+}
+
+function validateBase64Decode(base64String: string, expectedHexLength: number): { success: boolean, hex: string, error?: string } {
+  try {
+    // Restore URL-safe base64 to standard base64
+    let standardBase64 = base64String
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+    
+    // Add padding if needed
+    while (standardBase64.length % 4) {
+      standardBase64 += '='
+    }
+    
+    // Decode
+    const decoded = atob(standardBase64)
+    const hex = Array.from(decoded).map(char => 
+      char.charCodeAt(0).toString(16).padStart(2, '0')
+    ).join('')
+    
+    // Validate length
+    if (hex.length < expectedHexLength / 2) {
+      return {
+        success: false,
+        hex: hex.padEnd(expectedHexLength, '0'),
+        error: `Decoded hex too short: ${hex.length} chars, expected ${expectedHexLength}`
+      }
+    }
+    
+    return { success: true, hex }
+  } catch (error) {
+    return {
+      success: false,
+      hex: base64String.padEnd(expectedHexLength, '0'),
+      error: `Base64 decode failed: ${error}`
+    }
+  }
+}
+
+// --- Cryptographic Validation Functions ---
+async function validateCryptographicParameters(
+  chipUID: string,
+  signature: string,
+  publicKey: string,
+  did: string
+): Promise<{ valid: boolean, errors: string[], warnings: string[] }> {
+  const errors: string[] = []
+  const warnings: string[] = []
+  
+  // Validate chipUID format
+  if (!chipUID || chipUID.length < 10) {
+    errors.push('Invalid chip UID: too short')
+  }
+  
+  if (!chipUID.includes(':') && chipUID.length > 14) {
+    warnings.push('Chip UID may need colon formatting')
+  }
+  
+  // Validate signature format
+  if (!signature || signature.length < 64) {
+    errors.push(`Invalid signature: too short (${signature.length} chars, need 128+)`)
+  }
+  
+  if (!/^[0-9a-fA-F]+$/.test(signature)) {
+    errors.push('Invalid signature: must be hex format')
+  }
+  
+  // Validate public key format
+  if (!publicKey || publicKey.length < 32) {
+    errors.push(`Invalid public key: too short (${publicKey.length} chars, need 64+)`)
+  }
+  
+  if (!/^[0-9a-fA-F]+$/.test(publicKey)) {
+    errors.push('Invalid public key: must be hex format')
+  }
+  
+  // Validate DID format
+  if (!did || !did.startsWith('did:key:z')) {
+    errors.push('Invalid DID: must start with did:key:z')
+  }
+  
+  // Check DID/public key consistency
+  if (did && publicKey) {
+    const expectedDIDKey = did.replace('did:key:z', '')
+    const publicKeyPrefix = publicKey.substring(0, 32)
+    
+    if (!expectedDIDKey.includes(publicKeyPrefix.substring(0, 16))) {
+      warnings.push('DID and public key may not match')
+    }
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings
+  }
+}
+
+// --- Universal NFC URL Generation with Enhanced Validation ---
 export function generateiPhoneNFCUrl(
   chipUID: string,
   signature: string,
@@ -23,7 +142,31 @@ export function generateiPhoneNFCUrl(
   nfcUrl: string
   urlAnalysis: { bytes: number; chars: number; compatibility: Record<string, string> }
   compressionLevel: string
+  validation: { valid: boolean, errors: string[], warnings: string[] }
 } {
+  // Step 1: Validate cryptographic parameters before URL generation
+  const validation = {
+    valid: true,
+    errors: [] as string[],
+    warnings: [] as string[]
+  }
+  
+  // Basic parameter validation
+  if (!chipUID || !signature || !publicKey || !did) {
+    validation.errors.push('Missing required parameters')
+    validation.valid = false
+  }
+  
+  if (signature.length < 64) {
+    validation.errors.push(`Signature too short: ${signature.length} chars`)
+    validation.valid = false
+  }
+  
+  if (publicKey.length < 32) {
+    validation.errors.push(`Public key too short: ${publicKey.length} chars`)
+    validation.valid = false
+  }
+  
   // Chip memory constraints for NFC programming
   const chipLimits = {
     'NTAG213': 137,  // Ultra small - need maximum compression
@@ -37,38 +180,71 @@ export function generateiPhoneNFCUrl(
   let nfcUrl: string
   let compressionLevel: string
   
-  // Helper function to convert hex to URL-safe base64
-  function hexToBase64(hex: string): string {
-    const bytes = new Uint8Array(hex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)))
-    return btoa(String.fromCharCode(...bytes))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '')
-  }
-  
-  // Strategy 1: Smart compression with base64 (preserves crypto integrity)
+  // Step 2: Generate URL with appropriate compression strategy
   if (limit <= 300) {
-    // Convert to base64 for ~31% size reduction while preserving all crypto data
+    // Strategy: Smart compression with SAFE base64 (preserves crypto integrity)
     const shortUID = chipUID.replace(/:/g, '')
-    const compactSig = hexToBase64(signature)
-    const compactKey = hexToBase64(publicKey)
+    
+    // Use safe base64 encoding with fallback
+    const compactSig = safeBase64Encode(signature)
+    const compactKey = safeBase64Encode(publicKey)
+    
+    // Validate that encoding/decoding works correctly
+    const sigValidation = validateBase64Decode(compactSig, 128)
+    const keyValidation = validateBase64Decode(compactKey, 64)
+    
+    if (!sigValidation.success) {
+      validation.warnings.push(`Signature encoding issue: ${sigValidation.error}`)
+    }
+    
+    if (!keyValidation.success) {
+      validation.warnings.push(`Public key encoding issue: ${keyValidation.error}`)
+    }
     
     nfcUrl = `${baseUrl}/nfc?u=${shortUID}&s=${compactSig}&k=${compactKey}`
-    compressionLevel = 'smart-base64'
+    compressionLevel = 'smart-base64-validated'
   }
-  // Strategy 2: Full format for large chips
   else {
+    // Strategy: Full format for large chips
     nfcUrl = `${baseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${signature}&publicKey=${publicKey}&uid=${chipUID}`
-    compressionLevel = 'full'
+    compressionLevel = 'full-parameters'
   }
   
-  // Analyze URL efficiency for NFC programming
+  // Step 3: Analyze URL efficiency and compatibility
   const bytes = new TextEncoder().encode(nfcUrl).length
   const compatibility = {
     'NTAG213': bytes <= 137 ? '✅ Fits perfectly' : '❌ Too long',
     'NTAG215': bytes <= 492 ? '✅ Fits perfectly' : '❌ Too long', 
     'NTAG216': bytes <= 900 ? '✅ Fits perfectly' : '❌ Too long',
     'NTAG424_DNA': bytes <= 256 ? '✅ Fits perfectly' : '❌ Too long'
+  }
+  
+  // Step 4: Final URL validation
+  if (bytes > limit) {
+    validation.errors.push(`URL too long for ${chipType}: ${bytes} bytes > ${limit} limit`)
+    validation.valid = false
+  }
+  
+  // Step 5: Test URL parameter parsing (simulation)
+  try {
+    const testUrl = new URL(nfcUrl)
+    const testParams = new URLSearchParams(testUrl.search)
+    
+    if (testParams.has('u') && testParams.has('s') && testParams.has('k')) {
+      // Test ultra-compressed format parsing
+      const ultraSig = testParams.get('s')!
+      const ultraKey = testParams.get('k')!
+      
+      const sigTest = validateBase64Decode(ultraSig, 128)
+      const keyTest = validateBase64Decode(ultraKey, 64)
+      
+      if (!sigTest.success || !keyTest.success) {
+        validation.warnings.push('Generated URL may have parsing issues')
+      }
+    }
+  } catch (error) {
+    validation.errors.push('Generated URL is malformed')
+    validation.valid = false
   }
   
   return {
@@ -78,7 +254,8 @@ export function generateiPhoneNFCUrl(
       chars: nfcUrl.length,
       compatibility
     },
-    compressionLevel
+    compressionLevel,
+    validation
   }
 }
 

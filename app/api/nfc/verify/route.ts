@@ -30,7 +30,7 @@ interface RealMoment {
 // In-memory storage (replace with proper database in production)
 const userAccounts = new Map<string, RealUserAccount>()
 
-// --- Real User Functions ---
+// --- Real User Functions with Persistent Identity ---
 async function getOrCreateRealUser(
   chipUID: string, 
   did: string, 
@@ -39,11 +39,13 @@ async function getOrCreateRealUser(
   deviceInfo?: string
 ): Promise<RealUserAccount> {
   
-  // Check if user already exists
+  // Check if user already exists by chipUID (primary key for persistence)
   let user = userAccounts.get(chipUID)
   
   if (!user) {
-    // Create new real user account
+    // Create new real user account with cryptographic identity
+    const accountId = await generateDeterministicAccountId(chipUID, publicKey)
+    
     user = {
       did,
       chipUID,
@@ -54,11 +56,25 @@ async function getOrCreateRealUser(
       verificationCount: 1,
       moments: []
     }
+    
+    // Store by chipUID for cross-device persistence
     userAccounts.set(chipUID, user)
+    
+    // Also store by DID for alternative lookup
+    userAccounts.set(did, user)
+    
+    console.log(`🆕 Created new persistent account: ${accountId} for chip ${chipUID}`)
   } else {
-    // Update existing user
+    // Update existing user - verify identity hasn't changed
+    if (user.did !== did || user.publicKey !== publicKey) {
+      throw new Error(`Identity mismatch for chip ${chipUID}. Possible tampering detected.`)
+    }
+    
+    // Update last seen and increment verification count
     user.lastSeen = new Date().toISOString()
     user.verificationCount += 1
+    
+    console.log(`♻️ Updated existing account for chip ${chipUID}, verification #${user.verificationCount}`)
   }
   
   // Add this authentication as a new moment
@@ -74,6 +90,36 @@ async function getOrCreateRealUser(
   user.moments = user.moments.slice(0, 50) // Keep only last 50 moments
   
   return user
+}
+
+// --- Deterministic Account ID Generation ---
+async function generateDeterministicAccountId(chipUID: string, publicKey: string): Promise<string> {
+  // Create truly deterministic account ID from cryptographic materials
+  const accountData = `${chipUID}:${publicKey}:kairos-identity-v1`
+  const encoder = new TextEncoder()
+  const buffer = await crypto.subtle.digest('SHA-256', encoder.encode(accountData))
+  const hashArray = Array.from(new Uint8Array(buffer))
+  const accountId = `kairos_${hashArray.slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')}`
+  return accountId
+}
+
+// --- Enhanced User Lookup Functions ---
+async function findUserByChipUID(chipUID: string): Promise<RealUserAccount | null> {
+  return userAccounts.get(chipUID) || null
+}
+
+async function findUserByDID(did: string): Promise<RealUserAccount | null> {
+  return userAccounts.get(did) || null
+}
+
+async function findUserByPublicKey(publicKey: string): Promise<RealUserAccount | null> {
+  // Search through all accounts for matching public key
+  for (const [_, user] of userAccounts) {
+    if (user.publicKey === publicKey) {
+      return user
+    }
+  }
+  return null
 }
 
 // --- Decentralized Crypto Functions ---

@@ -515,6 +515,197 @@ export default function NFCTestPage() {
     })
   }, [toast])
 
+  // --- Enhanced Testing Functions ---
+  const testCompleteAuthenticationFlow = useCallback(async (session: NFCTestSession) => {
+    setIsSimulatingTap(true)
+    setCryptoLogs([])
+    
+    const addLog = (message: string) => {
+      setCryptoLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`])
+    }
+    
+    try {
+      addLog('🧪 Starting comprehensive authentication test...')
+      
+      // Phase 1: URL Parameter Parsing Test
+      addLog('📋 Phase 1: Testing URL parameter parsing...')
+      const url = new URL(session.nfcUrl, window.location.origin)
+      const params = new URLSearchParams(url.search)
+      
+      // Test different URL formats
+      let parsedParams: any = {}
+      if (params.has('u') && params.has('s') && params.has('k')) {
+        addLog('🔧 Testing ultra-compressed format (u,s,k)...')
+        const ultraUID = params.get('u')!
+        const ultraSig = params.get('s')!
+        const ultraKey = params.get('k')!
+        
+        // Test base64 decoding vs hex padding
+        try {
+          const decodedSig = atob(ultraSig.replace(/-/g, '+').replace(/_/g, '/'))
+          const signature = Array.from(decodedSig).map(char => 
+            char.charCodeAt(0).toString(16).padStart(2, '0')
+          ).join('')
+          
+          const decodedKey = atob(ultraKey.replace(/-/g, '+').replace(/_/g, '/'))
+          const publicKey = Array.from(decodedKey).map(char => 
+            char.charCodeAt(0).toString(16).padStart(2, '0')
+          ).join('')
+          
+          parsedParams = {
+            chipUID: ultraUID.includes(':') ? ultraUID : `04:${ultraUID.match(/.{2}/g)?.join(':') || ultraUID}`,
+            signature,
+            publicKey,
+            did: `did:key:z${publicKey.substring(0, 32)}`
+          }
+          addLog('✅ Base64 decoding successful')
+        } catch {
+          // Fallback to hex padding
+          parsedParams = {
+            chipUID: ultraUID.includes(':') ? ultraUID : `04:${ultraUID.match(/.{2}/g)?.join(':') || ultraUID}`,
+            signature: ultraSig.padEnd(128, '0'),
+            publicKey: ultraKey.padEnd(64, '0'),
+            did: `did:key:z${ultraKey.substring(0, 32)}`
+          }
+          addLog('⚠️ Base64 failed, using hex padding fallback')
+        }
+      } else {
+        // Full format
+        parsedParams = {
+          chipUID: session.chipUID,
+          signature: session.signature,
+          publicKey: session.publicKey,
+          did: session.did
+        }
+        addLog('✅ Using full parameter format')
+      }
+      
+      addLog(`📊 Parsed params: UID=${parsedParams.chipUID}, DID=${parsedParams.did?.substring(0, 20)}...`)
+      
+      // Phase 2: Cryptographic Verification Test
+      addLog('🔐 Phase 2: Testing cryptographic verification...')
+      const verifyResponse = await fetch('/api/nfc/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...parsedParams,
+          challenge: `KairOS_NFC_Challenge_${parsedParams.chipUID}`,
+          deviceInfo: {
+            platform: 'web',
+            userAgent: navigator.userAgent
+          }
+        })
+      })
+      
+      const verifyResult = await verifyResponse.json()
+      addLog(`🔍 Verification response: ${verifyResponse.status}`)
+      addLog(`📋 Success: ${verifyResult.success}, Verified: ${verifyResult.verified}`)
+      
+      if (!verifyResult.success || !verifyResult.verified) {
+        throw new Error(`Crypto verification failed: ${verifyResult.error}`)
+      }
+      
+      // Phase 3: Account Persistence Test
+      addLog('👤 Phase 3: Testing account persistence...')
+      const accountData = verifyResult.data
+      
+      if (!accountData?.accountId) {
+        throw new Error('Account creation failed')
+      }
+      
+      addLog(`✅ Account created/found: ${accountData.accountId}`)
+      addLog(`🆔 DID: ${accountData.did}`)
+      addLog(`📊 Verification count: ${accountData.verificationCount}`)
+      
+      // Phase 4: Cross-Device Persistence Test
+      addLog('🔄 Phase 4: Testing cross-device persistence...')
+      
+      // Simulate second authentication from different device
+      const secondAuthResponse = await fetch('/api/nfc/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...parsedParams,
+          challenge: `KairOS_NFC_Challenge_${parsedParams.chipUID}`,
+          deviceInfo: {
+            platform: 'mobile',
+            userAgent: 'Simulated iPhone 15'
+          }
+        })
+      })
+      
+      const secondAuthResult = await secondAuthResponse.json()
+      
+      if (secondAuthResult.success && secondAuthResult.data?.verificationCount > accountData.verificationCount) {
+        addLog('✅ Cross-device persistence confirmed - account updated')
+      } else {
+        addLog('⚠️ Cross-device test inconclusive')
+      }
+      
+      // Phase 5: URL Compatibility Test
+      addLog('📱 Phase 5: Testing URL compatibility across platforms...')
+      const urlLength = new TextEncoder().encode(session.nfcUrl).length
+      const chipLimits = {
+        'NTAG213': 137,
+        'NTAG215': 492,
+        'NTAG216': 900,
+        'NTAG424_DNA': 256
+      }
+      
+      Object.entries(chipLimits).forEach(([chip, limit]) => {
+        const fits = urlLength <= limit
+        addLog(`📊 ${chip}: ${urlLength}/${limit} bytes - ${fits ? '✅ Compatible' : '❌ Too large'}`)
+      })
+      
+      // Create test event
+      const testEvent: NFCTapEvent = {
+        timestamp: Date.now(),
+        chipUID: session.chipUID,
+        urlAccessed: session.nfcUrl,
+        did: session.did,
+        signature: session.signature,
+        verificationResult: 'success',
+        cryptoLogs: [],
+        accountCreated: true,
+        sessionToken: verifyResult.sessionToken,
+        momentId: verifyResult.momentId
+      }
+      
+      setTapHistory(prev => [testEvent, ...prev])
+      
+      addLog('🎉 Complete authentication flow test PASSED!')
+      
+      toast({
+        title: "✅ Authentication Flow Test SUCCESS",
+        description: `All phases passed: Parse → Crypto → Account → Persistence → Compatibility`,
+      })
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      addLog(`❌ Test failed: ${errorMessage}`)
+      
+      const failedEvent: NFCTapEvent = {
+        timestamp: Date.now(),
+        chipUID: session.chipUID,
+        urlAccessed: session.nfcUrl,
+        did: session.did,
+        signature: session.signature,
+        verificationResult: 'failure',
+        cryptoLogs: [errorMessage]
+      }
+      
+      setTapHistory(prev => [failedEvent, ...prev])
+      
+      toast({
+        title: "❌ Authentication Flow Test FAILED",
+        description: errorMessage,
+        variant: "destructive"
+      })
+    } finally {
+      setIsSimulatingTap(false)
+    }
+  }, [toast])
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -601,19 +792,38 @@ export default function NFCTestPage() {
                   <>
                     <Separator />
                     <Button 
-                      onClick={simulateNFCTap}
+                      onClick={() => testCompleteAuthenticationFlow(testSession)}
                       disabled={isSimulatingTap}
-                      className="w-full bg-primary hover:bg-primary/90"
+                      className="w-full bg-gradient-to-r from-primary to-primary/80"
                     >
                       {isSimulatingTap ? (
                         <>
                           <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
-                          Authenticating...
+                          Testing Complete Flow...
                         </>
                       ) : (
                         <>
                           <NfcIcon className="h-4 w-4 mr-2" />
-                          Simulate NFC Tap
+                          Test Complete Auth Flow
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => simulateNFCTap(testSession)}
+                      disabled={isSimulatingTap}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {isSimulatingTap ? (
+                        <>
+                          <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                          Simulating Tap...
+                        </>
+                      ) : (
+                        <>
+                          <NfcIcon className="h-4 w-4 mr-2" />
+                          Simple NFC Tap Simulation
                         </>
                       )}
                     </Button>

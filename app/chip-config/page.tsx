@@ -355,10 +355,16 @@ export default function ChipConfigPage() {
       const chipId = chipName || `KAIROS_${generateRandomHex(4).toUpperCase()}`
       const chipUID = generateChipUID()
       
+      // Step 1: Generate REAL cryptographic keypair with server validation
       const keyPair = await generateRealEd25519KeyPair(chipUID)
       const did = keyPair.did
       
-      // Use the SMART URL generator that defaults to intent URLs for Android
+      // Step 2: Validate cryptographic parameters before URL generation
+      if (!keyPair.signature || !keyPair.publicKey || !keyPair.challengeMessage) {
+        throw new Error('Incomplete cryptographic parameters generated')
+      }
+      
+      // Step 3: Use the SMART URL generator with validation
       const urlResult = generateSmartNFCUrl(
         chipUID,
         keyPair.signature,
@@ -368,8 +374,31 @@ export default function ChipConfigPage() {
         selectedChipType
       )
       
-      // Create full test URL for verification
-      const testUrl = `${customBaseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${keyPair.signature}&publicKey=${keyPair.publicKey}&uid=${chipUID}&challenge=${encodeURIComponent(keyPair.challengeMessage)}`
+      // Step 4: Create multiple URL formats for testing and fallback
+      const fullTestUrl = `${customBaseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${keyPair.signature}&publicKey=${keyPair.publicKey}&uid=${chipUID}&challenge=${encodeURIComponent(keyPair.challengeMessage)}`
+      
+      // Step 5: Validate URL will work by doing a test signature verification
+      const testVerification = await fetch('/api/nfc/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chipUID,
+          did,
+          signature: keyPair.signature,
+          publicKey: keyPair.publicKey,
+          challenge: keyPair.challengeMessage,
+          deviceInfo: {
+            platform: 'web',
+            userAgent: navigator.userAgent
+          }
+        })
+      })
+      
+      const testResult = await testVerification.json()
+      
+      if (!testResult.success || !testResult.verified) {
+        throw new Error(`Generated URL would fail authentication: ${testResult.error || 'Unknown verification error'}`)
+      }
       
       const config: NTAG424Config = {
         chipId,
@@ -379,18 +408,19 @@ export default function ChipConfigPage() {
         publicKey: keyPair.publicKey,
         privateKey: keyPair.privateKey,
         nfcUrl: urlResult.nfcUrl,
-        testUrl,
+        testUrl: fullTestUrl,
         createdAt: new Date().toISOString(),
         challengeMessage: keyPair.challengeMessage,
         urlAnalysis: urlResult.urlAnalysis,
+        validated: true // Mark as pre-validated
       }
       
       setConfigs(prev => [config, ...prev])
       setChipName('')
       
       toast({
-        title: `✅ Smart NFC URL Generated (${urlResult.compressionLevel})`,
-        description: `${config.chipId} ready - ${urlResult.urlAnalysis.urlType} - ${urlResult.urlAnalysis.bytes} bytes`,
+        title: `✅ Cryptographically Verified URL Generated (${urlResult.compressionLevel})`,
+        description: `${config.chipId} ready - ${urlResult.urlAnalysis.urlType} - ${urlResult.urlAnalysis.bytes} bytes - Crypto verified`,
       })
       
     } catch (error) {
@@ -405,23 +435,69 @@ export default function ChipConfigPage() {
     }
   }, [chipName, customBaseUrl, selectedChipType, generateSmartNFCUrl, toast])
   
-  // --- Validate NFC URL Against Live API ---
-  const validateNFCUrl = useCallback(async (config: NTAG424Config) => {
+  // --- Test End-to-End Authentication Flow ---
+  const testEndToEndAuthFlow = useCallback(async (config: NTAG424Config) => {
     try {
       toast({
-        title: "🔍 Testing URL...",
-        description: "Validating against live authentication API",
+        title: "🧪 Testing End-to-End Auth Flow",
+        description: "Simulating complete NFC authentication...",
       })
       
-      // Test the URL by calling our verification API
-      const response = await fetch('/api/nfc/verify', {
+      // Step 1: Test URL parameter parsing
+      const url = new URL(config.nfcUrl, window.location.origin)
+      const testParams = new URLSearchParams(url.search)
+      
+      // Step 2: Test compressed format reconstruction (if using compressed format)
+      let reconstructedParams = {}
+      if (testParams.has('u') && testParams.has('s') && testParams.has('k')) {
+        // Ultra-compressed format
+        const ultraUID = testParams.get('u')!
+        const ultraSig = testParams.get('s')!
+        const ultraKey = testParams.get('k')!
+        
+        // Test base64 decoding if applicable
+        try {
+          const decoded = atob(ultraSig.replace(/-/g, '+').replace(/_/g, '/'))
+          const signature = Array.from(decoded).map(char => 
+            char.charCodeAt(0).toString(16).padStart(2, '0')
+          ).join('')
+          
+          const decodedKey = atob(ultraKey.replace(/-/g, '+').replace(/_/g, '/'))
+          const publicKey = Array.from(decodedKey).map(char => 
+            char.charCodeAt(0).toString(16).padStart(2, '0')
+          ).join('')
+          
+          reconstructedParams = {
+            chipUID: ultraUID.includes(':') ? ultraUID : `04:${ultraUID.match(/.{2}/g)?.join(':') || ultraUID}`,
+            signature,
+            publicKey,
+            did: `did:key:z${publicKey.substring(0, 32)}`
+          }
+        } catch {
+          // Fallback to hex padding
+          reconstructedParams = {
+            chipUID: ultraUID.includes(':') ? ultraUID : `04:${ultraUID.match(/.{2}/g)?.join(':') || ultraUID}`,
+            signature: ultraSig.padEnd(128, '0'),
+            publicKey: ultraKey.padEnd(64, '0'),
+            did: `did:key:z${ultraKey.substring(0, 32)}`
+          }
+        }
+      } else {
+        // Full format or other compressed formats
+        reconstructedParams = {
+          chipUID: config.chipUID,
+          signature: config.signature,
+          publicKey: config.publicKey,
+          did: config.did
+        }
+      }
+      
+      // Step 3: Test cryptographic verification
+      const verifyResponse = await fetch('/api/nfc/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chipUID: config.chipUID,
-          did: config.did,
-          signature: config.signature,
-          publicKey: config.publicKey,
+          ...reconstructedParams,
           challenge: config.challengeMessage,
           deviceInfo: {
             platform: 'web',
@@ -430,42 +506,61 @@ export default function ChipConfigPage() {
         })
       })
       
-      const result = await response.json()
+      const verifyResult = await verifyResponse.json()
       
-      if (result.success && result.verified) {
-        toast({
-          title: "✅ URL Validation SUCCESS",
-          description: "This URL will work on real NFC chips!",
-        })
-        
-        // Update the config to mark it as validated
-        setConfigs(prev => prev.map(c => 
-          c.chipId === config.chipId 
-            ? { ...c, validated: true }
-            : c
-        ))
-        
-      } else {
-        toast({
-          title: "❌ URL Validation FAILED",
-          description: result.error || "URL may not work reliably",
-          variant: "destructive"
-        })
+      if (!verifyResult.success || !verifyResult.verified) {
+        throw new Error(`Authentication test failed: ${verifyResult.error || 'Unknown error'}`)
+      }
+      
+      // Step 4: Test account creation/persistence
+      const accountData = verifyResult.data
+      
+      if (!accountData || !accountData.did || !accountData.accountId) {
+        throw new Error('Account creation failed during authentication test')
+      }
+      
+      toast({
+        title: "✅ End-to-End Test SUCCESS",
+        description: `Complete flow verified: URL → Parse → Crypto → Account (${accountData.accountId})`,
+      })
+      
+      return {
+        success: true,
+        results: {
+          urlParsingSuccessful: true,
+          cryptoVerificationSuccessful: true,
+          accountCreationSuccessful: true,
+          reconstructedParams,
+          accountData
+        }
       }
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       toast({
-        title: "💥 Validation Error",
-        description: "Could not test URL - check network connection",
+        title: "❌ End-to-End Test FAILED",
+        description: errorMessage,
         variant: "destructive"
       })
+      
+      return {
+        success: false,
+        error: errorMessage
+      }
     }
   }, [toast])
-
-  // --- Test NFC URL ---
-  const testNFCUrl = useCallback((url: string) => {
-    window.open(url, '_blank')
-  }, [])
+  
+  // --- Create Browser Testing URL ---
+  const createBrowserTestUrl = useCallback((config: NTAG424Config) => {
+    // Create a special test URL that bypasses NFC and simulates a chip tap
+    const testUrl = `${window.location.origin}/nfc?${new URL(config.nfcUrl).searchParams.toString()}&test=browser_simulation&source=chip_config_test`
+    window.open(testUrl, '_blank')
+    
+    toast({
+      title: "🧪 Browser Test Opened",
+      description: "Testing authentication flow in new tab (no NFC chip required)",
+    })
+  }, [toast])
 
   return (
     <div className="min-h-screen bg-background">
@@ -787,7 +882,7 @@ export default function ChipConfigPage() {
                                 <Button 
                                   size="sm" 
                                   variant="outline"
-                                  onClick={() => validateNFCUrl(config)}
+                                  onClick={() => testEndToEndAuthFlow(config)}
                                   className={config.validated ? 'border-green-500 text-green-700' : ''}
                                 >
                                   {config.validated ? (
@@ -805,7 +900,7 @@ export default function ChipConfigPage() {
                                 <Button 
                                   size="sm" 
                                   variant="outline"
-                                  onClick={() => testNFCUrl(config.nfcUrl)}
+                                  onClick={() => createBrowserTestUrl(config)}
                                 >
                                   <ExternalLinkIcon className="h-4 w-4 mr-2" />
                                   Open
