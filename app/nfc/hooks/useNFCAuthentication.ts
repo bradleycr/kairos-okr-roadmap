@@ -123,7 +123,15 @@ export function useNFCAuthentication() {
       
       // Redirect after delay
       setTimeout(() => {
-        router.push(`/profile?authenticated=true&source=nfc`)
+        const profileUrl = new URL('/profile', window.location.origin)
+        profileUrl.searchParams.set('authenticated', 'true')
+        profileUrl.searchParams.set('source', 'nfc')
+        profileUrl.searchParams.set('deviceId', result.deviceId || 'unknown')
+        profileUrl.searchParams.set('chipUID', params.chipUID || 'unknown')
+        profileUrl.searchParams.set('sessionToken', result.sessionToken || '')
+        profileUrl.searchParams.set('momentId', result.momentId || '')
+        
+        router.push(profileUrl.toString())
       }, 1500)
       
     } else {
@@ -181,7 +189,15 @@ export function useNFCAuthentication() {
       
       // Redirect after delay
       setTimeout(() => {
-        router.push(`/profile?authenticated=true&source=nfc`)
+        const profileUrl = new URL('/profile', window.location.origin)
+        profileUrl.searchParams.set('authenticated', 'true')
+        profileUrl.searchParams.set('source', 'nfc')
+        profileUrl.searchParams.set('deviceId', result.deviceId || 'unknown')
+        profileUrl.searchParams.set('chipUID', params.chipUID || 'unknown')
+        profileUrl.searchParams.set('sessionToken', result.sessionToken || '')
+        profileUrl.searchParams.set('momentId', result.momentId || '')
+        
+        router.push(profileUrl.toString())
       }, 1500)
       
     } else {
