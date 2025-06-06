@@ -1,6 +1,6 @@
 # KairOS - The Future of Cryptographic Authentication
 
-> Elegant NFC-based cryptographic authentication and zero-knowledge proof system with a beautiful dark-first design.
+> NFC-based cryptographic authentication and zero-knowledge proof system with a dark-first design.
 
 ## 🌙 Dark-First Design System
 
