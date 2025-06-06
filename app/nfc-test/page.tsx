@@ -363,7 +363,6 @@ export default function RealNFCTestPage() {
       
       // Generate authenticated URL in legacy format (compatible with existing auth flow)
       const chipUID = testSession.testDevice.nfcChipData.chipUID
-      const shortUID = chipUID.replace(/:/g, '')
       
       // Use the URL shortener to create properly compressed URL
       const { generateiPhoneNFCUrl } = await import('@/lib/url-shortener')
@@ -390,15 +389,80 @@ export default function RealNFCTestPage() {
       }
       
       addLog('⚡ This URL contains REAL signature data and will trigger authentication!')
-      addLog('🌐 Opening authenticated URL...')
       
-      // Open the authenticated NFC URL
-      window.open(authenticatedUrl, '_blank')
+      // Copy URL to clipboard first (always works)
+      try {
+        await navigator.clipboard.writeText(authenticatedUrl)
+        addLog('📋 URL copied to clipboard!')
+        
+        toast({
+          title: "📋 URL Copied!",
+          description: "Authentication URL copied to clipboard",
+        })
+      } catch (clipboardError) {
+        addLog('⚠️ Clipboard access denied')
+      }
       
-      toast({
-        title: "🔐 Authenticated NFC URL Generated",
-        description: "Check the new tab for real Ed25519 verification",
-      })
+      // Detect mobile/device type for best navigation method
+      const userAgent = navigator.userAgent.toLowerCase()
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+      const isIOS = /iphone|ipad|ipod/i.test(userAgent)
+      const isAndroid = /android/i.test(userAgent)
+      
+      addLog(`🔍 Device detected: ${isMobile ? 'Mobile' : 'Desktop'} ${isIOS ? '(iOS)' : isAndroid ? '(Android)' : ''}`)
+      
+      // Try multiple methods to open the URL (mobile-friendly)
+      let openSuccess = false
+      
+      if (isMobile) {
+        addLog('📱 Using mobile-optimized navigation...')
+        
+        // Method 1: Direct navigation in same tab (most reliable on mobile)
+        try {
+          addLog('🚀 Method 1: Direct navigation (same tab)')
+          window.location.href = authenticatedUrl
+          openSuccess = true
+          addLog('✅ Direct navigation initiated')
+        } catch (error) {
+          addLog('❌ Direct navigation failed')
+        }
+      } else {
+        // Desktop: Try new tab first, then fallback
+        try {
+          addLog('🚀 Method 1: New tab (desktop)')
+          const newWindow = window.open(authenticatedUrl, '_blank', 'noopener,noreferrer')
+          if (newWindow) {
+            addLog('✅ New tab opened successfully')
+            openSuccess = true
+          } else {
+            throw new Error('Popup blocked')
+          }
+        } catch (error) {
+          addLog('❌ New tab blocked, trying same tab...')
+          try {
+            window.location.href = authenticatedUrl
+            openSuccess = true
+            addLog('✅ Same tab navigation successful')
+          } catch (error2) {
+            addLog('❌ All navigation methods failed')
+          }
+        }
+      }
+      
+      if (openSuccess) {
+        toast({
+          title: "🌐 Opening Authentication URL",
+          description: isMobile ? "Navigating to authentication page..." : "Check the new tab for authentication",
+        })
+      } else {
+        // Fallback: Show the URL for manual access
+        addLog('📱 Showing URL for manual access...')
+        
+        toast({
+          title: "📋 Authentication URL Ready",
+          description: "URL copied to clipboard - paste in browser to authenticate",
+        })
+      }
       
     } catch (error) {
       console.error('Failed to generate authenticated URL:', error)
@@ -573,6 +637,69 @@ export default function RealNFCTestPage() {
                       <span className="font-semibold">Test Real NFC URL</span>
                       <span className="text-xs opacity-80">Opens actual authentication flow</span>
                     </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <Button 
+                      onClick={async () => {
+                        if (!testSession) {
+                          toast({
+                            title: "❌ No Test Session",
+                            description: "Please initialize the system first",
+                            variant: "destructive"
+                          })
+                          return
+                        }
+
+                        try {
+                          // Generate the URL for copying
+                          const challenge = `KairOS_NFC_Challenge_${testSession.testDevice.nfcChipData.chipUID}`
+                          const { signature, publicKey } = await signChallengeLocally(
+                            testSession.testDevice.deviceId,
+                            challenge
+                          )
+                          
+                          const { generateiPhoneNFCUrl } = await import('@/lib/url-shortener')
+                          const did = `did:key:z${publicKey.substring(0, 32)}`
+                          
+                          const urlResult = generateiPhoneNFCUrl(
+                            testSession.testDevice.nfcChipData.chipUID,
+                            signature,
+                            publicKey,
+                            did,
+                            'https://kair-os.vercel.app',
+                            'NTAG215'
+                          )
+                          
+                          await navigator.clipboard.writeText(urlResult.nfcUrl)
+                          
+                          addLog('📋 Authentication URL copied to clipboard')
+                          
+                          toast({
+                            title: "📋 URL Copied",
+                            description: "Authentication URL copied to clipboard",
+                          })
+                          
+                        } catch (error) {
+                          toast({
+                            title: "❌ Copy Failed",
+                            description: "Could not copy URL to clipboard",
+                            variant: "destructive"
+                          })
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <CopyIcon className="h-4 w-4 mr-2" />
+                      Copy Auth URL
+                    </Button>
+                    
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">
+                        📱 Mobile tip: URLs are auto-copied to clipboard
+                      </p>
+                    </div>
                   </div>
 
                   {testResults.length > 0 && (
