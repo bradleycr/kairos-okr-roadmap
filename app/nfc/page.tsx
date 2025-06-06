@@ -542,7 +542,7 @@ function NFCPageContent() {
                 <span className="animate-[fadeIn_0.8s_ease-in] text-primary">Ritual Gateway</span>
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground animate-[fadeIn_1s_ease-in]">
-                Decentralized identity • Zero-knowledge moments • MELD ecosystem
+                Decentralized identity for MELD ecosystem
               </p>
             </div>
           </div>
@@ -728,109 +728,47 @@ function NFCPageContent() {
         ) : (
           /* MANUAL PAGE ACCESS: Show welcome message with link to scanner */
           <>
-            {/* Android Chrome Intent Selector */}
-            {deviceInfo.canUseIntent && !deviceInfo.isChrome && (
-              <Card className="border border-amber-500/20 shadow-lg bg-amber-50/10 backdrop-blur-sm animate-[fadeIn_0.8s_ease-out]">
-                <CardHeader className="text-center pb-3">
-                  <CardTitle className="flex items-center justify-center gap-2 text-base sm:text-lg text-amber-600">
-                    <div className="relative">
-                      <ZapIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                    <span className="font-mono tracking-wide">OPTIMIZE.EXPERIENCE</span>
-                  </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm text-amber-700">
-                    Chrome provides the best pendant authentication on Android
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 text-center">
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={openInChrome}
-                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-mono text-sm"
-                      size="lg"
-                    >
-                      <NfcIcon className="h-4 w-4 mr-2" />
-                      Continue in Chrome (Recommended)
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      className="w-full font-mono text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
-                      size="sm"
-                      onClick={() => {
-                        toast({
-                          title: "📱 Continuing in Current Browser",
-                          description: "Some features may be limited",
-                        })
-                      }}
-                    >
-                      Continue in Current Browser
-                    </Button>
-                  </div>
-                  
-                  <div className="text-xs text-amber-600/80 font-mono pt-2 border-t border-amber-200/30">
-                    Chrome offers superior NFC API support for pendant authentication
-              </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Standard Welcome Card */}
+            {/* Standard Welcome Card - Simplified */}
             <Card className="border border-border shadow-lg bg-card/80 backdrop-blur-sm animate-[fadeIn_0.8s_ease-out]">
               <CardHeader className="text-center pb-3">
                 <CardTitle className="flex items-center justify-center gap-2 text-base sm:text-lg">
                   <div className="relative">
-                    <NfcIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-[float_3s_ease-in-out_infinite]" />
+                    <WifiIcon className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                   </div>
-                  <span className="font-mono tracking-wide">PENDANT.CONFIGURATION</span>
-                  {deviceInfo.isAndroid && deviceInfo.isChrome && (
-                    <Badge variant="default" className="ml-2 text-xs font-mono bg-green-600">OPTIMAL</Badge>
-                  )}
+                  <span className="font-mono tracking-wide">PENDANT.SETUP</span>
                 </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  {deviceInfo.isAndroid && deviceInfo.isChrome 
-                    ? "Chrome on Android - optimal pendant experience"
-                    : "Configure or scan your MELD pendant"
-                  }
+                <CardDescription className="text-xs sm:text-sm text-muted-foreground">
+                  Configure or scan your MELD pendant
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-center">
                 <div className="space-y-3">
                   <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
-                    {/* Configuration icon instead of pulsing NFC */}
                     <WifiIcon className="h-6 w-6 sm:h-8 sm:w-8 text-amber-600" />
                   </div>
                   
                   <div className="space-y-2">
                     <h3 className="text-base sm:text-lg md:text-xl font-semibold text-foreground font-mono">
-                      Pendant Setup Required
+                      Setup Required
                     </h3>
-                    <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                        <span className="text-amber-600 font-medium">Expected automatic authentication?</span>
-                        <br />
-                        If you tapped a programmed pendant, you should have been authenticated automatically.
-                        <br />
-                        <span className="text-primary font-medium">Seeing this page means your pendant needs configuration or scanning.</span>
-                      </p>
-                    </div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Programmed pendants auto-authenticate when tapped
+                    </p>
                   </div>
                   
                   <div className="flex flex-col gap-3 pt-3 max-w-xs mx-auto">
                     <Button 
                       onClick={() => router.push('/chip-config')} 
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-sm"
-                      size="lg"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono"
                     >
                       <WifiIcon className="h-4 w-4 mr-2" />
-                      Configure Your Pendant
+                      Configure Pendant
                     </Button>
                     
                     <Button 
                       variant="outline" 
                       onClick={() => router.push('/nfc/scan')}
-                      className="w-full border-primary/30 text-primary hover:bg-primary/5 font-mono text-sm"
-                      size="lg"
+                      className="w-full border-primary/30 text-primary hover:bg-primary/5 font-mono"
                     >
                       <ScanIcon className="h-4 w-4 mr-2" />
                       Scan Raw Pendant
@@ -839,28 +777,6 @@ function NFCPageContent() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Help Section */}
-            <div className="text-center animate-[fadeIn_1.2s_ease-out]">
-              <div className="bg-muted/30 rounded-lg p-4 border border-border/30">
-                <h4 className="text-sm font-semibold text-foreground mb-2 font-mono">Need Help?</h4>
-                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                  • <span className="font-medium">Programmed pendants</span> should auto-authenticate when tapped
-                  <br />
-                  • <span className="font-medium">Raw pendants</span> need configuration or scanning
-                  <br />
-                  • <span className="font-medium">No pendant?</span> Configure one to get started
-                </p>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => router.push('/installation-guide')}
-                  className="text-xs text-muted-foreground hover:text-primary transition-all duration-300 font-mono"
-                >
-                  View Setup Guide
-                </Button>
-              </div>
-            </div>
           </>
         )}
 
