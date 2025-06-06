@@ -182,16 +182,20 @@ export default function ChipConfigPage() {
   const [deviceInfo, setDeviceInfo] = useState<{
     isAndroid: boolean
     isChrome: boolean
+    isIPhone: boolean
+    isSafari: boolean
     canUseIntent: boolean
-  }>({ isAndroid: false, isChrome: false, canUseIntent: false })
+  }>({ isAndroid: false, isChrome: false, isIPhone: false, isSafari: false, canUseIntent: false })
 
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase()
     const isAndroid = userAgent.includes('android')
     const isChrome = userAgent.includes('chrome') && !userAgent.includes('edg')
+    const isIPhone = userAgent.includes('iphone') || userAgent.includes('ipad')
+    const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome')
     const canUseIntent = isAndroid && typeof window !== 'undefined'
     
-    setDeviceInfo({ isAndroid, isChrome, canUseIntent })
+    setDeviceInfo({ isAndroid, isChrome, isIPhone, isSafari, canUseIntent })
   }, [])
 
   // --- Initialize Web NFC Writer (client-side only) ---
@@ -924,9 +928,19 @@ export default function ChipConfigPage() {
                               <li>Test by tapping the tag - it should open the URL in your browser</li>
                             </ol>
                             <div className="mt-3 pt-3 border-t border-primary/20">
-                              <p className="text-xs text-muted-foreground">
-                                <strong>Android users:</strong> The app will automatically suggest switching to Chrome for optimal NFC authentication experience when you tap the tag.
-                              </p>
+                              {deviceInfo.isIPhone ? (
+                                <p className="text-xs text-muted-foreground">
+                                  <strong>iPhone users:</strong> NFC authentication works perfectly in Safari when you tap programmed tags. NFC writing requires the NFC Tools app.
+                                </p>
+                              ) : deviceInfo.isAndroid ? (
+                                <p className="text-xs text-muted-foreground">
+                                  <strong>Android users:</strong> The app will automatically suggest switching to Chrome for optimal NFC authentication experience when you tap the tag.
+                                </p>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">
+                                  <strong>All platforms:</strong> NFC authentication works on any modern browser with programmed tags.
+                                </p>
+                              )}
                             </div>
                           </div>
                           

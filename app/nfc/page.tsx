@@ -78,16 +78,20 @@ function NFCPageContent() {
   const [deviceInfo, setDeviceInfo] = useState<{
     isAndroid: boolean
     isChrome: boolean
+    isIPhone: boolean
+    isSafari: boolean
     canUseIntent: boolean
-  }>({ isAndroid: false, isChrome: false, canUseIntent: false })
+  }>({ isAndroid: false, isChrome: false, isIPhone: false, isSafari: false, canUseIntent: false })
 
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase()
     const isAndroid = userAgent.includes('android')
     const isChrome = userAgent.includes('chrome') && !userAgent.includes('edg')
+    const isIPhone = userAgent.includes('iphone') || userAgent.includes('ipad')
+    const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome')
     const canUseIntent = isAndroid && typeof window !== 'undefined'
     
-    setDeviceInfo({ isAndroid, isChrome, canUseIntent })
+    setDeviceInfo({ isAndroid, isChrome, isIPhone, isSafari, canUseIntent })
   }, [])
 
   const openInChrome = useCallback(() => {
@@ -519,8 +523,11 @@ function NFCPageContent() {
     })
   }, [verificationState, nfcParams, toast])
 
-  // Check if user should be prompted to switch to Chrome
+  // Check if user should be prompted to switch to Chrome (Android only)
   const shouldPromptChromeSwitch = deviceInfo.isAndroid && !deviceInfo.isChrome && Object.keys(nfcParams).length > 0
+
+  // Check if we should show iPhone-specific messaging
+  const shouldShowIPhoneInfo = deviceInfo.isIPhone && Object.keys(nfcParams).length > 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-hidden">
@@ -573,6 +580,24 @@ function NFCPageContent() {
                       <SmartphoneIcon className="h-3 w-3 mr-1" />
                       Open in Chrome
                     </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* iPhone Optimization Message */}
+            {shouldShowIPhoneInfo && verificationState.status === 'initializing' && (
+              <Alert className="border-green-200 bg-green-50 dark:bg-green-900/20 animate-[fadeIn_0.5s_ease-out]">
+                <CheckCircleIcon className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800 dark:text-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong>Optimized for iPhone</strong>
+                      <p className="text-sm mt-1">NFC authentication works perfectly on Safari with your iPhone's native NFC reading capabilities.</p>
+                    </div>
+                    <div className="ml-4 text-green-600">
+                      <SmartphoneIcon className="h-5 w-5" />
+                    </div>
                   </div>
                 </AlertDescription>
               </Alert>
