@@ -104,14 +104,14 @@ function NFCPageContent() {
       // Fallback after 2 seconds if Chrome doesn't open
       setTimeout(() => {
             toast({
-          title: "📱 Chrome Not Found",
+          title: "Chrome Not Found",
           description: "Continuing with current browser...",
             })
             }, 2000)
           } catch (error) {
       console.warn('Intent URL failed:', error)
             toast({
-        title: "⚠️ Opening in Current Browser",
+        title: "Opening in Current Browser",
         description: "Chrome intent not available",
               variant: "destructive"
             })
@@ -129,7 +129,7 @@ function NFCPageContent() {
     setVerificationState(prev => ({
       ...prev,
       urlParameters: allParams,
-      debugLogs: [...prev.debugLogs, `🔍 Raw URL params: ${JSON.stringify(allParams)}`]
+      debugLogs: [...prev.debugLogs, `Raw URL params: ${JSON.stringify(allParams)}`]
     }))
     
     // Strategy 1: Check for ultra-short URL pattern (from /n/[id] redirect)
@@ -144,7 +144,7 @@ function NFCPageContent() {
       
       setVerificationState(prev => ({
         ...prev,
-        debugLogs: [...prev.debugLogs, '📱 Strategy 1: Short URL format detected', `✅ Parsed: ${JSON.stringify(params)}`]
+        debugLogs: [...prev.debugLogs, 'Strategy 1: Short URL format detected', `Parsed: ${JSON.stringify(params)}`]
       }))
       
       return params
@@ -210,9 +210,9 @@ function NFCPageContent() {
           'Generated DID': did
         },
         debugLogs: [...prev.debugLogs, 
-          '📱 Strategy 2: Ultra-compressed format (u,s,k) detected',
-            `🔧 Original: u=${ultraUID}, s=${ultraSig.substring(0, 16)}..., k=${ultraKey.substring(0, 16)}...`,
-          `🔄 Reconstructed: ${JSON.stringify(reconstructed)}`
+          'Strategy 2: Ultra-compressed format (u,s,k) detected',
+            `Original: u=${ultraUID}, s=${ultraSig.substring(0, 16)}..., k=${ultraKey.substring(0, 16)}...`,
+          `Reconstructed: ${JSON.stringify(reconstructed)}`
         ]
       }))
       
@@ -220,7 +220,7 @@ function NFCPageContent() {
       } catch (error) {
         setVerificationState(prev => ({
           ...prev,
-          debugLogs: [...prev.debugLogs, `❌ Error processing ultra-compressed format: ${error}`]
+          debugLogs: [...prev.debugLogs, `Error processing ultra-compressed format: ${error}`]
         }))
         // Fall through to next strategy
       }
@@ -257,9 +257,9 @@ function NFCPageContent() {
           'Generated DID': did
         },
         debugLogs: [...prev.debugLogs, 
-          '📱 Strategy 3: Compressed format (c,s,p) detected',
-            `🔧 Original: c=${compressedUID}, s=${compressedSig.substring(0, 16)}..., p=${compressedKey.substring(0, 16)}...`,
-          `🔄 Reconstructed: ${JSON.stringify(reconstructed)}`
+          'Strategy 3: Compressed format (c,s,p) detected',
+            `Original: c=${compressedUID}, s=${compressedSig.substring(0, 16)}..., p=${compressedKey.substring(0, 16)}...`,
+          `Reconstructed: ${JSON.stringify(reconstructed)}`
         ]
       }))
       
@@ -267,7 +267,7 @@ function NFCPageContent() {
       } catch (error) {
         setVerificationState(prev => ({
           ...prev,
-          debugLogs: [...prev.debugLogs, `❌ Error processing compressed format: ${error}`]
+          debugLogs: [...prev.debugLogs, `Error processing compressed format: ${error}`]
         }))
         // Fall through to next strategy
       }
@@ -289,7 +289,7 @@ function NFCPageContent() {
       
       setVerificationState(prev => ({
         ...prev,
-        debugLogs: [...prev.debugLogs, '📱 Strategy 4: Full format detected', `✅ Parsed: ${JSON.stringify(params)}`]
+        debugLogs: [...prev.debugLogs, 'Strategy 4: Full format detected', `Parsed: ${JSON.stringify(params)}`]
       }))
       
       return params
@@ -298,7 +298,7 @@ function NFCPageContent() {
     // No valid parameters found
     setVerificationState(prev => ({
       ...prev,
-      debugLogs: [...prev.debugLogs, '❌ No valid NFC parameters found in URL - showing Web NFC fallback']
+      debugLogs: [...prev.debugLogs, 'No valid NFC parameters found in URL - showing Web NFC fallback']
     }))
     
     return {}
@@ -323,7 +323,7 @@ function NFCPageContent() {
     
     setVerificationState(prev => ({
       ...prev,
-      debugLogs: [...prev.debugLogs, `🚀 Sending API request to /api/nfc/verify`, `📦 Request body: ${JSON.stringify(requestBody, null, 2)}`]
+      debugLogs: [...prev.debugLogs, `Sending API request to /api/nfc/verify`, `Request body: ${JSON.stringify(requestBody, null, 2)}`]
     }))
     
     const response = await fetch('/api/nfc/verify', {
@@ -340,7 +340,7 @@ function NFCPageContent() {
       ...prev,
       apiResponse: responseData,
       debugLogs: [...prev.debugLogs, 
-        `📡 API Response (${response.status}): ${JSON.stringify(responseData, null, 2)}`
+        `API Response (${response.status}): ${JSON.stringify(responseData, null, 2)}`
       ]
     }))
     
@@ -385,7 +385,7 @@ function NFCPageContent() {
         ...prev,
         progress: 20,
         currentPhase: 'Reading NFC credentials...',
-        debugLogs: [...prev.debugLogs, '🔄 Phase 1: Parsing NFC data from URL parameters']
+        debugLogs: [...prev.debugLogs, 'Phase 1: Parsing NFC data from URL parameters']
       }))
       
       await new Promise(resolve => setTimeout(resolve, 600))
@@ -395,7 +395,7 @@ function NFCPageContent() {
         ...prev,
         progress: 40,
         currentPhase: 'Validating cryptographic parameters...',
-        debugLogs: [...prev.debugLogs, '🔄 Phase 2: Validating DID format and parameter integrity']
+        debugLogs: [...prev.debugLogs, 'Phase 2: Validating DID format and parameter integrity']
       }))
       
       await new Promise(resolve => setTimeout(resolve, 400))
@@ -405,7 +405,7 @@ function NFCPageContent() {
         ...prev,
         progress: 70,
         currentPhase: 'Verifying Ed25519 signature...',
-        debugLogs: [...prev.debugLogs, '🔄 Phase 3: Performing cryptographic verification via API']
+        debugLogs: [...prev.debugLogs, 'Phase 3: Performing cryptographic verification via API']
       }))
       
       const verificationResult = await verifyNFCAuthentication(params)
@@ -427,15 +427,15 @@ function NFCPageContent() {
         sessionToken: verificationResult.sessionToken,
         momentId: verificationResult.momentId,
         debugLogs: [...prev.debugLogs, 
-          '✅ Phase 4: Authentication completed successfully',
-          `🎉 Session token: ${verificationResult.sessionToken?.substring(0, 16)}...`,
-          `📝 Moment ID: ${verificationResult.momentId}`
+          'Phase 4: Authentication completed successfully',
+          `Session token: ${verificationResult.sessionToken?.substring(0, 16)}...`,
+          `Moment ID: ${verificationResult.momentId}`
         ]
       }))
       
       // Show success toast
       toast({
-        title: "🎉 NFC Authentication Successful!",
+        title: "NFC Authentication Successful!",
         description: "Your cryptographic credentials have been verified",
       })
       
@@ -467,14 +467,14 @@ function NFCPageContent() {
         error: userFriendlyMessage,
         currentPhase: 'Authentication failed',
         debugLogs: [...prev.debugLogs, 
-          `❌ Verification failed: ${debugMessage}`,
-          `💡 User message: ${userFriendlyMessage}`
+          `Verification failed: ${debugMessage}`,
+          `User message: ${userFriendlyMessage}`
         ]
       }))
       
       // Show error toast
       toast({
-        title: "❌ Authentication Failed",
+        title: "Authentication Failed",
         description: userFriendlyMessage,
         variant: "destructive"
       })
@@ -493,7 +493,7 @@ function NFCPageContent() {
         ...prev,
         status: 'initializing',
         currentPhase: 'Ready to scan NFC tags',
-        debugLogs: [...prev.debugLogs, '👤 User accessing /nfc page directly - no URL parameters detected']
+        debugLogs: [...prev.debugLogs, 'User accessing /nfc page directly - no URL parameters detected']
       }))
     }
   }, [executeVerificationFlow, parseNFCParameters])
@@ -566,8 +566,8 @@ function NFCPageContent() {
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm font-mono">
                 {verificationState.status === 'verifying' 
-                  ? <span className="animate-pulse">⚡ CONNECTING TO DECENTRALIZED NETWORK...</span>
-                  : <span>🔮 Cryptographic pendant detected - initiating verification</span>
+                  ? <span className="animate-pulse">CONNECTING TO DECENTRALIZED NETWORK...</span>
+                  : <span>Cryptographic pendant detected - initiating verification</span>
                 }
               </CardDescription>
             </CardHeader>
