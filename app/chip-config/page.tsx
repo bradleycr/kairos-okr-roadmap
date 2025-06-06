@@ -47,6 +47,7 @@ interface NTAG424Config {
   publicKey: string
   privateKey: string
   nfcUrl: string
+  httpsUrl: string
   testUrl: string
   createdAt: string
   challengeMessage: string
@@ -54,6 +55,8 @@ interface NTAG424Config {
     bytes: number
     chars: number
     compatibility: Record<string, string>
+    urlType: string
+    isIntent: boolean
   }
   validated?: boolean
 }
@@ -317,6 +320,42 @@ export default function ChipConfigPage() {
     })
   }, [nfcWriter, writeDialog, toast])
 
+  // --- Smart URL Generation (Intent-first for Android) ---
+  const generateSmartNFCUrl = useCallback((
+    chipUID: string,
+    signature: string,
+    publicKey: string,
+    did: string,
+    baseUrl: string,
+    chipType: string
+  ) => {
+    // Generate the optimized URL first
+    const urlData = generateOptimizedNFCUrl(chipUID, signature, publicKey, did, baseUrl, chipType)
+    
+    // For Android Chrome users, use intent URL by default
+    let finalUrl = urlData.nfcUrl
+    let urlType = 'HTTPS (Universal)'
+    
+    if (deviceInfo.isAndroid && deviceInfo.isChrome) {
+      finalUrl = generateAndroidIntentUrl(urlData.nfcUrl)
+      urlType = 'Chrome Intent (Optimized)'
+    } else if (deviceInfo.isAndroid && deviceInfo.canUseIntent) {
+      finalUrl = generateAndroidIntentUrl(urlData.nfcUrl)
+      urlType = 'Chrome Intent (Recommended)'
+    }
+    
+    return {
+      nfcUrl: finalUrl,
+      httpsUrl: urlData.nfcUrl, // Keep original for fallback
+      urlAnalysis: {
+        ...urlData.urlAnalysis,
+        urlType,
+        isIntent: finalUrl.startsWith('intent://')
+      },
+      compressionLevel: urlData.compressionLevel
+    }
+  }, [deviceInfo, generateAndroidIntentUrl])
+
   // --- Generate New NTAG424 DNA Configuration ---
   const generateNTAG424Config = useCallback(async () => {
     setIsGenerating(true)
@@ -328,8 +367,8 @@ export default function ChipConfigPage() {
       const keyPair = await generateRealEd25519KeyPair(chipUID)
       const did = keyPair.did
       
-      // Use the OPTIMIZED iPhone NFC URL generator for best compression
-      const urlResult = generateOptimizedNFCUrl(
+      // Use the SMART URL generator that defaults to intent URLs for Android
+      const urlResult = generateSmartNFCUrl(
         chipUID,
         keyPair.signature,
         keyPair.publicKey,
@@ -352,15 +391,16 @@ export default function ChipConfigPage() {
         testUrl,
         createdAt: new Date().toISOString(),
         challengeMessage: keyPair.challengeMessage,
-        urlAnalysis: urlResult.urlAnalysis
+        urlAnalysis: urlResult.urlAnalysis,
+        httpsUrl: urlResult.httpsUrl // Store fallback URL
       }
       
       setConfigs(prev => [config, ...prev])
       setChipName('')
       
       toast({
-        title: `✅ Optimized NFC URL Generated (${urlResult.compressionLevel})`,
-        description: `${config.chipId} ready - ${urlResult.urlAnalysis.bytes} bytes - Universal compatibility`,
+        title: `✅ Smart NFC URL Generated (${urlResult.compressionLevel})`,
+        description: `${config.chipId} ready - ${urlResult.urlAnalysis.urlType} - ${urlResult.urlAnalysis.bytes} bytes`,
       })
       
     } catch (error) {
@@ -373,7 +413,7 @@ export default function ChipConfigPage() {
     } finally {
       setIsGenerating(false)
     }
-  }, [chipName, customBaseUrl, selectedChipType, toast])
+  }, [chipName, customBaseUrl, selectedChipType, generateSmartNFCUrl, toast])
   
   // --- Validate NFC URL Against Live API ---
   const validateNFCUrl = useCallback(async (config: NTAG424Config) => {
@@ -737,24 +777,30 @@ export default function ChipConfigPage() {
                                   Copy for NFC Tools
                                 </Button>
 
-                                {/* 🚀 Android Chrome Intent Button - Optimal Experience */}
-                                {deviceInfo.canUseIntent && (
+                                {/* HTTPS Fallback Button - For Non-Android or Issues */}
+                                {config.httpsUrl && config.httpsUrl !== config.nfcUrl && (
                                   <Button 
                                     size="sm" 
                                     variant="outline"
                                     onClick={() => {
-                                      const intentUrl = generateAndroidIntentUrl(config.nfcUrl)
-                                      copyToClipboard(intentUrl, 'Chrome Intent URL')
+                                      copyToClipboard(config.httpsUrl, 'HTTPS Fallback URL')
                                       toast({
-                                        title: "🚀 Chrome Intent URL Copied!",
-                                        description: "Optimized for direct Android Chrome opening",
+                                        title: "📋 HTTPS URL Copied!",
+                                        description: "Universal fallback for all devices",
                                       })
                                     }}
-                                    className="border-2 border-blue-500 text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                    className="border-2 border-green-500 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
                                   >
-                                    <RocketIcon className="h-4 w-4 mr-2" />
-                                    Copy Intent
+                                    <CopyIcon className="h-4 w-4 mr-2" />
+                                    Copy HTTPS Fallback
                                   </Button>
+                                )}
+
+                                {/* Intent URL Info - Show when intent is being used */}
+                                {config.urlAnalysis.isIntent && (
+                                  <div className="text-xs text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded border border-blue-200">
+                                    🚀 Using Chrome Intent URL - optimized for Android
+                                  </div>
                                 )}
 
                                 {/* 🚀 Web NFC Write Button - Progressive Enhancement */}
