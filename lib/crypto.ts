@@ -148,3 +148,9 @@ export async function importKeyPair(storedKeyPair: { privateKey: number[]; publi
     throw new Error("Failed to import key pair")
   }
 }
+
+export async function exportPublicKey(publicKey: CryptoKey): Promise<Uint8Array> {
+  const exported = await crypto.subtle.exportKey('raw', publicKey)
+  const bytes = new Uint8Array(exported)
+  return bytes
+}

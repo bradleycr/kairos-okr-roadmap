@@ -3,15 +3,22 @@
  * 
  * Handles /n/[id] routes for maximum NFC URL compression.
  * Expands short IDs back to full authentication parameters.
+ * 
+ * NOTE: This feature is currently disabled as expandShortNFCUrl is not implemented.
+ * TODO: Implement ultra-short URL compression and expansion for extreme space constraints.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { expandShortNFCUrl } from '@/lib/url-shortener'
+// import { expandShortNFCUrl } from '@/lib/url-shortener'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Feature currently disabled - redirect to main NFC page
+  return NextResponse.redirect(new URL('/nfc?error=short_urls_disabled', request.url))
+  
+  /*
   try {
     const { id } = params
     
@@ -41,4 +48,5 @@ export async function GET(
     console.error('Short URL expansion failed:', error)
     return NextResponse.redirect(new URL('/nfc?error=expansion_failed', request.url))
   }
+  */
 } 

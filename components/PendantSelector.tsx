@@ -149,11 +149,11 @@ export default function PendantSelector({
   }
 
   return (
-    <div className={cn("glass-card rounded-2xl p-6", className)}>
+    <div className={cn("glass-card rounded-2xl p-6 sm:p-8", className)}>
       {/* Compact Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-sage-400 to-sage-600 rounded-lg shadow-minimal">
+          <div className="p-2 bg-primary/10 rounded-lg shadow-minimal">
             <Zap className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -165,7 +165,7 @@ export default function PendantSelector({
         <button
           onClick={generateNewPendant}
           disabled={isGenerating}
-          className="flex items-center gap-2 px-3 py-2 glass-button text-neutral-700 rounded-lg hover:text-sage-700 disabled:opacity-50 text-sm font-medium"
+          className="flex items-center gap-2 px-3 py-2 glass-button text-muted-foreground rounded-lg hover:text-foreground disabled:opacity-50 text-sm font-medium"
         >
           <Plus className="w-4 h-4" />
           {isGenerating ? 'Adding...' : 'Add'}
@@ -174,7 +174,7 @@ export default function PendantSelector({
 
       {/* Selected Pendant Display - Compact */}
       {selectedPendant && (
-        <div className="mb-6 p-4 glass-card rounded-xl border transition-all duration-300"
+        <div className="mb-6 sm:mb-8 p-4 sm:p-5 glass-card rounded-xl border transition-all duration-300"
              style={{ 
                borderColor: selectedPendant.color + '40',
                backgroundColor: selectedPendant.color + '08'
@@ -200,7 +200,7 @@ export default function PendantSelector({
       )}
 
       {/* Compact Pendant Grid */}
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 sm:gap-4">
         {pendants.map((pendant, index) => {
           const isSelected = selectedPendant?.id === pendant.id
           
@@ -223,7 +223,7 @@ export default function PendantSelector({
             >
               {/* Selection Indicator */}
               {isSelected && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-sage-500 flex items-center justify-center">
+                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
                   <Circle className="w-2 h-2 text-white fill-current" />
                 </div>
               )}
@@ -252,7 +252,7 @@ export default function PendantSelector({
       {isGenerating && (
         <div className="text-center py-4">
           <div className="inline-flex items-center gap-2 px-3 py-2 glass-card rounded-lg">
-            <div className="w-3 h-3 bg-sage-500 rounded-full animate-gentle-pulse"></div>
+            <div className="w-3 h-3 bg-primary rounded-full animate-gentle-pulse"></div>
             <span className="text-neutral-700 text-sm">Generating keys...</span>
           </div>
         </div>

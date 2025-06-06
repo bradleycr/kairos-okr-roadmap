@@ -1,6 +1,6 @@
 // --- KairOS Navigation: Elegant Minimal Glass Design ---
 // Beautiful Apple-inspired navigation with earth tones and glass morphism
-// Responsive and accessible with subtle animations
+// Responsive and accessible with subtle animations + Dark Mode Support
 
 "use client"
 
@@ -17,6 +17,7 @@ import {
   UserIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 interface NavItem {
   href: string
@@ -28,7 +29,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     href: '/',
-    label: 'KairOS',
+    label: 'Designer',
     icon: <HomeIcon className="h-4 w-4" />,
     description: 'Main simulation dashboard'
   },
@@ -81,16 +82,18 @@ export default function Navigation() {
           {/* Brand Identity */}
           <div className="flex items-center space-x-3">
             <div className="flex items-center gap-3">
-              <div className="relative p-2.5 bg-gradient-to-br from-sage-400 to-sage-600 rounded-xl shadow-float">
-                <SparklesIcon className="h-5 w-5 text-white" />
-                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded-xl"></div>
+              <div className="relative p-2.5 bg-gradient-to-br from-primary/80 to-accent/80 rounded-pixel shadow-pixel border-2 border-primary/20">
+                <div className="w-5 h-5 bg-primary-foreground rounded-pixel flex items-center justify-center">
+                  <span className="text-primary text-xs font-mono font-black">K</span>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 dark:to-white/10 rounded-pixel"></div>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold gradient-text">
+                <span className="text-xl font-mono font-black tracking-wider text-primary">
                   KairOS
                 </span>
-                <span className="text-xs text-muted-foreground font-medium hidden sm:block">
-                  by MELD
+                <span className="text-xs text-muted-foreground font-mono hidden sm:block tracking-wide">
+                  `by MELD`
                 </span>
               </div>
             </div>
@@ -105,28 +108,36 @@ export default function Navigation() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 interactive focus-ring",
+                    "group relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-500 interactive focus-ring overflow-hidden",
                     isActive 
-                      ? "bg-sage-100/80 text-sage-700 shadow-minimal backdrop-blur-sm border border-sage-200/50" 
-                      : "text-neutral-600 hover:text-sage-600 hover:bg-white/60 hover:backdrop-blur-sm hover:border hover:border-white/30"
+                      ? "bg-gradient-to-r from-primary/15 via-primary/10 to-accent/10 text-primary shadow-[0_0_20px_rgba(245,181,145,0.3)] backdrop-blur-sm border border-primary/30" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-gradient-to-r hover:from-primary/8 hover:via-accent/5 hover:to-primary/8 hover:shadow-[0_0_15px_rgba(144,193,196,0.2),0_0_30px_rgba(245,181,145,0.1)] hover:backdrop-blur-md hover:border hover:border-primary/20 hover:scale-[1.02] hover:-translate-y-0.5"
                   )}
                   title={item.description}
                 >
-                  <span className={cn("transition-colors", 
-                    isActive ? "text-sage-600" : "text-neutral-500"
+                  {/* Holographic shimmer effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out" />
+                  
+                  <span className={cn("relative z-10 transition-all duration-300", 
+                    isActive ? "text-primary drop-shadow-sm" : "text-muted-foreground group-hover:text-foreground group-hover:drop-shadow-sm"
                   )}>
                     {item.icon}
                   </span>
-                  <span className="hidden lg:block font-medium">
+                  <span className="relative z-10 hidden lg:block font-medium transition-all duration-300 group-hover:font-semibold">
                     {item.label}
                   </span>
                 </Link>
               )
             })}
+            
+            {/* Theme Toggle */}
+            <div className="ml-2 pl-2 border-l border-border/30">
+              <ThemeToggle />
+            </div>
           </div>
           
           {/* Mobile Navigation */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-2">
             <div className="flex items-center gap-1">
               {navItems.slice(0, 4).map((item) => {
                 const isActive = pathname === item.href
@@ -135,27 +146,34 @@ export default function Navigation() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "p-2.5 rounded-lg transition-all duration-300 interactive focus-ring",
+                      "group relative p-2.5 rounded-lg transition-all duration-500 interactive focus-ring overflow-hidden",
                       isActive 
-                        ? "bg-sage-100/80 text-sage-700 shadow-minimal" 
-                        : "text-neutral-600 hover:text-sage-600 hover:bg-white/60"
+                        ? "bg-gradient-to-br from-primary/15 to-accent/10 text-primary shadow-[0_0_15px_rgba(245,181,145,0.25)]" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-gradient-to-br hover:from-primary/8 hover:to-accent/5 hover:shadow-[0_0_10px_rgba(144,193,196,0.2)] hover:scale-105 hover:-translate-y-0.5"
                     )}
                     title={item.description}
                   >
-                    {item.icon}
+                    {/* Mobile holographic shimmer */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-800 ease-out" />
+                    <span className="relative z-10 transition-all duration-300 group-hover:drop-shadow-sm">
+                      {item.icon}
+                    </span>
                   </Link>
                 )
               })}
-              
-              {/* Mobile Menu Indicator */}
-              <div className="ml-2 w-1 h-6 bg-gradient-to-b from-sage-300 to-terracotta-300 rounded-full opacity-60"></div>
             </div>
+            
+            {/* Mobile Theme Toggle */}
+            <ThemeToggle />
+            
+            {/* Mobile Menu Indicator */}
+            <div className="ml-2 w-1 h-6 bg-gradient-to-b from-primary/60 to-accent/60 rounded-full opacity-60"></div>
           </div>
         </div>
       </div>
       
       {/* Subtle bottom border gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sage-200/50 to-transparent"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
     </nav>
   )
 } 

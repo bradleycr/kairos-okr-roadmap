@@ -3,7 +3,6 @@
 
 import { getPublicKey, sign, verify } from '@noble/ed25519'
 import { randomBytes } from '@noble/hashes/utils'
-import { sha256 } from '@noble/hashes/sha256'
 import { sha512 } from '@noble/hashes/sha512'
 
 // --- Configure @noble/ed25519 for server environment ---

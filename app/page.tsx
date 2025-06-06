@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { PendantIdentity, TapMoment, MELD_NODES, simulateTap, eventBus, formatTimestamp } from '@/lib/hal/simulateTap'
+import { PendantIdentity, getMeldNodes, simulateTap, eventBus, formatTimestamp, initializeDefaultNodes } from '@/lib/hal/simulateTap'
 import { memoryStore } from '@/lib/moment/memoryStore'
 import { ritualManager } from '@/lib/ritual/ritualManager'
 import { Ritual } from '@/lib/ritual/types'
 import PendantSelector from '@/components/PendantSelector'
 import ESP32WearableDevice from '@/components/ESP32WearableDevice'
 import RitualControlPanel from '@/components/RitualControlPanel'
-import { Settings, RefreshCw, Trash2, Info, Sparkles, Shield, X, Hash } from 'lucide-react'
+import { Settings, RefreshCw, Trash2, Info, Sparkles, Shield, X, Hash, Terminal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function MeldSimulation() {
@@ -18,6 +18,8 @@ export default function MeldSimulation() {
   const [showSettings, setShowSettings] = useState(false)
   const [showRitualPanel, setShowRitualPanel] = useState(false)
   const [currentRitual, setCurrentRitual] = useState<Ritual | null>(null)
+  const [currentNodes, setCurrentNodes] = useState(getMeldNodes())
+  const [isRefreshing, setIsRefreshing] = useState(false)
   
   // Simplified NFC interaction states
   const [activeNode, setActiveNode] = useState<string | null>(null)
@@ -57,114 +59,95 @@ export default function MeldSimulation() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        console.log('🚀 Initializing KairOS app...')
-        memoryStore.initialize()
+        // Initialize dynamic nodes system
+        initializeDefaultNodes()
+        
+        // Initialize systems
         ritualManager.initialize()
+        updateStats()
         
-        // Load active ritual
-        const ritual = ritualManager.getActiveRitual()
-        setCurrentRitual(ritual)
-        console.log('🎭 Loaded active ritual:', ritual?.name || 'None')
-        
-        setTimeout(() => {
-          updateStats()
-        }, 200)
-      } catch (error) {
-        console.error('Failed to initialize app:', error)
-        // Try to reinitialize with fresh defaults
-        console.log('🔄 Attempting to reinitialize with defaults...')
-        try {
-          localStorage.clear() // Clear potentially corrupted data
-          ritualManager.initialize()
-          const ritual = ritualManager.getActiveRitual()
-          setCurrentRitual(ritual)
-          console.log('✅ Reinitialized successfully with ritual:', ritual?.name)
-        } catch (retryError) {
-          console.error('❌ Failed to reinitialize:', retryError)
+        // Set initial current ritual if available
+        const activeRitual = ritualManager.getActiveRitual()
+        if (activeRitual) {
+          setCurrentRitual(activeRitual)
         }
+        
+        console.log('✅ MELD Simulation initialized successfully')
+      } catch (error) {
+        console.error('❌ Failed to initialize MELD Simulation:', error)
       }
     }
-    
-    initializeApp()
-  }, [])
 
-  // Listen for moment updates and ritual executions
-  useEffect(() => {
+    // Event Listeners
     const handleMomentSaved = () => {
       updateStats()
     }
-    
+
     const handleRitualExecution = (data: any) => {
-      const { execution } = data
-      if (execution.result === 'success') {
-        // Display execution result based on behavior type
-        const resultMessages: Record<string, string> = {
-          'send_tip': `💰 Tip sent: $${execution.data.tipAmount}`,
-          'vote_option_a': `🗳️ Vote recorded: ${execution.data.voteOption}`,
-          'vote_option_b': `🗳️ Vote recorded: ${execution.data.voteOption}`,
-          'increment_counter': `📊 Counter: ${execution.data.newCount}`,
-          'trigger_light': `🎨 Light pattern: ${execution.data.lightPattern}`,
-          'play_sound': `🔊 Sound played: ${execution.data.soundFile}`,
-          'unlock_content': `🔓 Content unlocked!`,
-          'save_moment': `✨ ZK Moment saved securely`
-        }
-        
-        setExecutionResult(resultMessages[execution.behavior] || `✨ ${execution.behavior} executed`)
-        
-        // Clear result after 3 seconds
+      console.log('🎭 Ritual execution:', data)
+      if (data.execution) {
+        setExecutionResult(data.execution.behavior)
         setTimeout(() => setExecutionResult(null), 3000)
       }
     }
-    
-    const handleRitualChanged = (data: any) => {
-      console.log('🎭 Ritual changed detected:', data.ritual.name)
-      setCurrentRitual(data.ritual)
-      // Force re-render of ESP32 displays with new configuration
-      setTimeout(() => {
-        console.log('🔄 Triggering display updates for ritual change')
-      }, 100)
-    }
-    
-    const handleRitualUpdated = (data: any) => {
-      console.log('🎭 Ritual updated detected:', data.ritual.name)
-      // Update current ritual if it's the one being updated
-      if (currentRitual && data.ritual.id === currentRitual.id) {
-        setCurrentRitual(data.ritual)
-        console.log('🔄 Real-time ritual configuration update applied')
-      }
-    }
-    
-    const handleRitualDeleted = (data: any) => {
-      console.log('🎭 Ritual deleted detected:', data.ritualId)
-      // Reload active ritual if the current one was deleted
-      const newRitual = ritualManager.getActiveRitual()
-      setCurrentRitual(newRitual)
-    }
-    
+
     const handleEsp32LogUpdate = (data: any) => {
-      const { nodeId, deviceLog } = data
       setEsp32DeviceLogs(prev => ({
         ...prev,
-        [nodeId]: deviceLog
+        [data.nodeId]: data.deviceLog
       }))
     }
+
+    const handleRitualChanged = (data: any) => {
+      console.log('🎭 Ritual changed:', data)
+      if (data && typeof data === 'object' && data.id) {
+        setCurrentRitual(data)
+      } else if (data === null) {
+        setCurrentRitual(null)
+      }
+    }
+
+    const handleRitualUpdated = (data: any) => {
+      console.log('🎭 Ritual updated:', data)
+      if (data && typeof data === 'object' && data.id) {
+        setCurrentRitual(data)
+      }
+    }
+
+    const handleRitualDeleted = (data: any) => {
+      console.log('🎭 Ritual deleted:', data)
+      setCurrentRitual(null)
+    }
+
+    const handleNodesUpdated = () => {
+      const updatedNodes = getMeldNodes()
+      setCurrentNodes(updatedNodes)
+      updateStats()
+      console.log('🔄 Nodes updated, refreshing layout')
+    }
+
+    // Initialize and setup event listeners
+    initializeApp()
     
     eventBus.on('momentSaved', handleMomentSaved)
     eventBus.on('ritualExecution', handleRitualExecution)
+    eventBus.on('esp32LogUpdate', handleEsp32LogUpdate)
     eventBus.on('ritualChanged', handleRitualChanged)
     eventBus.on('ritualUpdated', handleRitualUpdated)
     eventBus.on('ritualDeleted', handleRitualDeleted)
-    eventBus.on('esp32LogUpdate', handleEsp32LogUpdate)
-    
+    eventBus.on('nodesUpdated', handleNodesUpdated)
+
+    // Cleanup event listeners
     return () => {
       eventBus.off('momentSaved', handleMomentSaved)
       eventBus.off('ritualExecution', handleRitualExecution)
+      eventBus.off('esp32LogUpdate', handleEsp32LogUpdate)
       eventBus.off('ritualChanged', handleRitualChanged)
       eventBus.off('ritualUpdated', handleRitualUpdated)
       eventBus.off('ritualDeleted', handleRitualDeleted)
-      eventBus.off('esp32LogUpdate', handleEsp32LogUpdate)
+      eventBus.off('nodesUpdated', handleNodesUpdated)
     }
-  }, [currentRitual])
+  }, [])
 
   // Update global statistics
   const updateStats = () => {
@@ -172,7 +155,7 @@ export default function MeldSimulation() {
     setTotalMoments(allMoments.length)
     
     const stats: Record<string, any> = {}
-    MELD_NODES.forEach(node => {
+    currentNodes.forEach(node => {
       const nodeMoments = memoryStore.getMomentsForNode(node.id)
       const nodeStatsData = memoryStore.getNodeStats(node.id)
       
@@ -189,6 +172,44 @@ export default function MeldSimulation() {
       }
     })
     setNodeStats(stats)
+  }
+
+  // Comprehensive system refresh
+  const handleSystemRefresh = async () => {
+    setIsRefreshing(true)
+    addCryptoLog('🔄 System refresh initiated...')
+    
+    try {
+      // Reset any active node state
+      resetNodeState()
+      
+      // Refresh node configuration
+      const updatedNodes = getMeldNodes()
+      setCurrentNodes(updatedNodes)
+      
+      // Refresh ritual manager
+      ritualManager.initialize()
+      const activeRitual = ritualManager.getActiveRitual()
+      setCurrentRitual(activeRitual)
+      
+      // Update statistics
+      updateStats()
+      
+      // Clear any temporary UI states
+      setExecutionResult(null)
+      
+      addCryptoLog('✅ System refresh completed successfully')
+      
+      // Show success feedback
+      setTimeout(() => {
+        setIsRefreshing(false)
+      }, 800)
+      
+    } catch (error) {
+      console.error('System refresh failed:', error)
+      addCryptoLog('❌ System refresh failed')
+      setIsRefreshing(false)
+    }
   }
 
   // Enhanced TWO-tap confirmation flow for NFC pendant authentication
@@ -337,19 +358,101 @@ export default function MeldSimulation() {
   const getNodeDisplay = (nodeId: string) => {
     const config = getNodeConfig(nodeId)
     const isActive = activeNode === nodeId
+    const nodeConfig = currentRitual?.nodes.find(n => n.nodeId === nodeId)
+    
+    // Helper function to get behavior-specific display text
+    const getBehaviorDisplay = (behavior: string, parameters?: any) => {
+      switch (behavior) {
+        case 'save_moment':
+          return {
+            waiting: { title: 'SAVE MOMENT', subtitle: '💖 Tap to capture memory' },
+            ready: { title: 'SAVE MOMENT', subtitle: '👆 TAP AGAIN to save' },
+            success: { title: 'MOMENT SAVED', subtitle: '✨ Memory captured!' }
+          }
+        case 'send_tip':
+          const tipAmount = parameters?.tipAmount || 1
+          const recipient = parameters?.recipient || 'performer'
+          return {
+            waiting: { title: 'TIP JAR', subtitle: `💰 Tip $${tipAmount} to ${recipient}` },
+            ready: { title: 'SEND TIP', subtitle: `👆 TAP AGAIN to send $${tipAmount}` },
+            success: { title: 'TIP SENT', subtitle: `💸 $${tipAmount} sent to ${recipient}` }
+          }
+        case 'vote_option_a':
+          const optionA = parameters?.voteOption || 'Option A'
+          return {
+            waiting: { title: 'VOTE A', subtitle: `🗳️ ${optionA}` },
+            ready: { title: 'CAST VOTE A', subtitle: `👆 TAP AGAIN for ${optionA}` },
+            success: { title: 'VOTE CAST', subtitle: `✅ Voted for ${optionA}` }
+          }
+        case 'vote_option_b':
+          const optionB = parameters?.voteOption || 'Option B'
+          return {
+            waiting: { title: 'VOTE B', subtitle: `🗳️ ${optionB}` },
+            ready: { title: 'CAST VOTE B', subtitle: `👆 TAP AGAIN for ${optionB}` },
+            success: { title: 'VOTE CAST', subtitle: `✅ Voted for ${optionB}` }
+          }
+        case 'increment_counter':
+          const counterName = parameters?.counterName || 'counter'
+          return {
+            waiting: { title: 'COUNTER', subtitle: `📊 Increment ${counterName}` },
+            ready: { title: 'INCREMENT', subtitle: `👆 TAP AGAIN to count` },
+            success: { title: 'COUNTED', subtitle: `➕ ${counterName} increased` }
+          }
+        case 'trigger_light':
+          const lightPattern = parameters?.lightPattern || 'rainbow'
+          return {
+            waiting: { title: 'LIGHT SHOW', subtitle: `🌈 Trigger ${lightPattern} lights` },
+            ready: { title: 'TRIGGER LIGHTS', subtitle: `👆 TAP AGAIN for ${lightPattern}` },
+            success: { title: 'LIGHTS ON', subtitle: `🎨 ${lightPattern} activated` }
+          }
+        case 'play_sound':
+          const soundFile = parameters?.soundFile || 'beep.wav'
+          const soundName = soundFile.replace('.wav', '').replace('_', ' ')
+          return {
+            waiting: { title: 'SOUND', subtitle: `🔊 Play ${soundName}` },
+            ready: { title: 'PLAY SOUND', subtitle: `👆 TAP AGAIN for ${soundName}` },
+            success: { title: 'SOUND PLAYED', subtitle: `🎵 ${soundName} played` }
+          }
+        case 'unlock_content':
+          const contentId = parameters?.contentId || 'content'
+          return {
+            waiting: { title: 'UNLOCK', subtitle: `🔓 Access ${contentId}` },
+            ready: { title: 'UNLOCK CONTENT', subtitle: `👆 TAP AGAIN to unlock` },
+            success: { title: 'UNLOCKED', subtitle: `🔑 ${contentId} accessible` }
+          }
+        case 'custom':
+          const customName = parameters?.customName || 'custom action'
+          return {
+            waiting: { title: 'CUSTOM', subtitle: `⚙️ ${customName}` },
+            ready: { title: 'EXECUTE', subtitle: `👆 TAP AGAIN for ${customName}` },
+            success: { title: 'EXECUTED', subtitle: `✅ ${customName} complete` }
+          }
+        default:
+          return {
+            waiting: { title: 'MELD NODE', subtitle: '👆 Tap to begin' },
+            ready: { title: 'READY', subtitle: '👆 TAP AGAIN to execute' },
+            success: { title: 'SUCCESS', subtitle: '✅ Action complete' }
+          }
+      }
+    }
+    
+    // Use custom display text if available, otherwise use behavior-specific defaults
+    const displayTexts = config.displayText || {}
+    const behaviorDisplays = getBehaviorDisplay(config.behavior, nodeConfig?.parameters)
     
     if (!isActive) {
+      // Show behavior-specific waiting state
       return {
-        title: "MELD Node",
-        subtitle: "👆 Tap to authenticate"
+        title: displayTexts.waiting_title || behaviorDisplays.waiting.title,
+        subtitle: displayTexts.waiting_subtitle || behaviorDisplays.waiting.subtitle
       }
     }
 
     switch (nodeState) {
       case 'detecting':
         return {
-          title: "🔍 DETECTING...",
-          subtitle: "Hold pendant steady"
+          title: displayTexts.detected_title || "🔍 DETECTING...",
+          subtitle: displayTexts.detected_subtitle || "Hold pendant steady"
         }
       case 'authenticating':
         return {
@@ -358,64 +461,70 @@ export default function MeldSimulation() {
         }
       case 'executing':
         return {
-          title: "✅ READY TO EXECUTE",
-          subtitle: "👆 TAP AGAIN to execute ritual"
+          title: displayTexts.auth_title || behaviorDisplays.ready.title,
+          subtitle: displayTexts.auth_instruction || behaviorDisplays.ready.subtitle
         }
       case 'success':
         return {
           title: "⚡ EXECUTING...",
-          subtitle: `Running ${config.behavior || 'ritual'}...`
+          subtitle: `Running ${config.behavior?.replace('_', ' ') || 'ritual'}...`
         }
       case 'completed':
         return {
-          title: "🎉 SUCCESS!",
-          subtitle: `${config.behavior?.replace('_', ' ')?.toUpperCase() || 'RITUAL'} COMPLETED`
+          title: displayTexts.success_title || behaviorDisplays.success.title,
+          subtitle: displayTexts.success_subtitle || behaviorDisplays.success.subtitle
         }
       default:
         return {
-          title: "MELD Node",
-          subtitle: "👆 Tap to authenticate"
+          title: displayTexts.waiting_title || behaviorDisplays.waiting.title,
+          subtitle: displayTexts.waiting_subtitle || behaviorDisplays.waiting.subtitle
         }
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-sand-50">
+    <div className="min-h-screen bg-background">
       
       {/* Consolidated Minimal Header */}
-      <div className="sticky top-16 z-40 glass-card border-0 border-b border-sage-100/30 animate-fade-slide-up">
-        <div className="container-adaptive py-8">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+      <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-sm border-0 border-b border-border/30 animate-fade-slide-up">
+        <div className="container-adaptive py-8 sm:py-12 md:py-16">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
             
             {/* Streamlined Status Indicators */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Main Title - Enhanced Hierarchy */}
+              <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-primary/15 to-accent/10 border-2 border-primary/30 text-primary rounded-2xl text-base font-black shadow-float backdrop-blur-sm">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                KairOS Ritual Designer
+              </div>
+              
               {selectedPendant && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-sage-100/80 border border-sage-200/60 text-sage-700 rounded-xl text-sm font-medium shadow-minimal">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 text-primary rounded-xl text-sm font-medium shadow-minimal">
                   <Shield className="w-4 h-4" />
                   {selectedPendant.name}
                 </div>
               )}
               {currentRitual && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-lavender-100/80 border border-lavender-200/60 text-lavender-700 rounded-xl text-sm font-medium shadow-minimal">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/20 text-accent rounded-xl text-sm font-medium shadow-minimal">
                   <Sparkles className="w-4 h-4" />
                   {currentRitual.name}
                 </div>
               )}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-terracotta-100/80 border border-terracotta-200/60 text-terracotta-700 rounded-xl text-sm font-medium shadow-minimal">
-                <span className="w-2 h-2 bg-terracotta-500 rounded-full animate-gentle-pulse"></span>
-                {totalMoments} interactions
-              </div>
             </div>
             
             {/* Compact Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowRitualPanel(!showRitualPanel)}
+                onClick={() => {
+                  console.log('Sparkles button clicked, current state:', showRitualPanel)
+                  setShowRitualPanel(!showRitualPanel)
+                  console.log('New state will be:', !showRitualPanel)
+                }}
                 className={cn(
-                  "p-3 rounded-xl transition-all duration-200 interactive focus-ring shadow-minimal",
+                  "retro-button p-3 rounded-retro transition-all duration-200 interactive focus-ring shadow-minimal",
                   showRitualPanel 
-                    ? 'bg-lavender-100 text-lavender-700' 
-                    : 'text-neutral-600 hover:text-lavender-600 hover:bg-white/60'
+                    ? 'bg-accent/10 text-accent' 
+                    : 'text-muted-foreground hover:text-accent hover:bg-background/60'
                 )}
                 title="Ritual Builder"
               >
@@ -423,19 +532,28 @@ export default function MeldSimulation() {
               </button>
               
               <button
-                onClick={updateStats}
-                className="p-3 text-neutral-600 hover:text-sage-600 hover:bg-white/60 rounded-xl transition-all duration-200 interactive focus-ring shadow-minimal"
-                title="Refresh data"
+                onClick={handleSystemRefresh}
+                disabled={isRefreshing}
+                className={cn(
+                  "retro-button p-3 rounded-retro transition-all duration-200 interactive focus-ring shadow-minimal",
+                  isRefreshing 
+                    ? 'text-primary bg-primary/10 cursor-not-allowed' 
+                    : 'text-muted-foreground hover:text-primary hover:bg-background/60'
+                )}
+                title={isRefreshing ? "Refreshing system..." : "Refresh system state"}
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw className={cn(
+                  "w-5 h-5 transition-transform duration-500",
+                  isRefreshing && "animate-spin"
+                )} />
               </button>
               
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="p-3 text-neutral-600 hover:text-neutral-700 hover:bg-white/60 rounded-xl transition-all duration-200 interactive focus-ring shadow-minimal"
-                title="Settings"
+                className="retro-button p-3 text-muted-foreground hover:text-foreground hover:bg-background/60 rounded-retro transition-all duration-200 interactive focus-ring shadow-minimal"
+                title="Developer Tools"
               >
-                <Settings className="w-5 h-5" />
+                <Terminal className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -444,25 +562,25 @@ export default function MeldSimulation() {
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="sticky top-[120px] z-30 glass-card border-0 border-b border-neutral-100/30">
+        <div className="sticky top-[120px] z-30 bg-background/80 backdrop-blur-sm border-0 border-b border-border/30">
           <div className="container-adaptive py-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <Info className="w-5 h-5 text-sage-600" />
-                <span className="text-lg font-semibold text-neutral-800">Development Tools</span>
+                <Info className="w-5 h-5 text-primary" />
+                <span className="text-lg font-semibold text-foreground">Development Tools</span>
               </div>
               
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowDebugModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 glass-button text-neutral-700 rounded-lg hover:text-sage-700 text-sm font-medium"
+                  className="retro-button flex items-center gap-2 px-4 py-2 text-foreground rounded-lg hover:text-primary text-sm font-medium"
                 >
                   <Info className="w-4 h-4" />
                   Debug Info
                 </button>
                 <button
                   onClick={handleClearAll}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-50/80 text-red-700 rounded-lg hover:bg-red-100/80 transition-colors text-sm font-medium border border-red-200/60"
+                  className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors text-sm font-medium border border-destructive/20"
                 >
                   <Trash2 className="w-4 h-4" />
                   Clear All Data
@@ -474,17 +592,17 @@ export default function MeldSimulation() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-neutral-700">Authentication Mode:</span>
+                  <span className="text-sm font-medium text-foreground">Authentication Mode:</span>
                   <button
                     onClick={() => {
                       setProductionMode(!productionMode)
                       addCryptoLog(`Switched to ${!productionMode ? 'PRODUCTION' : 'SIMULATION'} mode`)
                     }}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border",
+                      "retro-button px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border",
                       productionMode 
-                        ? 'bg-sage-100/80 text-sage-700 border-sage-200/60' 
-                        : 'bg-sand-100/80 text-sand-700 border-sand-200/60'
+                        ? 'bg-primary/10 text-primary border-primary/20' 
+                        : 'bg-accent/10 text-accent border-accent/20'
                     )}
                   >
                     {productionMode ? '🔐 PRODUCTION' : '🔧 SIMULATION'}
@@ -493,7 +611,7 @@ export default function MeldSimulation() {
                 
                 <button
                   onClick={() => setCryptoLogs([])}
-                  className="text-sm text-neutral-500 hover:text-neutral-700 font-medium"
+                  className="text-sm text-muted-foreground hover:text-foreground font-medium"
                 >
                   Clear Logs
                 </button>
@@ -501,15 +619,15 @@ export default function MeldSimulation() {
               
               {/* Crypto Logs */}
               {cryptoLogs.length > 0 && (
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 max-h-32 overflow-y-auto border border-neutral-200/60">
+                <div className="retro-card/60 backdrop-blur-sm rounded-lg p-4 max-h-32 overflow-y-auto border border-border">
                   <div className="text-sm font-mono space-y-1">
                     {cryptoLogs.map((log, i) => (
                       <div key={i} className={cn(
                         "text-sm",
-                        log.includes('✅') ? 'text-sage-700' :
-                        log.includes('❌') ? 'text-red-600' :
-                        log.includes('🔐') ? 'text-lavender-700' :
-                        'text-neutral-600'
+                        log.includes('✅') ? 'text-primary' :
+                        log.includes('❌') ? 'text-destructive' :
+                        log.includes('🔐') ? 'text-accent' :
+                        'text-muted-foreground'
                       )}>
                         {log}
                       </div>
@@ -518,209 +636,222 @@ export default function MeldSimulation() {
                 </div>
               )}
               
-              <div className="text-sm text-neutral-500 space-y-1">
-                <div><span className="font-medium text-sage-600">Production Mode:</span> Real Ed25519 signature verification</div>
-                <div><span className="font-medium text-sand-600">Simulation Mode:</span> DID format validation only</div>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div><span className="font-medium text-primary">Production Mode:</span> Real Ed25519 signature verification</div>
+                <div><span className="font-medium text-accent">Simulation Mode:</span> DID format validation only</div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Execution Result Notification */}
-      {executionResult && (
-        <div className="fixed top-24 right-6 z-50 glass-card bg-sage-100/90 border-sage-200/60 text-sage-800 px-4 py-3 rounded-xl shadow-float animate-fade-slide-up">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            {executionResult}
-          </div>
-        </div>
-      )}
+      {/* ESP32 Wearable Devices */}
+      <div className={cn(
+        "gap-6 sm:gap-8 md:gap-10 mb-16 mt-8 sm:mt-12 md:mt-16",
+        // Single node: center it with extra space and larger sizing
+        currentNodes.length === 1 && "flex justify-center",
+        // Multiple nodes: use responsive grid with proper wrapping
+        currentNodes.length > 1 && "grid",
+        currentNodes.length === 2 && "grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto",
+        currentNodes.length === 3 && "grid-cols-2 md:grid-cols-3 max-w-5xl mx-auto",
+        currentNodes.length === 4 && "grid-cols-2 md:grid-cols-3 max-w-5xl mx-auto",
+        currentNodes.length === 5 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 max-w-5xl mx-auto",
+        currentNodes.length === 6 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 max-w-6xl mx-auto"
+      )}>
+        {currentNodes.map((node, index) => {
+          const isActive = activeNode === node.id
+          const nodeStatsData = nodeStats[node.id]
+          const nodeConfig = ritualManager.getNodeConfig(node.id)
+          
+          const nodeDisplay = getNodeDisplay(node.id)
+          
+          return (
+            <div 
+              key={node.id} 
+              className={cn(
+                "space-y-6 sm:space-y-8 animate-fade-slide-up",
+                // Single node gets extra space and prominence
+                currentNodes.length === 1 && "max-w-md w-full scale-110"
+              )} 
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              {/* Node Location Label */}
+              <div className="text-center space-y-2">
+                <h3 className={cn(
+                  "font-bold text-foreground",
+                  currentNodes.length === 1 ? "text-2xl" : "text-lg"
+                )}>
+                  {node.name}
+                </h3>
+                <p className={cn(
+                  "text-muted-foreground",
+                  currentNodes.length === 1 ? "text-base" : "text-sm"
+                )}>
+                  {node.location}
+                </p>
+              </div>
 
-      {/* Authentication Flow Status */}
-      {selectedPendant && activeNode && (
-        <div className="fixed top-24 left-6 z-50 glass-card bg-lavender-100/90 border-lavender-200/60 text-lavender-800 px-4 py-3 rounded-xl shadow-float">
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              nodeState === 'executing' ? "bg-yellow-500 animate-pulse" : 
-              nodeState === 'completed' ? "bg-green-500 animate-gentle-pulse" :
-              "bg-lavender-500 animate-gentle-pulse"
-            )}></div>
-            <div className="text-sm font-medium">
-              {nodeState === 'detecting' && '🔍 First tap detected - authenticating...'}
-              {nodeState === 'authenticating' && '🔐 Verifying pendant signature...'}
-              {nodeState === 'executing' && '✅ Authenticated! 👆 TAP AGAIN to execute'}
-              {nodeState === 'success' && '⚡ Executing ritual now...'}
-              {nodeState === 'completed' && '🎉 Success! Moment saved securely'}
-            </div>
-          </div>
-        </div>
-      )}
+              {/* Wearable Device */}
+              <ESP32WearableDevice
+                key={`${node.id}-${currentRitual?.id || 'default'}-${currentRitual?.nodes?.find(n => n.nodeId === node.id)?.behavior || 'default'}-${JSON.stringify(currentRitual?.nodes?.find(n => n.nodeId === node.id)?.parameters?.displayText || {})}`}
+                text={nodeDisplay.title}
+                onTap={() => handleNodeTap(node.id)}
+                disabled={!selectedPendant || (activeNode !== null && activeNode !== node.id)}
+                state={
+                  isActive && (nodeState === 'executing') ? "moment" : 
+                  isActive && (nodeState === 'detecting' || nodeState === 'authenticating') ? "identity" : 
+                  "default"
+                }
+                screen={nodeDisplay.subtitle}
+                screenData={{
+                  nodeState: isActive ? nodeState : 'idle',
+                  pendantDID: isActive && selectedPendant ? selectedPendant.did : undefined,
+                  pendantId: isActive && selectedPendant ? selectedPendant.id : undefined,
+                  pendantName: isActive && selectedPendant ? selectedPendant.name : undefined,
+                  executionResult,
+                  behavior: currentRitual?.nodes?.find(n => n.nodeId === node.id)?.behavior || nodeConfig?.behavior || 'save_moment'
+                }}
+                nodeId={node.id}
+                ritualConfig={{
+                  ...(nodeConfig || {}),
+                  ritualId: currentRitual?.id,
+                  name: currentRitual?.name,
+                  behavior: currentRitual?.nodes?.find(n => n.nodeId === node.id)?.behavior || (nodeConfig && nodeConfig.behavior) || 'save_moment',
+                  displayText: currentRitual?.nodes?.find(n => n.nodeId === node.id)?.parameters?.displayText || (nodeConfig && nodeConfig.displayText),
+                  parameters: currentRitual?.nodes?.find(n => n.nodeId === node.id)?.parameters
+                }}
+                onDeviceLogUpdate={handleDeviceLogUpdate}
+              />
 
-      {/* Ritual Control Panel */}
-      <RitualControlPanel
-        isOpen={showRitualPanel}
-        onToggle={() => setShowRitualPanel(!showRitualPanel)}
-        onRitualChange={setCurrentRitual}
-      />
+              {/* Pendant Tracking Button */}
+              <button
+                onClick={() => setShowPendantTracking(node.id)}
+                className={cn(
+                  "retro-button w-full flex items-center justify-center gap-2",
+                  currentNodes.length === 1 ? "text-base py-3" : "text-sm"
+                )}
+                title="View pendant interaction logs for this ESP32"
+              >
+                <Hash className={cn(currentNodes.length === 1 ? "w-5 h-5" : "w-4 h-4")} />
+                Track {esp32DeviceLogs[node.id]?.uniquePendants?.size || 0} Pendants
+              </button>
 
-      {/* Main Content */}
-      <div className="container-adaptive pb-8">
-        
-        {/* ESP32 Wearable Devices */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {MELD_NODES.map((node, index) => {
-            const isActive = activeNode === node.id
-            const nodeStatsData = nodeStats[node.id]
-            const nodeConfig = ritualManager.getNodeConfig(node.id)
-            
-            const nodeDisplay = getNodeDisplay(node.id)
-            
-            return (
-              <div key={node.id} className="space-y-6 animate-fade-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
-                {/* Node Location Label */}
-                <div className="text-center space-y-2">
-                  <h3 className="text-lg font-bold text-neutral-800">{node.name}</h3>
-                  <p className="text-sm text-neutral-500">{node.location}</p>
+              {/* Single node special info card */}
+              {currentNodes.length === 1 && (
+                <div className="retro-card p-4 text-center">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    <span className="text-primary font-semibold">Minimal Setup:</span> Perfect for simple installations
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Open the Ritual Designer to add more nodes for complex multi-station experiences
+                  </div>
                 </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
 
-                {/* Wearable Device */}
-                <ESP32WearableDevice
-                  key={`${node.id}-${currentRitual?.id || 'default'}-${currentRitual?.nodes?.find(n => n.nodeId === node.id)?.parameters?.displayText?.waiting_title || 'meld'}`}
-                  text={nodeDisplay.title}
-                  onTap={() => handleNodeTap(node.id)}
-                  disabled={!selectedPendant || (activeNode !== null && activeNode !== node.id)}
-                  state={
-                    isActive && (nodeState === 'executing') ? "moment" : 
-                    isActive && (nodeState === 'detecting' || nodeState === 'authenticating') ? "identity" : 
-                    "default"
-                  }
-                  screen={nodeDisplay.subtitle}
-                  screenData={{
-                    nodeState: isActive ? nodeState : 'idle',
-                    pendantDID: isActive && selectedPendant ? selectedPendant.did : undefined,
-                    pendantId: isActive && selectedPendant ? selectedPendant.id : undefined,
-                    pendantName: isActive && selectedPendant ? selectedPendant.name : undefined,
-                    executionResult
-                  }}
-                  nodeId={node.id}
-                  ritualConfig={{
-                    ...nodeConfig,
-                    ritualId: currentRitual?.id,
-                    displayText: currentRitual?.nodes?.find(n => n.nodeId === node.id)?.parameters?.displayText
-                  }}
-                  onDeviceLogUpdate={handleDeviceLogUpdate}
-                />
+      {/* Compact Pendant Selector - Below ESP32 Screens */}
+      <div className="mt-16 sm:mt-20 md:mt-24">
+        <PendantSelector
+          selectedPendant={selectedPendant}
+          onPendantChange={setSelectedPendant}
+          className="max-w-4xl mx-auto transform scale-90"
+        />
+      </div>
 
-                {/* Pendant Tracking Button */}
-                <button
-                  onClick={() => setShowPendantTracking(node.id)}
-                  className="w-full px-3 py-2 bg-sage-100/80 hover:bg-sage-200/80 text-sage-700 rounded-xl transition-colors text-sm font-medium flex items-center justify-center gap-2 border border-sage-200/60"
-                  title="View pendant interaction logs for this ESP32"
-                >
-                  <Hash className="w-4 h-4" />
-                  Track {esp32DeviceLogs[node.id]?.uniquePendants?.size || 0} Pendants
-                </button>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Compact Pendant Selector - Below ESP32 Screens */}
-        <div className="mt-12">
-          <PendantSelector
-            selectedPendant={selectedPendant}
-            onPendantChange={setSelectedPendant}
-            className="max-w-4xl mx-auto transform scale-90"
-          />
-        </div>
-
-        {/* Technical Two-Tap Authentication Flow */}
-        <div className="glass-card rounded-3xl p-8 shadow-float border border-sage-200/60 animate-fade-slide-up">
-          <h3 className="text-xl font-bold text-neutral-800 mb-6 text-center">
-            <span className="text-sage-500">//</span> Two-Tap Cryptographic Authentication Flow
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-6 text-sm">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-sage-400 to-sage-600 text-white rounded-2xl flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-minimal">1</div>
-              <div className="font-semibold text-sage-700 mb-1">First Tap</div>
-              <div className="text-neutral-500 text-xs">NFC detection ~100ms</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-terracotta-400 to-terracotta-600 text-white rounded-2xl flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-minimal">2</div>
-              <div className="font-semibold text-terracotta-700 mb-1">Crypto Auth</div>
-              <div className="text-neutral-500 text-xs">Ed25519 verify ~1.5s</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-sand-400 to-sand-600 text-white rounded-2xl flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-minimal">3</div>
-              <div className="font-semibold text-sand-700 mb-1">Ready State</div>
-              <div className="text-neutral-500 text-xs">awaiting 2nd tap</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-lavender-400 to-lavender-600 text-white rounded-2xl flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-minimal">4</div>
-              <div className="font-semibold text-lavender-700 mb-1">Second Tap</div>
-              <div className="text-neutral-500 text-xs">execute ritual</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-sage-500 to-sage-700 text-white rounded-2xl flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-minimal">5</div>
-              <div className="font-semibold text-sage-700 mb-1">Success</div>
-              <div className="text-neutral-500 text-xs">show completion ~3s</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white rounded-2xl flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-minimal">6</div>
-              <div className="font-semibold text-terracotta-700 mb-1">Auto Return</div>
-              <div className="text-neutral-500 text-xs">back to idle</div>
-            </div>
+      {/* Technical Two-Tap Authentication Flow */}
+      <div className="retro-card p-8 shadow-minimal animate-fade-slide-up">
+        <h3 className="text-xl font-bold text-foreground mb-6 text-center">
+          <span className="text-primary">//</span> Two-Tap Cryptographic Authentication Flow
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-6 text-sm">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-primary text-primary-foreground rounded-pixel flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-pixel">1</div>
+            <div className="font-semibold text-primary mb-1">First Tap</div>
+            <div className="text-muted-foreground text-xs">NFC detection ~100ms</div>
           </div>
           
-          {/* Technical details */}
-          <div className="mt-8 p-4 glass-card rounded-2xl border border-neutral-200/60">
-            <div className="text-sm text-neutral-600 leading-relaxed space-y-2">
-              <div><span className="text-sage-600 font-medium">Flow:</span> idle → detecting → authenticating → READY (tap again) → executing → SUCCESS → idle</div>
-              <div><span className="text-terracotta-600 font-medium">Security:</span> Ed25519 signature verification with DID-based identity</div>
-              <div><span className="text-lavender-600 font-medium">UX Pattern:</span> Deliberate two-tap prevents accidental ritual execution</div>
-            </div>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-accent text-accent-foreground rounded-pixel flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-pixel">2</div>
+            <div className="font-semibold text-accent mb-1">Crypto Auth</div>
+            <div className="text-muted-foreground text-xs">Ed25519 verify ~1.5s</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="w-12 h-12 bg-secondary text-secondary-foreground rounded-pixel flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-pixel">3</div>
+            <div className="font-semibold text-secondary mb-1">Ready State</div>
+            <div className="text-muted-foreground text-xs">awaiting 2nd tap</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="w-12 h-12 bg-accent/80 text-accent-foreground rounded-pixel flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-pixel">4</div>
+            <div className="font-semibold text-accent mb-1">Second Tap</div>
+            <div className="text-muted-foreground text-xs">execute ritual</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="w-12 h-12 bg-primary text-primary-foreground rounded-pixel flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-pixel">5</div>
+            <div className="font-semibold text-primary mb-1">Success</div>
+            <div className="text-muted-foreground text-xs">show completion ~3s</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="w-12 h-12 bg-secondary text-secondary-foreground rounded-pixel flex items-center justify-center text-sm font-bold mx-auto mb-3 shadow-pixel">6</div>
+            <div className="font-semibold text-secondary mb-1">Auto Return</div>
+            <div className="text-muted-foreground text-xs">back to idle</div>
           </div>
         </div>
-
-        {/* MELD Attribution */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-4 glass-card rounded-2xl border border-sage-200/60 shadow-minimal">
-            <div className="w-8 h-8 bg-gradient-to-br from-sage-500 to-terracotta-600 rounded-xl flex items-center justify-center shadow-minimal">
-              <span className="text-white font-bold text-sm">M</span>
-            </div>
-            <span className="text-sm text-neutral-600">
-              Simulation brought to you by <a
-                href="https://github.com/meldtech"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sage-600 font-semibold hover:text-sage-700 transition-colors duration-200 underline underline-offset-2 decoration-sage-600/50 hover:decoration-sage-700"
-              >
-                MELD
-              </a>
-            </span>
+        
+        {/* Technical details */}
+        <div className="mt-8 p-4 retro-card">
+          <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
+            <div><span className="text-primary font-medium">Flow:</span> idle → detecting → authenticating → READY (tap again) → executing → SUCCESS → idle</div>
+            <div><span className="text-accent font-medium">Security:</span> Ed25519 signature verification with DID-based identity</div>
+            <div><span className="text-primary font-medium">UX Pattern:</span> Deliberate two-tap prevents accidental ritual execution</div>
           </div>
         </div>
       </div>
 
+      {/* MELD Attribution */}
+      <div className="mt-12 text-center">
+        <div className="inline-flex items-center gap-3 px-6 py-4 bg-card rounded-lg border border-border shadow-minimal">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-minimal">
+            <span className="text-primary-foreground font-bold text-sm">M</span>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            Simulation brought to you by <a
+              href="https://github.com/meldtech"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary font-semibold hover:text-accent transition-colors duration-200 underline underline-offset-2 decoration-primary/50 hover:decoration-accent"
+            >
+              MELD
+            </a>
+          </span>
+        </div>
+      </div>
+
+      {/* Ritual Control Panel */}
+      <RitualControlPanel
+        isOpen={showRitualPanel}
+        onToggle={() => setShowRitualPanel(false)}
+        onRitualChange={setCurrentRitual}
+      />
+
       {/* Debug Modal */}
       {showDebugModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card rounded-3xl p-8 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-background/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg p-8 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl font-bold text-neutral-800 flex items-center gap-3">
-                <Info className="w-6 h-6 text-sage-600" />
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
+                <Info className="w-6 h-6 text-primary" />
                 System Debug Information
               </h2>
               <button
                 onClick={() => setShowDebugModal(false)}
-                className="p-2 hover:bg-neutral-100 rounded-xl transition-colors text-neutral-500 hover:text-neutral-700 interactive focus-ring"
+                className="p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground hover:text-foreground interactive focus-ring"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -729,99 +860,99 @@ export default function MeldSimulation() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Active Ritual Info */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-lavender-700 border-b border-lavender-200 pb-2">
+                <h3 className="text-lg font-semibold text-accent border-b border-border pb-2">
                   Current Ritual
                 </h3>
                 {currentRitual ? (
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">ID:</span> 
-                      <span className="text-neutral-800 font-mono">{currentRitual.id}</span>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">ID:</span> 
+                      <span className="text-foreground font-mono">{currentRitual.id}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">Name:</span> 
-                      <span className="text-sage-700 font-semibold">{currentRitual.name}</span>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">Name:</span> 
+                      <span className="text-primary font-semibold">{currentRitual.name}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">Version:</span> 
-                      <span className="text-terracotta-700 font-semibold">{currentRitual.version}</span>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">Version:</span> 
+                      <span className="text-accent font-semibold">{currentRitual.version}</span>
                     </div>
-                    <div className="p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">Description:</span>
-                      <div className="text-neutral-700 mt-1">{currentRitual.description || 'None'}</div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">Description:</span>
+                      <div className="text-foreground mt-1">{currentRitual.description || 'None'}</div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">Nodes:</span> 
-                      <span className="text-lavender-700 font-semibold">{currentRitual.nodes.length}</span>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">Nodes:</span> 
+                      <span className="text-accent font-semibold">{currentRitual.nodes.length}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-neutral-500 italic text-center py-8 bg-neutral-50 rounded-lg">No active ritual</div>
+                  <div className="text-muted-foreground italic text-center py-8 bg-muted rounded-lg">No active ritual</div>
                 )}
               </div>
 
               {/* Selected Pendant Info */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-sage-700 border-b border-sage-200 pb-2">
+                <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
                   Selected Pendant
                 </h3>
                 {selectedPendant ? (
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">ID:</span> 
-                      <span className="text-neutral-800 font-mono">{selectedPendant.id}</span>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">ID:</span> 
+                      <span className="text-foreground font-mono">{selectedPendant.id}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">Name:</span> 
-                      <span className="text-sage-700 font-semibold">{selectedPendant.name}</span>
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">Name:</span> 
+                      <span className="text-primary font-semibold">{selectedPendant.name}</span>
                     </div>
-                    <div className="p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">DID:</span>
-                      <div className="text-terracotta-700 font-mono text-xs break-all mt-1">{selectedPendant.did}</div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">DID:</span>
+                      <div className="text-accent font-mono text-xs break-all mt-1">{selectedPendant.did}</div>
                     </div>
-                    <div className="p-3 bg-neutral-50 rounded-lg">
-                      <span className="text-neutral-600 font-medium">Public Key:</span>
-                      <div className="text-lavender-700 font-mono text-xs mt-1">{formatKeyForDisplay(selectedPendant.publicKey)}</div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground font-medium">Public Key:</span>
+                      <div className="text-accent font-mono text-xs mt-1">{formatKeyForDisplay(selectedPendant.publicKey)}</div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-neutral-500 italic text-center py-8 bg-neutral-50 rounded-lg">No pendant selected</div>
+                  <div className="text-muted-foreground italic text-center py-8 bg-muted rounded-lg">No pendant selected</div>
                 )}
               </div>
 
               {/* System State */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-terracotta-700 border-b border-terracotta-200 pb-2">
+                <h3 className="text-lg font-semibold text-accent border-b border-border pb-2">
                   System State
                 </h3>
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                    <span className="text-neutral-600 font-medium">Active Node:</span> 
-                    <span className="text-neutral-800 font-mono">{activeNode || 'None'}</span>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="text-muted-foreground font-medium">Active Node:</span> 
+                    <span className="text-foreground font-mono">{activeNode || 'None'}</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                    <span className="text-neutral-600 font-medium">Node State:</span> 
-                    <span className="text-sand-700 font-semibold">{nodeState}</span>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="text-muted-foreground font-medium">Node State:</span> 
+                    <span className="text-accent font-semibold">{nodeState}</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                    <span className="text-neutral-600 font-medium">Production Mode:</span> 
-                    <span className={cn("font-semibold", productionMode ? 'text-sage-700' : 'text-sand-700')}>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="text-muted-foreground font-medium">Production Mode:</span> 
+                    <span className={cn("font-semibold", productionMode ? 'text-primary' : 'text-accent')}>
                       {productionMode ? 'Enabled' : 'Disabled'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                    <span className="text-neutral-600 font-medium">Total Moments:</span> 
-                    <span className="text-lavender-700 font-semibold">{totalMoments}</span>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="text-muted-foreground font-medium">Total Moments:</span> 
+                    <span className="text-accent font-semibold">{totalMoments}</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                    <span className="text-neutral-600 font-medium">Settings Panel:</span> 
-                    <span className={cn("font-semibold", showSettings ? 'text-sage-700' : 'text-neutral-500')}>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="text-muted-foreground font-medium">Settings Panel:</span> 
+                    <span className={cn("font-semibold", showSettings ? 'text-primary' : 'text-muted-foreground')}>
                       {showSettings ? 'Open' : 'Closed'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                    <span className="text-neutral-600 font-medium">Ritual Panel:</span> 
-                    <span className={cn("font-semibold", showRitualPanel ? 'text-sage-700' : 'text-neutral-500')}>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <span className="text-muted-foreground font-medium">Ritual Panel:</span> 
+                    <span className={cn("font-semibold", showRitualPanel ? 'text-primary' : 'text-muted-foreground')}>
                       {showRitualPanel ? 'Open' : 'Closed'}
                     </span>
                   </div>
@@ -830,24 +961,24 @@ export default function MeldSimulation() {
 
               {/* Node Statistics */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-sand-700 border-b border-sand-200 pb-2">
+                <h3 className="text-lg font-semibold text-accent border-b border-border pb-2">
                   Node Statistics
                 </h3>
                 <div className="space-y-3 text-sm">
-                  {MELD_NODES.map(node => (
-                    <div key={node.id} className="p-4 bg-neutral-50 rounded-xl border border-neutral-200">
+                  {currentNodes.map(node => (
+                    <div key={node.id} className="p-4 bg-muted rounded-xl border border-border">
                       <div className="flex items-center gap-3 mb-3">
                         <span style={{ color: node.color, fontSize: '1.25rem' }}>{node.icon}</span>
-                        <span className="text-neutral-800 font-semibold">{node.name}</span>
+                        <span className="text-foreground font-semibold">{node.name}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="flex justify-between">
-                          <span className="text-neutral-500">Moments:</span> 
-                          <span className="text-sage-700 font-semibold">{nodeStats[node.id]?.moments || 0}</span>
+                          <span className="text-muted-foreground">Moments:</span> 
+                          <span className="text-primary font-semibold">{nodeStats[node.id]?.moments || 0}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-neutral-500">Unique Users:</span> 
-                          <span className="text-lavender-700 font-semibold">{nodeStats[node.id]?.stats?.uniquePendants || 0}</span>
+                          <span className="text-muted-foreground">Unique Users:</span> 
+                          <span className="text-accent font-semibold">{nodeStats[node.id]?.stats?.uniquePendants || 0}</span>
                         </div>
                       </div>
                     </div>
@@ -857,7 +988,7 @@ export default function MeldSimulation() {
 
               {/* Available Rituals */}
               <div className="space-y-4 lg:col-span-2">
-                <h3 className="text-lg font-semibold text-lavender-700 border-b border-lavender-200 pb-2">
+                <h3 className="text-lg font-semibold text-accent border-b border-border pb-2">
                   Available Rituals ({ritualManager.getAllRituals().length})
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -865,14 +996,14 @@ export default function MeldSimulation() {
                     <div key={ritual.id} className={cn(
                       "p-4 rounded-xl border transition-all",
                       ritual.id === currentRitual?.id 
-                        ? 'bg-lavender-100/80 border-lavender-300/60' 
-                        : 'bg-neutral-50 border-neutral-200 hover:border-neutral-300'
+                        ? 'bg-accent/10 border-accent/30' 
+                        : 'bg-muted border-border hover:border-primary/30'
                     )}>
-                      <div className="font-semibold text-neutral-800 mb-2">{ritual.name}</div>
-                      <div className="text-xs text-neutral-600 mb-3">{ritual.description || 'No description'}</div>
+                      <div className="font-semibold text-foreground mb-2">{ritual.name}</div>
+                      <div className="text-xs text-muted-foreground mb-3">{ritual.description || 'No description'}</div>
                       <div className="flex justify-between text-xs">
-                        <span className="px-2 py-1 bg-sage-100 text-sage-700 rounded">{ritual.nodes.length} nodes</span>
-                        <span className="px-2 py-1 bg-terracotta-100 text-terracotta-700 rounded">v{ritual.version}</span>
+                        <span className="px-2 py-1 bg-primary/10 text-primary rounded">{ritual.nodes.length} nodes</span>
+                        <span className="px-2 py-1 bg-accent/10 text-accent rounded">v{ritual.version}</span>
                       </div>
                     </div>
                   ))}
@@ -880,8 +1011,8 @@ export default function MeldSimulation() {
               </div>
             </div>
 
-            <div className="mt-8 pt-4 border-t border-neutral-200">
-              <div className="text-xs text-neutral-500 font-mono">
+            <div className="mt-8 pt-4 border-t border-border">
+              <div className="text-xs text-muted-foreground font-mono">
                 Debug info refreshed at: {new Date().toLocaleTimeString()}
               </div>
             </div>
@@ -891,16 +1022,16 @@ export default function MeldSimulation() {
 
       {/* Pendant Tracking Modal */}
       {showPendantTracking && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card rounded-3xl p-8 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-background/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg p-8 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl font-bold text-neutral-800 flex items-center gap-3">
-                <Hash className="w-6 h-6 text-sage-600" />
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
+                <Hash className="w-6 h-6 text-primary" />
                 ESP32 {showPendantTracking} - Pendant Tracking
               </h2>
               <button
                 onClick={() => setShowPendantTracking(null)}
-                className="p-2 hover:bg-neutral-100 rounded-xl transition-colors text-neutral-500 hover:text-neutral-700 interactive focus-ring"
+                className="p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground hover:text-foreground interactive focus-ring"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -908,32 +1039,32 @@ export default function MeldSimulation() {
 
             <div className="space-y-6">
               {/* ESP32 Device Summary */}
-              <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
-                <h3 className="font-bold text-sage-700 mb-4">Device Status</h3>
+              <div className="bg-muted rounded-lg p-6 border border-border">
+                <h3 className="font-bold text-primary mb-4">Device Status</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="text-center p-3 bg-white rounded-xl border border-neutral-200">
-                    <div className="text-neutral-500 text-xs font-medium">Total Interactions</div>
-                    <div className="text-neutral-800 font-bold text-xl mt-1">
+                  <div className="text-center p-3 bg-card rounded-xl border border-border">
+                    <div className="text-muted-foreground text-xs font-medium">Total Interactions</div>
+                    <div className="text-foreground font-bold text-xl mt-1">
                       {esp32DeviceLogs[showPendantTracking]?.totalInteractions || 0}
                     </div>
                   </div>
-                  <div className="text-center p-3 bg-white rounded-xl border border-neutral-200">
-                    <div className="text-neutral-500 text-xs font-medium">Unique Pendants</div>
-                    <div className="text-neutral-800 font-bold text-xl mt-1">
+                  <div className="text-center p-3 bg-card rounded-xl border border-border">
+                    <div className="text-muted-foreground text-xs font-medium">Unique Pendants</div>
+                    <div className="text-foreground font-bold text-xl mt-1">
                       {esp32DeviceLogs[showPendantTracking]?.uniquePendants?.size || 0}
                     </div>
                   </div>
-                  <div className="text-center p-3 bg-white rounded-xl border border-neutral-200">
-                    <div className="text-neutral-500 text-xs font-medium">Success Rate</div>
-                    <div className="text-neutral-800 font-bold text-xl mt-1">
+                  <div className="text-center p-3 bg-card rounded-xl border border-border">
+                    <div className="text-muted-foreground text-xs font-medium">Success Rate</div>
+                    <div className="text-foreground font-bold text-xl mt-1">
                       {esp32DeviceLogs[showPendantTracking]?.interactions?.length > 0
                         ? Math.round((esp32DeviceLogs[showPendantTracking].interactions.filter(i => i.authResult === 'success').length / esp32DeviceLogs[showPendantTracking].interactions.length) * 100)
                         : 0}%
                     </div>
                   </div>
-                  <div className="text-center p-3 bg-white rounded-xl border border-neutral-200">
-                    <div className="text-neutral-500 text-xs font-medium">Last Sync</div>
-                    <div className="text-neutral-800 font-bold text-xl mt-1">
+                  <div className="text-center p-3 bg-card rounded-xl border border-border">
+                    <div className="text-muted-foreground text-xs font-medium">Last Sync</div>
+                    <div className="text-foreground font-bold text-xl mt-1">
                       {esp32DeviceLogs[showPendantTracking]?.lastSync > 0 
                         ? formatTimestamp(esp32DeviceLogs[showPendantTracking].lastSync).split(' ')[1]
                         : 'Never'}
@@ -943,73 +1074,73 @@ export default function MeldSimulation() {
               </div>
 
               {/* Pendant Profiles */}
-              <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
-                <h3 className="font-bold text-sage-700 mb-4">Pendant Profiles</h3>
+              <div className="bg-muted rounded-lg p-6 border border-border">
+                <h3 className="font-bold text-primary mb-4">Pendant Profiles</h3>
                 {esp32DeviceLogs[showPendantTracking]?.pendantProfiles?.size > 0 ? (
                   <div className="space-y-3">
                     {Array.from(esp32DeviceLogs[showPendantTracking].pendantProfiles.entries()).map(([pendantDID, profile]) => (
-                      <div key={pendantDID} className="p-4 bg-white rounded-xl border border-neutral-200">
+                      <div key={pendantDID} className="p-4 bg-card rounded-xl border border-border">
                         <div className="flex items-center justify-between mb-3">
-                          <div className="text-neutral-800 font-semibold">
+                          <div className="text-foreground font-semibold">
                             {profile.name}
                           </div>
-                          <div className="text-xs px-2 py-1 bg-terracotta-100 text-terracotta-700 rounded font-medium">
+                          <div className="text-xs px-2 py-1 bg-accent/10 text-accent rounded font-medium">
                             {profile.totalTaps} taps
                           </div>
                         </div>
-                        <div className="text-xs text-neutral-500 mb-3 font-mono bg-neutral-50 p-2 rounded">
+                        <div className="text-xs text-muted-foreground mb-3 font-mono bg-muted p-2 rounded">
                           DID: {pendantDID.substring(0, 40)}...
                         </div>
                         <div className="flex items-center justify-between text-xs mb-2">
-                          <div className="text-neutral-600">
+                          <div className="text-muted-foreground">
                             Last seen: {formatTimestamp(profile.lastSeen)}
                           </div>
-                          <div className="px-2 py-1 bg-sage-100 text-sage-700 rounded font-medium">
+                          <div className="px-2 py-1 bg-primary/10 text-primary rounded font-medium">
                             Auth: {profile.authSuccessRate}% success
                           </div>
                         </div>
                         <div className="text-xs">
-                          <span className="text-neutral-600">Behaviors: </span>
-                          <span className="text-lavender-700 font-medium">{profile.behaviors.join(', ')}</span>
+                          <span className="text-muted-foreground">Behaviors: </span>
+                          <span className="text-accent font-medium">{profile.behaviors.join(', ')}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-neutral-500 text-center py-12 bg-white rounded-xl border border-neutral-200">
+                  <div className="text-muted-foreground text-center py-12 bg-card rounded-xl border border-border">
                     No pendant interactions recorded yet. Tap an ESP32 with a selected pendant to start tracking.
                   </div>
                 )}
               </div>
 
               {/* Recent Interactions Log */}
-              <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
-                <h3 className="font-bold text-sage-700 mb-4">Recent Interactions</h3>
+              <div className="bg-muted rounded-lg p-6 border border-border">
+                <h3 className="font-bold text-primary mb-4">Recent Interactions</h3>
                 {esp32DeviceLogs[showPendantTracking]?.interactions?.length > 0 ? (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {esp32DeviceLogs[showPendantTracking].interactions.slice(-10).reverse().map((interaction, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-neutral-200 text-sm">
+                      <div key={index} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border text-sm">
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "w-3 h-3 rounded-full",
-                            interaction.authResult === 'success' ? 'bg-sage-500' : 'bg-red-400'
+                            interaction.authResult === 'success' ? 'bg-primary' : 'bg-destructive'
                           )}></div>
-                          <div className="text-neutral-800 font-mono text-xs">
+                          <div className="text-foreground font-mono text-xs">
                             {formatTimestamp(interaction.timestamp)}
                           </div>
-                          <div className="text-neutral-700 font-medium">
+                          <div className="text-foreground font-medium">
                             {interaction.pendantName}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="text-lavender-700 bg-lavender-100 px-2 py-1 rounded text-xs font-medium">
+                          <div className="text-accent bg-accent/10 px-2 py-1 rounded text-xs font-medium">
                             {interaction.behaviorExecuted}
                           </div>
                           <div className={cn(
                             "px-2 py-1 rounded text-xs font-medium",
                             interaction.authResult === 'success' 
-                              ? 'bg-sage-100 text-sage-700' 
-                              : 'bg-red-100 text-red-700'
+                              ? 'bg-primary/10 text-primary' 
+                              : 'bg-destructive/10 text-destructive'
                           )}>
                             {interaction.authResult}
                           </div>
@@ -1018,16 +1149,16 @@ export default function MeldSimulation() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-neutral-500 text-center py-8 bg-white rounded-xl border border-neutral-200">
+                  <div className="text-muted-foreground text-center py-8 bg-card rounded-xl border border-border">
                     No interactions logged yet
                   </div>
                 )}
               </div>
 
               {/* Sync to Hub Option */}
-              <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
-                <h3 className="font-bold text-sage-700 mb-4">Hub Sync</h3>
-                <p className="text-neutral-600 text-sm mb-6">
+              <div className="bg-muted rounded-lg p-6 border border-border">
+                <h3 className="font-bold text-primary mb-4">Hub Sync</h3>
+                <p className="text-muted-foreground text-sm mb-6">
                   In production, this ESP32 would sync interaction logs to a central Raspberry Pi hub via WiFi/Bluetooth. 
                   The hub can then process data into art, analytics, and experiences.
                 </p>
@@ -1044,7 +1175,7 @@ export default function MeldSimulation() {
                         }
                       }))
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-sage-500 text-white rounded-lg hover:bg-sage-600 transition-colors text-sm font-medium shadow-minimal"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium shadow-minimal"
                   >
                     📡 Sync to Hub
                   </button>
@@ -1061,7 +1192,7 @@ export default function MeldSimulation() {
                         }
                       }))
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium shadow-minimal"
+                    className="flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors text-sm font-medium shadow-minimal"
                   >
                     🗑️ Clear Logs
                   </button>

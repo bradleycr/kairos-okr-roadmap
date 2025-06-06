@@ -1,0 +1,36 @@
+{
+  "name": "KairOS - Cryptographic Authentication",
+  "short_name": "KairOS",
+  "description": "Elegant NFC-based cryptographic authentication and zero-knowledge proof system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "security", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/images/screenshot-mobile.png",
+      "sizes": "375x812",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "scope": "/",
+  "id": "kairos-app",
+  "dir": "ltr",
+  "lang": "en"
+} 

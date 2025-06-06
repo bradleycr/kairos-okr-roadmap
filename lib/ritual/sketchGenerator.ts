@@ -3,7 +3,7 @@
 // Generates deployable sketches for physical MELD nodes
 
 import { Ritual, RitualNodeConfig, GeneratedSketch, SketchGenerationConfig, NodeBehavior } from './types'
-import { MELD_NODES } from '@/lib/hal/simulateTap'
+import { getMeldNodes } from '@/lib/hal/simulateTap'
 
 // --- Arduino Library Dependencies ---
 const CORE_LIBRARIES = [

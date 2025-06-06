@@ -6,7 +6,7 @@ interface MomentsListProps {
 
 export default function MomentsList({ moments }: MomentsListProps) {
   return (
-    <div className="w-full border-2 border-gray-200 rounded-2xl overflow-hidden max-h-[300px] overflow-y-auto bg-white shadow-lg">
+    <div className="w-full border border-border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-card shadow-minimal">
       {moments.map((moment, index) => {
         const date = new Date(moment.timestamp)
         const timeStr = date.toLocaleTimeString("en-US", {

@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { HAL } from "@/lib/hardwareAbstraction"
-import { Shield, Wifi, Hash, Check, Key, Cpu, Bluetooth, RefreshCw } from 'lucide-react'
+import { Wifi, Cpu, Bluetooth } from 'lucide-react'
 import { eventBus } from "@/lib/hal/simulateTap"
 
 interface ESP32WearableDeviceProps {
@@ -331,9 +331,7 @@ export default function ESP32WearableDevice({
   const [momentId, setMomentId] = useState<string | undefined>(undefined)
   const [touchDetected, setTouchDetected] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [debugMessages, setDebugMessages] = useState<string[]>([])
   const [authState, setAuthState] = useState<AuthState>('WAITING')
-  const [showPendantLog, setShowPendantLog] = useState(false)
   const [deviceLog, setDeviceLog] = useState<ESP32DeviceLog>({
     nodeId,
     nodeName: `MELD Node ${nodeId}`,
@@ -368,17 +366,39 @@ export default function ESP32WearableDevice({
     // Get behavior from ritualConfig (this is the primary source)
     if (ritualConfig?.behavior) {
       const behavior = ritualConfig.behavior;
+      const parameters = ritualConfig.parameters;
+      
       switch (behavior) {
-        case 'save_moment': return getConfigurableText('save_moment_label', 'SAVE MOMENT');
-        case 'send_tip': return getConfigurableText('send_tip_label', 'SEND TIP');
-        case 'vote_option_a': return getConfigurableText('vote_option_a_label', 'VOTE A');
-        case 'vote_option_b': return getConfigurableText('vote_option_b_label', 'VOTE B');
-        case 'unlock_content': return getConfigurableText('unlock_content_label', 'UNLOCK CONTENT');
-        case 'trigger_light': return getConfigurableText('trigger_light_label', 'TRIGGER LIGHT');
-        case 'play_sound': return getConfigurableText('play_sound_label', 'PLAY SOUND');
-        case 'increment_counter': return getConfigurableText('increment_counter_label', 'INCREMENT');
-        case 'custom': return getConfigurableText('custom_behavior_label', 'CUSTOM ACTION');
-        default: return behavior.replace('_', ' ').toUpperCase();
+        case 'save_moment': 
+          return getConfigurableText('save_moment_label', 'SAVE MOMENT');
+        case 'send_tip': 
+          const tipAmount = parameters?.tipAmount || 5;
+          const recipient = parameters?.recipient || 'PERFORMER';
+          return getConfigurableText('send_tip_label', `TIP $${tipAmount} TO ${recipient.toUpperCase()}`);
+        case 'vote_option_a': 
+          const optionA = parameters?.voteOption || 'OPTION A';
+          return getConfigurableText('vote_option_a_label', `VOTE: ${optionA.toUpperCase()}`);
+        case 'vote_option_b': 
+          const optionB = parameters?.voteOption || 'OPTION B';
+          return getConfigurableText('vote_option_b_label', `VOTE: ${optionB.toUpperCase()}`);
+        case 'unlock_content': 
+          const contentId = parameters?.contentId || 'CONTENT';
+          return getConfigurableText('unlock_content_label', `UNLOCK ${contentId.toUpperCase()}`);
+        case 'trigger_light': 
+          const lightPattern = parameters?.lightPattern || 'RAINBOW';
+          return getConfigurableText('trigger_light_label', `LIGHTS: ${lightPattern.toUpperCase()}`);
+        case 'play_sound': 
+          const soundFile = parameters?.soundFile || 'CHIME';
+          const soundName = soundFile.replace('.wav', '').replace('_', ' ').toUpperCase();
+          return getConfigurableText('play_sound_label', `PLAY: ${soundName}`);
+        case 'increment_counter': 
+          const counterName = parameters?.counterName || 'VISITOR_COUNT';
+          return getConfigurableText('increment_counter_label', `COUNT: ${counterName.replace('_', ' ').toUpperCase()}`);
+        case 'custom': 
+          const customName = parameters?.customName || 'CUSTOM ACTION';
+          return getConfigurableText('custom_behavior_label', customName.toUpperCase());
+        default: 
+          return behavior.replace('_', ' ').toUpperCase();
       }
     }
     
@@ -386,15 +406,15 @@ export default function ESP32WearableDevice({
     if (screenData?.behavior) {
       const behavior = screenData.behavior;
       switch (behavior) {
-        case 'save_moment': return getConfigurableText('save_moment_label', 'SAVE MOMENT');
-        case 'send_tip': return getConfigurableText('send_tip_label', 'SEND TIP');
-        case 'vote_option_a': return getConfigurableText('vote_option_a_label', 'VOTE A');
-        case 'vote_option_b': return getConfigurableText('vote_option_b_label', 'VOTE B');
-        case 'unlock_content': return getConfigurableText('unlock_content_label', 'UNLOCK CONTENT');
-        case 'trigger_light': return getConfigurableText('trigger_light_label', 'TRIGGER LIGHT');
-        case 'play_sound': return getConfigurableText('play_sound_label', 'PLAY SOUND');
-        case 'increment_counter': return getConfigurableText('increment_counter_label', 'INCREMENT');
-        case 'custom': return getConfigurableText('custom_behavior_label', 'CUSTOM ACTION');
+        case 'save_moment': return 'SAVE MOMENT';
+        case 'send_tip': return 'SEND TIP';
+        case 'vote_option_a': return 'VOTE A';
+        case 'vote_option_b': return 'VOTE B';
+        case 'unlock_content': return 'UNLOCK CONTENT';
+        case 'trigger_light': return 'TRIGGER LIGHTS';
+        case 'play_sound': return 'PLAY SOUND';
+        case 'increment_counter': return 'INCREMENT COUNTER';
+        case 'custom': return 'CUSTOM ACTION';
         default: return behavior.replace('_', ' ').toUpperCase();
       }
     }
@@ -629,10 +649,16 @@ export default function ESP32WearableDevice({
     }
   }, [])
 
-  // Update display when relevant state changes
+  // Update display when relevant state changes or ritual configuration changes
   useEffect(() => {
+    console.log(`🎭 [${nodeId}] Display update triggered:`, {
+      authState,
+      ritualId: ritualConfig?.ritualId,
+      behavior: ritualConfig?.behavior,
+      name: ritualConfig?.name
+    })
     updateDisplay()
-  }, [authState, pendantData, momentId, screen, screenData, ritualConfig, updateDisplay]) // Added updateDisplay to dependencies
+  }, [authState, pendantData, momentId, screen, screenData, ritualConfig?.ritualId, ritualConfig?.behavior, ritualConfig?.name, ritualConfig?.displayText, updateDisplay, nodeId])
 
   // Watch for ritual configuration changes and update display in real-time
   useEffect(() => {
@@ -645,8 +671,6 @@ export default function ESP32WearableDevice({
 
   // Simulate ESP32 screen refresh timing (realistic 650ms for e-paper)
   const triggerRefresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1)
-    // Trigger display update instead of non-existent refresh method
     setTimeout(updateDisplay, 50)
   }, [updateDisplay])
 
@@ -851,32 +875,11 @@ export default function ESP32WearableDevice({
     HAL.vibration.vibrate([50, 30, 100])
   }, [disabled, onTap])
 
-  const [buzzerActive, setBuzzerActive] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  // Simulate syncing logs to cloud/hub
-  const syncLogsToHub = useCallback(async () => {
-    setRefreshing(true)
-    
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    setDeviceLog(prevLog => ({
-      ...prevLog,
-      lastSync: Date.now()
-    }))
-    
-    setRefreshing(false)
-    
-    // In real hardware: Upload via WiFi/Bluetooth to Raspberry Pi hub
-    console.log(`📡 ESP32 ${nodeId} synced ${deviceLog.totalInteractions} interactions to hub`)
-  }, [nodeId, deviceLog.totalInteractions])
-
   return (
     <div className="relative">
       {/* ESP32 Device Housing */}
       <div 
-        className={`relative p-3 rounded-3xl border-4 transition-all duration-300 cursor-pointer select-none ${
+        className={`relative p-2 rounded-2xl border-2 transition-all duration-300 cursor-pointer select-none ${
           disabled 
             ? 'opacity-50 cursor-not-allowed' 
             : 'hover:shadow-lg active:scale-95'
@@ -889,7 +892,7 @@ export default function ESP32WearableDevice({
         onClick={handleTap}
       >
         {/* Device Status Indicators */}
-        <div className="absolute top-2 right-2 flex gap-2">
+        <div className="absolute top-1.5 right-1.5 flex gap-1.5">
           {/* NFC Indicator */}
           <div 
             className={`w-2 h-2 rounded-full transition-colors ${nfcDetected ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'}`} 
@@ -957,7 +960,7 @@ export default function ESP32WearableDevice({
         </div>
 
         {/* Hardware Status - Clean and simple */}
-        <div className="mt-2 flex justify-between items-center">
+        <div className="mt-1.5 flex justify-between items-center">
           <div className="flex gap-3 text-xs text-gray-600">
             <div className="flex items-center gap-1">
               <Cpu className="w-3 h-3" />
@@ -979,15 +982,6 @@ export default function ESP32WearableDevice({
           </div>
         </div>
       </div>
-
-      {/* Debug Console */}
-      {debugMessages.length > 0 && (
-        <div className="mt-2 p-2 bg-black rounded text-green-400 text-xs font-mono max-h-20 overflow-y-auto">
-          {debugMessages.map((msg, index) => (
-            <div key={index}>{msg}</div>
-          ))}
-        </div>
-      )}
     </div>
   )
 } 

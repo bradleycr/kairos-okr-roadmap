@@ -89,9 +89,9 @@ export default function MeldNodeCard({
 
   return (
     <div 
-      className={`relative bg-white rounded-xl shadow-lg border-2 transition-all duration-300 ${className}`}
+      className={`relative bg-card rounded-lg border transition-all duration-300 ${className}`}
       style={{
-        borderColor: isHovering && selectedPendant ? node.color : '#e5e7eb',
+        borderColor: isHovering && selectedPendant ? node.color : 'hsl(var(--border))',
         boxShadow: lastTapSuccess ? `0 0 20px ${node.color}50` : undefined
       }}
       onMouseEnter={() => setIsHovering(true)}
@@ -110,7 +110,7 @@ export default function MeldNodeCard({
       )}
 
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div 
@@ -120,22 +120,22 @@ export default function MeldNodeCard({
               {node.icon}
             </div>
             <div>
-              <h3 className="font-bold text-gray-900">{node.name}</h3>
-              <p className="text-sm text-gray-500">{node.location}</p>
+              <h3 className="font-bold text-foreground">{node.name}</h3>
+              <p className="text-sm text-muted-foreground">{node.location}</p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
             {node.status === 'online' ? (
-              <Wifi className="w-4 h-4 text-green-500" />
+              <Wifi className="w-4 h-4 text-primary" />
             ) : (
-              <WifiOff className="w-4 h-4 text-red-500" />
+              <WifiOff className="w-4 h-4 text-destructive" />
             )}
             <span 
               className={`text-xs px-2 py-1 rounded-full ${
                 node.status === 'online' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-red-100 text-red-700'
+                  ? 'bg-primary/10 text-primary' 
+                  : 'bg-destructive/10 text-destructive'
               }`}
             >
               {node.status}
@@ -145,10 +145,10 @@ export default function MeldNodeCard({
       </div>
 
       {/* Stats */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-border">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
               <Hash className="w-3 h-3" />
               <span className="text-xs">Moments</span>
             </div>
@@ -158,7 +158,7 @@ export default function MeldNodeCard({
           </div>
           
           <div>
-            <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
               <Users className="w-3 h-3" />
               <span className="text-xs">Visitors</span>
             </div>
@@ -168,7 +168,7 @@ export default function MeldNodeCard({
           </div>
           
           <div>
-            <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
               <Activity className="w-3 h-3" />
               <span className="text-xs">Per Hour</span>
             </div>
@@ -186,10 +186,10 @@ export default function MeldNodeCard({
           disabled={!selectedPendant || isTapping || node.status !== 'online'}
           className={`w-full py-4 rounded-lg font-semibold transition-all duration-200 ${
             !selectedPendant || node.status !== 'online'
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              ? 'bg-muted text-muted-foreground cursor-not-allowed'
               : isTapping
               ? 'cursor-not-allowed'
-              : 'shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]'
+              : 'shadow-minimal hover:shadow-float hover:scale-[1.01] active:scale-[0.99]'
           }`}
           style={{
             backgroundColor: selectedPendant && node.status === 'online' && !isTapping
@@ -209,7 +209,7 @@ export default function MeldNodeCard({
           {isTapping ? (
             <div className="flex items-center justify-center gap-2">
               <div 
-                className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
+                className="w-4 h-4 border border-border border-t-transparent rounded-full animate-spin"
               />
               Tapping...
             </div>
@@ -228,7 +228,7 @@ export default function MeldNodeCard({
       {/* Recent Moments */}
       {recentMoments.length > 0 && (
         <div className="p-4 pt-0">
-          <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+          <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
             <Clock className="w-3 h-3" />
             Recent Activity
           </div>
@@ -236,13 +236,13 @@ export default function MeldNodeCard({
             {recentMoments.map((moment) => (
               <div 
                 key={moment.id} 
-                className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs"
+                className="flex items-center gap-2 p-2 bg-muted/50 rounded text-xs"
               >
-                <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
-                <span className="font-mono text-gray-600 flex-shrink-0">
+                <Check className="w-3 h-3 text-primary flex-shrink-0" />
+                <span className="font-mono text-muted-foreground flex-shrink-0">
                   {formatTimestamp(moment.timestamp)}
                 </span>
-                <span className="text-gray-500 truncate">
+                <span className="text-muted-foreground truncate">
                   {truncateHash(moment.hash, 6)}
                 </span>
               </div>
@@ -254,7 +254,7 @@ export default function MeldNodeCard({
       {/* Empty State */}
       {moments.length === 0 && (
         <div className="p-4 pt-0">
-          <div className="text-center py-4 text-gray-400">
+          <div className="text-center py-4 text-muted-foreground">
             <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No moments yet</p>
             <p className="text-xs">Tap a pendant to create the first moment</p>

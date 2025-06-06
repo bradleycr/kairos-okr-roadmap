@@ -733,7 +733,7 @@ function NFCPageContent() {
               <CardHeader className="text-center pb-3">
                 <CardTitle className="flex items-center justify-center gap-2 text-base sm:text-lg">
                   <div className="relative">
-                    <WifiIcon className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+                    <WifiIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
                   <span className="font-mono tracking-wide">PENDANT.SETUP</span>
                 </CardTitle>
@@ -743,8 +743,8 @@ function NFCPageContent() {
               </CardHeader>
               <CardContent className="space-y-4 text-center">
                 <div className="space-y-3">
-                  <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
-                    <WifiIcon className="h-6 w-6 sm:h-8 sm:w-8 text-amber-600" />
+                  <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
+                    <WifiIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                   </div>
                   
                   <div className="space-y-2">

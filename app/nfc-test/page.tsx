@@ -14,11 +14,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { 
   NfcIcon, 
   ShieldCheckIcon, 
-  WifiIcon, 
   ClockIcon, 
   KeyIcon, 
-  SmartphoneIcon,
-  LinkIcon,
   CheckCircleIcon,
   XCircleIcon,
   RefreshCwIcon,
@@ -82,23 +79,44 @@ function generateRandomUID(): string {
   ).join(':').toUpperCase()
 }
 
-function generateEd25519KeyPair(): { privateKey: string, publicKey: string, signature: string } {
-  // Generate 32-byte private key
-  const privateKey = generateRandomHex(32)
-  
-  // Generate 32-byte public key (in production, derive from private key)
-  const publicKey = generateRandomHex(32)
-  
-  // Generate 64-byte signature (in production, sign a challenge with private key)
-  const signature = generateRandomHex(64)
-  
-  return { privateKey, publicKey, signature }
+async function generateEd25519KeyPair(challengeMessage?: string): Promise<{ 
+  privateKey: string, 
+  publicKey: string, 
+  signature: string 
+}> {
+  try {
+    // Import the Ed25519 library dynamically for client-side use
+    const { generateKeypair, signMessage } = await import('@/lib/crypto/server')
+    
+    // Generate real Ed25519 keypair
+    const { privateKey, publicKey } = await generateKeypair()
+    
+    // Convert to hex strings for storage
+    const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('')
+    const publicKeyHex = Array.from(publicKey).map(b => b.toString(16).padStart(2, '0')).join('')
+    
+    // Generate a proper signature for a challenge message
+    const challenge = challengeMessage || `KairOS_NFC_Challenge_${Date.now()}`
+    const signatureBytes = await signMessage(challenge, privateKey)
+    const signature = Array.from(signatureBytes).map(b => b.toString(16).padStart(2, '0')).join('')
+    
+    return { privateKey: privateKeyHex, publicKey: publicKeyHex, signature }
+  } catch (error) {
+    console.error('❌ Failed to generate real Ed25519 keypair, falling back to random:', error)
+    
+    // Fallback to random generation for display purposes only
+    const privateKey = generateRandomHex(32)
+    const publicKey = generateRandomHex(32)
+    const signature = generateRandomHex(64)
+    
+    return { privateKey, publicKey, signature }
+  }
 }
 
 function generateDID(publicKey: string): string {
   // Create a DID:key from the public key
-  // In production, you'd use proper base58 encoding
-  const keyIdentifier = publicKey.substring(0, 32) // Simplified
+  // Simple implementation - in production use proper base58 encoding
+  const keyIdentifier = publicKey.substring(0, 32)
   return `did:key:z${keyIdentifier}`
 }
 
@@ -110,7 +128,9 @@ const NFC_CHIP_CONFIGS: Record<string, Ed25519NFCConfig> = {
     protocolSupport: ['ISO14443-4', 'NFC Type 4', 'Dynamic URLs'],
     secureFeatures: ['Ed25519', 'Dynamic Authentication', 'Tamper Detection'],
     uid: generateRandomUID(),
-    ...generateEd25519KeyPair(),
+    privateKey: '',
+    publicKey: '',
+    signature: '',
     did: ''
   },
   'ntag216': {
@@ -119,16 +139,56 @@ const NFC_CHIP_CONFIGS: Record<string, Ed25519NFCConfig> = {
     protocolSupport: ['ISO14443-3', 'NFC Type 2'],
     secureFeatures: ['Ed25519', 'Static URLs'],
     uid: generateRandomUID(),
-    ...generateEd25519KeyPair(),
+    privateKey: '',
+    publicKey: '',
+    signature: '',
     did: ''
   }
 }
 
-// Initialize DIDs
-Object.keys(NFC_CHIP_CONFIGS).forEach(key => {
-  const config = NFC_CHIP_CONFIGS[key]
-  config.did = generateDID(config.publicKey)
-})
+// Initialize configurations with proper crypto - we'll do this in the component
+async function initializeChipConfig(chipType: 'ntag424_dna' | 'ntag216'): Promise<Ed25519NFCConfig> {
+  const baseConfig = NFC_CHIP_CONFIGS[chipType]
+  const uid = generateRandomUID()
+  const challengeMessage = `KairOS_NFC_Challenge_${uid}`
+  
+  try {
+    const { privateKey, publicKey, signature } = await generateEd25519KeyPair(challengeMessage)
+    
+    // Import DID generation from server crypto
+    const { createDIDFromPublicKey } = await import('@/lib/crypto/server')
+    
+    // Convert public key hex to bytes for DID generation
+    const publicKeyBytes = new Uint8Array(
+      publicKey.match(/.{2}/g)?.map(byte => parseInt(byte, 16)) || []
+    )
+    const did = createDIDFromPublicKey(publicKeyBytes)
+    
+    return {
+      ...baseConfig,
+      uid,
+      privateKey,
+      publicKey,
+      signature,
+      did
+    }
+  } catch (error) {
+    console.error('Failed to initialize chip config with real crypto:', error)
+    
+    // Fallback to simplified config
+    const { privateKey, publicKey, signature } = await generateEd25519KeyPair(challengeMessage)
+    const did = generateDID(publicKey)
+    
+    return {
+      ...baseConfig,
+      uid,
+      privateKey,
+      publicKey,
+      signature,
+      did
+    }
+  }
+}
 
 export default function NFCTestPage() {
   const { toast } = useToast()
@@ -140,68 +200,121 @@ export default function NFCTestPage() {
   const [isSimulatingTap, setIsSimulatingTap] = useState(false)
   const [cryptoLogs, setCryptoLogs] = useState<string[]>([])
   const [customUrl, setCustomUrl] = useState('https://kair-os.vercel.app/nfc')
+  const [isInitializingCrypto, setIsInitializingCrypto] = useState(false)
+  const [currentChipConfig, setCurrentChipConfig] = useState<Ed25519NFCConfig | null>(null)
   
   // --- Initialize Test Session ---
-  const createTestSession = useCallback(() => {
-    const chipConfig = NFC_CHIP_CONFIGS[selectedChipType]
-    const sessionId = `ed25519_test_${Date.now()}`
-    
-    // Compress signature and public key for URL optimization
-    const compressedSignature = chipConfig.signature.substring(0, 32)
-    const compressedPublicKey = chipConfig.publicKey.substring(0, 32)
-    
-    // Create optimized NFC URL with compressed parameters
-    const nfcUrl = `${customUrl}?c=${encodeURIComponent(chipConfig.uid)}&s=${compressedSignature}&k=${compressedPublicKey}`
-    
-    // Validate URL length for NFC compatibility
-    const urlBytes = new TextEncoder().encode(nfcUrl).length
-    const maxNfcUrlBytes = 200 // Safe limit for NTAG424 DNA user memory
-    
-    if (urlBytes > maxNfcUrlBytes) {
+  const createTestSession = useCallback(async () => {
+    if (!currentChipConfig) {
+      setIsInitializingCrypto(true)
+      setCryptoLogs(['🔄 Initializing real Ed25519 cryptography...'])
+      
+      try {
+        const chipConfig = await initializeChipConfig(selectedChipType)
+        setCurrentChipConfig(chipConfig)
+        
+        const sessionId = `ed25519_test_${Date.now()}`
+        const challengeMessage = `KairOS_NFC_Challenge_${chipConfig.uid}`
+        
+        // The signature in chipConfig is already signed with the correct challenge
+        const compressedSignature = chipConfig.signature.substring(0, 32)
+        const compressedPublicKey = chipConfig.publicKey.substring(0, 32)
+        
+        const nfcUrl = `${customUrl}?c=${encodeURIComponent(chipConfig.uid)}&s=${compressedSignature}&k=${compressedPublicKey}`
+        
+        const urlBytes = new TextEncoder().encode(nfcUrl).length
+        const maxNfcUrlBytes = 200
+        
+        if (urlBytes > maxNfcUrlBytes) {
+          toast({
+            title: "❌ URL Too Long",
+            description: `URL is ${urlBytes} bytes (max ${maxNfcUrlBytes}). Try shorter base URL.`,
+            variant: "destructive"
+          })
+          setIsInitializingCrypto(false)
+          return
+        }
+        
+        const session: NFCTestSession = {
+          sessionId,
+          chipUID: chipConfig.uid,
+          did: chipConfig.did,
+          signature: chipConfig.signature,
+          publicKey: chipConfig.publicKey,
+          privateKey: chipConfig.privateKey,
+          nfcUrl,
+          verificationEndpoint: '/api/nfc/verify',
+          authMode: 'simulation',
+          createdAt: Date.now(),
+          accessCount: 0,
+          isActive: true
+        }
+        
+        setTestSession(session)
+        setCryptoLogs([
+          `🆔 Real Ed25519 Session Created: ${sessionId}`,
+          `📱 Chip Type: ${chipConfig.chipType}`,
+          `🔑 UID: ${chipConfig.uid}`,
+          `🛡️ Protocol: ${chipConfig.protocolSupport.join(', ')}`,
+          `⚡ Features: ${chipConfig.secureFeatures.join(', ')}`,
+          `🆔 DID: ${chipConfig.did}`,
+          `🔐 Public Key: ${chipConfig.publicKey.substring(0, 16)}...`,
+          `✍️ Signature: ${chipConfig.signature.substring(0, 16)}...`,
+          `🎯 Challenge: ${challengeMessage}`,
+          `🌐 NFC URL: ${nfcUrl}`,
+          `📏 URL Size: ${urlBytes} bytes (${maxNfcUrlBytes - urlBytes} bytes remaining)`,
+          '━'.repeat(80),
+          '✅ Real Ed25519 test session ready - cryptographically signed challenge'
+        ])
+        
+        toast({
+          title: "✅ Real Ed25519 Test Session Created",
+          description: `${chipConfig.chipType} ready with real signatures`,
+        })
+        
+      } catch (error) {
+        console.error('Failed to create test session:', error)
+        toast({
+          title: "❌ Crypto Initialization Failed",
+          description: "Could not initialize Ed25519 cryptography",
+          variant: "destructive"
+        })
+      } finally {
+        setIsInitializingCrypto(false)
+      }
+    } else {
+      // Use existing config
+      const chipConfig = currentChipConfig
+      const sessionId = `ed25519_test_${Date.now()}`
+      
+      const compressedSignature = chipConfig.signature.substring(0, 32)
+      const compressedPublicKey = chipConfig.publicKey.substring(0, 32)
+      
+      const nfcUrl = `${customUrl}?c=${encodeURIComponent(chipConfig.uid)}&s=${compressedSignature}&k=${compressedPublicKey}`
+      
+      const session: NFCTestSession = {
+        sessionId,
+        chipUID: chipConfig.uid,
+        did: chipConfig.did,
+        signature: chipConfig.signature,
+        publicKey: chipConfig.publicKey,
+        privateKey: chipConfig.privateKey,
+        nfcUrl,
+        verificationEndpoint: '/api/nfc/verify',
+        authMode: 'simulation',
+        createdAt: Date.now(),
+        accessCount: 0,
+        isActive: true
+      }
+      
+      setTestSession(session)
+      
       toast({
-        title: "❌ URL Too Long",
-        description: `URL is ${urlBytes} bytes (max ${maxNfcUrlBytes}). Try shorter base URL.`,
-        variant: "destructive"
+        title: "✅ Test Session Updated",
+        description: `Using existing ${chipConfig.chipType} configuration`,
       })
-      return
     }
-    
-    const session: NFCTestSession = {
-      sessionId,
-      chipUID: chipConfig.uid,
-      did: chipConfig.did,
-      signature: chipConfig.signature,
-      publicKey: chipConfig.publicKey,
-      privateKey: chipConfig.privateKey,
-      nfcUrl,
-      verificationEndpoint: '/api/nfc/verify',
-      authMode: 'simulation',
-      createdAt: Date.now(),
-      accessCount: 0,
-      isActive: true
-    }
-    
-    setTestSession(session)
-    setCryptoLogs([
-      `🆔 Ed25519 Session Created: ${sessionId}`,
-      `📱 Chip Type: ${chipConfig.chipType}`,
-      `🔑 UID: ${chipConfig.uid}`,
-      `🛡️ Protocol: ${chipConfig.protocolSupport.join(', ')}`,
-      `⚡ Features: ${chipConfig.secureFeatures.join(', ')}`,
-      `🆔 DID: ${chipConfig.did}`,
-      `🔐 Public Key: ${chipConfig.publicKey.substring(0, 16)}...`,
-      `✍️ Signature: ${chipConfig.signature.substring(0, 16)}...`,
-      `🌐 NFC URL: ${nfcUrl}`,
-      `📏 URL Size: ${urlBytes} bytes (${maxNfcUrlBytes - urlBytes} bytes remaining)`,
-      '━'.repeat(80),
-      '✅ Ed25519 test session ready for NFC taps - URL optimized for writing'
-    ])
-    
-    toast({
-      title: "✅ Ed25519 Test Session Created",
-      description: `${chipConfig.chipType} ready - URL: ${urlBytes} bytes`,
-    })
-  }, [selectedChipType, customUrl, toast])
+  }, [selectedChipType, customUrl, currentChipConfig, toast])
   
   // --- Simulate NFC Tap ---
   const simulateNFCTap = useCallback(async () => {
@@ -287,10 +400,13 @@ export default function NFCTestPage() {
     addPhaseLog('🔐 PHASE 3: Ed25519 Cryptographic Authentication')
     addPhaseLog(`🏷️ Algorithm: Edwards-curve Digital Signature Algorithm (Ed25519)`)
     addPhaseLog(`🔢 Curve: Edwards25519 (Curve25519 over prime 2^255-19)`)
-    addPhaseLog(`�� Hash function: SHA-512`)
+    addPhaseLog(`🔃 Hash function: SHA-512`)
     addPhaseLog(`🔑 Public Key: ${session.publicKey}`)
     addPhaseLog(`✍️ Signature: ${session.signature}`)
-    addPhaseLog(`🎯 Challenge: chip_uid_${session.chipUID}_timestamp_${tapEvent.timestamp}`)
+    
+    // Use the correct challenge message that was used to generate the signature
+    const challengeMessage = `KairOS_NFC_Challenge_${session.chipUID}`
+    addPhaseLog(`🎯 Challenge: ${challengeMessage}`)
     
     // Phase 4: API Verification
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -298,7 +414,7 @@ export default function NFCTestPage() {
     addPhaseLog('🌐 PHASE 4: API Verification')
     
     try {
-      // Make actual API call
+      // Make actual API call with the correct challenge
       const response = await fetch('/api/nfc/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -307,6 +423,7 @@ export default function NFCTestPage() {
           did: session.did,
           signature: session.signature,
           publicKey: session.publicKey,
+          challenge: challengeMessage, // Pass the correct challenge message
           deviceInfo: {
             platform: 'web',
             userAgent: navigator.userAgent
@@ -399,7 +516,7 @@ export default function NFCTestPage() {
   }, [toast])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -408,7 +525,7 @@ export default function NFCTestPage() {
               <NfcIcon className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-primary">
                 Ed25519 NFC Authentication Test
               </h1>
               <p className="text-gray-800 dark:text-gray-200">
@@ -417,7 +534,7 @@ export default function NFCTestPage() {
             </div>
           </div>
           
-          <Alert className="border-blue-200 bg-blue-50">
+          <Alert className="border-primary/20 bg-primary/10">
             <ShieldCheckIcon className="h-4 w-4" />
             <AlertDescription className="text-gray-800 dark:text-gray-200">
               <strong>Updated Authentication:</strong> This test now uses Ed25519 cryptographic signatures instead of NTAG424 AES. Compatible with your NTAG424 DNA chips.
@@ -464,10 +581,20 @@ export default function NFCTestPage() {
                 
                 <Button 
                   onClick={createTestSession}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  disabled={isInitializingCrypto}
+                  className="w-full bg-primary hover:bg-primary/90"
                 >
-                  <KeyIcon className="h-4 w-4 mr-2" />
-                  Create Ed25519 Session
+                  {isInitializingCrypto ? (
+                    <>
+                      <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                      Initializing Ed25519...
+                    </>
+                  ) : (
+                    <>
+                      <KeyIcon className="h-4 w-4 mr-2" />
+                      Create Ed25519 Session
+                    </>
+                  )}
                 </Button>
                 
                 {testSession && (
@@ -476,7 +603,7 @@ export default function NFCTestPage() {
                     <Button 
                       onClick={simulateNFCTap}
                       disabled={isSimulatingTap}
-                      className="w-full bg-green-600 hover:bg-green-700"
+                      className="w-full bg-primary hover:bg-primary/90"
                     >
                       {isSimulatingTap ? (
                         <>
@@ -516,13 +643,13 @@ export default function NFCTestPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-700 dark:text-gray-300">Chip Type:</span>
                       <span className="font-mono text-gray-900 dark:text-gray-100">
-                        {NFC_CHIP_CONFIGS[selectedChipType].chipType}
+                        {currentChipConfig?.chipType || NFC_CHIP_CONFIGS[selectedChipType].chipType}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-700 dark:text-gray-300">Memory:</span>
                       <span className="font-mono text-gray-900 dark:text-gray-100">
-                        {NFC_CHIP_CONFIGS[selectedChipType].memorySize} bytes
+                        {currentChipConfig?.memorySize || NFC_CHIP_CONFIGS[selectedChipType].memorySize} bytes
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -533,7 +660,7 @@ export default function NFCTestPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-700 dark:text-gray-300">Status:</span>
-                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                      <Badge variant="outline" className="text-primary border-primary/20 bg-primary/10">
                         Active
                       </Badge>
                     </div>
@@ -559,8 +686,9 @@ export default function NFCTestPage() {
               </Card>
             ) : (
               <Tabs defaultValue="session" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="session">Session Info</TabsTrigger>
+                  <TabsTrigger value="how-it-works">How It Works</TabsTrigger>
                   <TabsTrigger value="history">Tap History</TabsTrigger>
                   <TabsTrigger value="logs">Crypto Logs</TabsTrigger>
                 </TabsList>
@@ -641,6 +769,199 @@ export default function NFCTestPage() {
                   </Card>
                 </TabsContent>
                 
+                <TabsContent value="how-it-works" className="space-y-6">
+                  {/* Hero Explanation */}
+                  <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+                    <CardContent className="pt-6">
+                      <div className="text-center mb-6">
+                        <h3 className="text-2xl font-bold text-primary mb-2">🔐 Cryptographic Authentication</h3>
+                        <p className="text-lg text-gray-700 dark:text-gray-300">
+                          Imagine your NFC chip is like a <strong>digital passport</strong> that proves who you are without revealing your secrets!
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step-by-Step Visual Flow */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <span>🚀</span>
+                        <span>Authentication Flow (Simple Version)</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Step 1 */}
+                        <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="text-4xl mb-2">📱</div>
+                          <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">1. You Tap</h4>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            Your phone reads the NFC chip, like scanning a QR code but with radio waves
+                          </p>
+                        </div>
+
+                        {/* Step 2 */}
+                        <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                          <div className="text-4xl mb-2">🔍</div>
+                          <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-2">2. We Check</h4>
+                          <p className="text-sm text-purple-700 dark:text-purple-300">
+                            The server asks "Prove you own this chip!" and checks your digital signature
+                          </p>
+                        </div>
+
+                        {/* Step 3 */}
+                        <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                          <div className="text-4xl mb-2">✅</div>
+                          <h4 className="font-bold text-green-800 dark:text-green-200 mb-2">3. You're In!</h4>
+                          <p className="text-sm text-green-700 dark:text-green-300">
+                            Authentication succeeds and you can save moments, vote, or trigger actions
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* The Keys Analogy */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <span>🔑</span>
+                        <span>Public & Private Keys (Like House Keys)</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                        <h4 className="font-bold text-yellow-800 dark:text-yellow-200 mb-2">🏠 Think of it like your house:</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">🔒</span>
+                              <div>
+                                <strong className="text-red-700 dark:text-red-300">Private Key</strong>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Your secret house key - NEVER share this!</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">📢</span>
+                              <div>
+                                <strong className="text-green-700 dark:text-green-300">Public Key</strong>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Your house address - anyone can know this!</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">🎯 The Challenge:</h4>
+                        <p className="text-gray-700 dark:text-gray-300 mb-2">
+                          When you tap, the server says: <em>"Hey, prove you own the house at this address!"</em>
+                        </p>
+                        <p className="text-gray-700 dark:text-gray-300">
+                          You use your <strong>private key</strong> to "sign" a message that only the real owner could create.
+                          Anyone can verify it's real using your <strong>public key</strong>, but they can't fake it!
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Ed25519 Explained */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <span>🧮</span>
+                        <span>What is Ed25519? (The Math Magic)</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                          <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-2">🎪 It's like a magic trick:</h4>
+                          <ul className="space-y-2 text-gray-700 dark:text-gray-300">
+                            <li>• <strong>Ed25519</strong> is a specific type of "elliptic curve cryptography"</li>
+                            <li>• Think of it as a <strong>really hard math puzzle</strong> that's easy to check but impossible to fake</li>
+                            <li>• It's so secure that even supercomputers would take millions of years to break it</li>
+                            <li>• Yet it's fast enough to run on a tiny $3 chip!</li>
+                          </ul>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div className="text-2xl mb-1">⚡</div>
+                            <strong className="text-green-700 dark:text-green-300">Fast</strong>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Signs in milliseconds</p>
+                          </div>
+                          <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <div className="text-2xl mb-1">🛡️</div>
+                            <strong className="text-blue-700 dark:text-blue-300">Secure</strong>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Military-grade protection</p>
+                          </div>
+                          <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                            <div className="text-2xl mb-1">💰</div>
+                            <strong className="text-orange-700 dark:text-orange-300">Cheap</strong>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Works on $3 chips</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Why This Matters */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <span>🌟</span>
+                        <span>Why This Matters</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-green-700 dark:text-green-300">✅ What We Prevent:</h4>
+                          <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                            <li>• 🚫 Fake chips (counterfeit protection)</li>
+                            <li>• 🚫 Replay attacks (can't copy and reuse)</li>
+                            <li>• 🚫 Man-in-the-middle attacks</li>
+                            <li>• 🚫 Identity theft or impersonation</li>
+                          </ul>
+                        </div>
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-blue-700 dark:text-blue-300">🎯 What We Enable:</h4>
+                          <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                            <li>• ✅ Trustless voting systems</li>
+                            <li>• ✅ Secure micropayments</li>
+                            <li>• ✅ Verified moments & memories</li>
+                            <li>• ✅ Physical-digital bridges</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Interactive Diagram */}
+                  <Card className="border-2 border-dashed border-primary/30">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <span>🔄</span>
+                        <span>Watch It Happen (Live Demo)</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center p-6 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border">
+                        <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                          👆 <strong>Create a test session above</strong>, then <strong>simulate an NFC tap</strong> to see the real crypto in action!
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500">
+                          Watch the "Crypto Logs" tab to see each step of the Ed25519 verification process
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
                 <TabsContent value="history" className="space-y-4">
                   <ScrollArea className="h-96">
                     {tapHistory.length === 0 ? (
@@ -662,13 +983,13 @@ export default function NFCTestPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {tap.verificationResult === 'success' && (
-                                    <Badge className="bg-green-100 text-green-800">
+                                    <Badge className="bg-primary/10 text-primary">
                                       <CheckCircleIcon className="h-3 w-3 mr-1" />
                                       Success
                                     </Badge>
                                   )}
                                   {tap.verificationResult === 'failure' && (
-                                    <Badge className="bg-red-100 text-red-800">
+                                    <Badge className="bg-destructive/10 text-destructive">
                                       <XCircleIcon className="h-3 w-3 mr-1" />
                                       Failed
                                     </Badge>

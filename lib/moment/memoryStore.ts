@@ -25,7 +25,7 @@ export interface MeldMemoryStore {
 }
 
 // --- In-Memory Store (ESP32: Use PSRAM or external storage) ---
-let internalStore: MeldMemoryStore = {
+const internalStore: MeldMemoryStore = {
   moments: [],
   stats: {}
 }
@@ -34,7 +34,6 @@ let internalStore: MeldMemoryStore = {
 
 /**
  * Load saved moments from localStorage
- * @note ESP32: Load from EEPROM/Flash
  */
 function loadMomentsFromStorage(): void {
   if (typeof window === 'undefined') return
@@ -57,7 +56,6 @@ function loadMomentsFromStorage(): void {
 
 /**
  * Save moments to localStorage
- * @note ESP32: Save to EEPROM/Flash
  */
 function saveMomentsToStorage(): void {
   if (typeof window === 'undefined') return
@@ -78,7 +76,6 @@ function saveMomentsToStorage(): void {
 
 /**
  * Load stats from localStorage
- * @note ESP32: Load from EEPROM/Flash
  */
 function loadStatsFromStorage(): void {
   if (typeof window === 'undefined') return
@@ -95,7 +92,6 @@ function loadStatsFromStorage(): void {
 
 /**
  * Save stats to localStorage
- * @note ESP32: Save to EEPROM/Flash
  */
 function saveStatsToStorage(): void {
   if (typeof window === 'undefined') return
@@ -130,12 +126,10 @@ export function addMoment(moment: TapMoment): void {
   updateNodeStats(moment.nodeId)
   saveMomentsToStorage()
   
-  // Emit events for real-time UI updates (ensure all components sync)
-  if (typeof window !== 'undefined' && window.dispatchEvent) {
-    window.dispatchEvent(new CustomEvent('momentAdded', { 
-      detail: { moment, nodeId: moment.nodeId, pendantId: moment.pendantId }
-    }))
-  }
+  // Emit events for real-time UI updates
+  window.dispatchEvent(new CustomEvent('momentAdded', { 
+    detail: { moment, nodeId: moment.nodeId, pendantId: moment.pendantId }
+  }))
 }
 
 /**

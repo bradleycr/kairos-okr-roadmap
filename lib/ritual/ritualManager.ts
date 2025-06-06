@@ -1,9 +1,9 @@
 // --- Ritual Manager ---
-// Manages ritual configurations and execution
-// Integrates with existing MELD Node simulation architecture
+// Manages ritual configurations and execution for flexible 1-6 node systems
+// Integrates with dynamic MELD Node simulation architecture
 
 import { Ritual, RitualNodeConfig, RitualExecution, NodeBehavior } from './types'
-import { MELD_NODES, simulateTap, eventBus, TapMoment } from '@/lib/hal/simulateTap'
+import { getMeldNodes, simulateTap, eventBus, TapMoment, NODE_TEMPLATES } from '@/lib/hal/simulateTap'
 import { memoryStore } from '@/lib/moment/memoryStore'
 
 // --- Storage Keys ---
@@ -25,85 +25,192 @@ let ritualStore: {
 }
 
 // --- Default Ritual Templates ---
-const DEFAULT_RITUALS: Ritual[] = [
-  {
-    id: 'default-moments',
-    name: 'Basic Moment Collection',
-    description: 'Save cryptographic moments at each node',
-    createdAt: Date.now(),
-    version: '1.0.0',
-    nodes: [
+function createDefaultRituals(): Ritual[] {
+  const currentNodes = getMeldNodes()
+  
+  return [
+    {
+      id: 'default-moments',
+      name: 'Moment Collection',
+      description: 'Save beautiful cryptographic moments at each node',
+      createdAt: Date.now(),
+      version: '1.0.0',
+      nodes: currentNodes.map(node => ({
+        nodeId: node.id,
+        label: `${node.name} Moment`,
+        behavior: 'save_moment' as NodeBehavior,
+        parameters: {
+          displayText: {
+            waiting_title: 'MELD',
+            waiting_subtitle: 'TAP TO BEGIN',
+            detected_title: 'NFC DETECTED',
+            detected_subtitle: 'AUTHENTICATING...',
+            auth_title: 'AUTHENTICATED',
+            auth_instruction: 'TAP AGAIN TO CONFIRM',
+            confirm_title: 'CONFIRM MOMENT',
+            confirm_button: 'CONFIRM',
+            success_title: 'MOMENT SAVED',
+            success_subtitle: 'ZK PROOF GENERATED',
+            error_title: 'ERROR',
+            error_subtitle: 'AUTH FAILED'
+          }
+        }
+      }))
+    }
+  ]
+}
+
+function getDefaultRituals(): Ritual[] {
+  const currentNodes = getMeldNodes()
+  
+  if (currentNodes.length === 1) {
+    // Single node rituals
+    return [
       {
-        nodeId: 'dj-node',
-        label: 'DJ Moment',
-        behavior: 'save_moment'
-      },
-      {
-        nodeId: 'vj-node', 
-        label: 'VJ Moment',
-        behavior: 'save_moment'
-      },
-      {
-        nodeId: 'bar-node',
-        label: 'Bar Moment', 
-        behavior: 'save_moment'
-      }
-    ]
-  },
-  {
-    id: 'voting-ritual',
-    name: 'Community Voting',
-    description: 'Vote on community decisions at different stations',
-    createdAt: Date.now(),
-    version: '1.0.0',
-    nodes: [
-      {
-        nodeId: 'dj-node',
-        label: 'Vote: Set A',
-        behavior: 'vote_option_a',
-        parameters: { voteOption: 'Set A: Electronic' }
-      },
-      {
-        nodeId: 'vj-node',
-        label: 'Vote: Set B', 
-        behavior: 'vote_option_b',
-        parameters: { voteOption: 'Set B: Ambient' }
-      },
-      {
-        nodeId: 'bar-node',
-        label: 'Abstain',
-        behavior: 'increment_counter',
-        parameters: { counterName: 'abstain_votes' }
-      }
-    ]
-  },
-  {
-    id: 'tip-performers',
-    name: 'Tip the Performers',
-    description: 'Send tips to DJs and VJs via NFC tap',
-    createdAt: Date.now(),
-    version: '1.0.0',
-    nodes: [
-      {
-        nodeId: 'dj-node',
-        label: 'Tip DJ',
-        behavior: 'send_tip',
-        parameters: { tipAmount: 5, recipient: 'dj_wallet' }
-      },
-      {
-        nodeId: 'vj-node',
-        label: 'Tip VJ',
-        behavior: 'send_tip', 
-        parameters: { tipAmount: 5, recipient: 'vj_wallet' }
-      },
-      {
-        nodeId: 'bar-node',
-        label: 'Save Memory',
-        behavior: 'save_moment'
+        id: 'minimal-moment',
+        name: 'Minimal Moment',
+        description: 'Beautiful single-node moment collection',
+        createdAt: Date.now(),
+        version: '1.0.0',
+        nodes: [{
+          nodeId: currentNodes[0].id,
+          label: 'Save Moment',
+          behavior: 'save_moment' as NodeBehavior,
+          parameters: {
+            displayText: {
+              waiting_title: 'MELD',
+              waiting_subtitle: 'TAP TO BEGIN',
+              detected_title: 'NFC DETECTED',
+              detected_subtitle: 'AUTHENTICATING...',
+              auth_title: 'AUTHENTICATED',
+              auth_instruction: 'TAP AGAIN TO CONFIRM',
+              confirm_title: 'CONFIRM MOMENT',
+              confirm_button: 'CONFIRM',
+              success_title: 'MOMENT SAVED',
+              success_subtitle: 'ZK PROOF GENERATED',
+              error_title: 'ERROR',
+              error_subtitle: 'AUTH FAILED'
+            }
+          }
+        }]
       }
     ]
   }
-]
+  
+  // Multi-node rituals
+  return [
+    {
+      id: 'moment-collection',
+      name: 'Moment Collection',
+      description: 'Save cryptographic moments at each node',
+      createdAt: Date.now(),
+      version: '1.0.0',
+      nodes: currentNodes.map(node => ({
+        nodeId: node.id,
+        label: `${node.name} Moment`,
+        behavior: 'save_moment' as NodeBehavior,
+        parameters: {
+          displayText: {
+            waiting_title: 'MELD',
+            waiting_subtitle: 'TAP TO BEGIN',
+            detected_title: 'NFC DETECTED',
+            detected_subtitle: 'AUTHENTICATING...',
+            auth_title: 'AUTHENTICATED',
+            auth_instruction: 'TAP AGAIN TO CONFIRM',
+            confirm_title: 'CONFIRM MOMENT',
+            confirm_button: 'CONFIRM',
+            success_title: 'MOMENT SAVED',
+            success_subtitle: 'ZK PROOF GENERATED',
+            error_title: 'ERROR',
+            error_subtitle: 'AUTH FAILED'
+          }
+        }
+      }))
+    },
+    {
+      id: 'tip-performers',
+      name: 'Tip the Performers',
+      description: 'Send tips to performers via NFC tap',
+      createdAt: Date.now(),
+      version: '1.0.0',
+      nodes: currentNodes.map((node, index) => ({
+        nodeId: node.id,
+        label: `Tip ${node.name}`,
+        behavior: (index < currentNodes.length - 1 ? 'send_tip' : 'save_moment') as NodeBehavior,
+        parameters: index < currentNodes.length - 1 ? {
+          tipAmount: 5,
+          recipient: `${node.type}_wallet`,
+          displayText: {
+            waiting_title: 'TIP JAR',
+            waiting_subtitle: 'TAP TO TIP',
+            success_title: 'TIP SENT',
+            success_subtitle: '$5.00 SENT'
+          }
+        } : {
+          displayText: {
+            waiting_title: 'MEMORY',
+            waiting_subtitle: 'TAP TO SAVE'
+          }
+        }
+      }))
+    },
+    {
+      id: 'voting-ritual',
+      name: 'Community Voting',
+      description: 'Vote on community decisions at different stations',
+      createdAt: Date.now(),
+      version: '1.0.0',
+      nodes: currentNodes.map((node, index) => {
+        if (index === 0) {
+          return {
+            nodeId: node.id,
+            label: 'Vote: Option A',
+            behavior: 'vote_option_a' as NodeBehavior,
+            parameters: {
+              voteOption: 'Option A',
+              displayText: {
+                waiting_title: 'VOTE A',
+                waiting_subtitle: 'TAP TO VOTE',
+                success_title: 'VOTE CAST',
+                success_subtitle: 'OPTION A'
+              }
+            }
+          }
+        } else if (index === 1) {
+          return {
+            nodeId: node.id,
+            label: 'Vote: Option B',
+            behavior: 'vote_option_b' as NodeBehavior,
+            parameters: {
+              voteOption: 'Option B',
+              displayText: {
+                waiting_title: 'VOTE B',
+                waiting_subtitle: 'TAP TO VOTE',
+                success_title: 'VOTE CAST',
+                success_subtitle: 'OPTION B'
+              }
+            }
+          }
+        } else {
+          return {
+            nodeId: node.id,
+            label: 'Abstain',
+            behavior: 'increment_counter' as NodeBehavior,
+            parameters: {
+              counterName: 'abstain_votes',
+              displayText: {
+                waiting_title: 'ABSTAIN',
+                waiting_subtitle: 'TAP TO ABSTAIN',
+                success_title: 'ABSTAINED',
+                success_subtitle: 'VOTE RECORDED'
+              }
+            }
+          }
+        }
+      })
+    }
+  ]
+}
 
 // --- Storage Functions ---
 
@@ -117,7 +224,7 @@ function loadFromStorage(): void {
       ritualStore.rituals = JSON.parse(ritualsData)
     } else {
       // Initialize with defaults
-      ritualStore.rituals = [...DEFAULT_RITUALS]
+      ritualStore.rituals = getDefaultRituals()
       saveToStorage()
     }
 
@@ -135,7 +242,7 @@ function loadFromStorage(): void {
   } catch (error) {
     console.warn('Failed to load ritual data:', error)
     // Initialize with defaults on error
-    ritualStore.rituals = [...DEFAULT_RITUALS]
+    ritualStore.rituals = getDefaultRituals()
   }
 }
 
@@ -169,11 +276,14 @@ export function initializeRitualManager(): void {
   // If still no rituals (edge case), create default ones
   if (ritualStore.rituals.length === 0) {
     console.log('🎭 No rituals found, initializing defaults...')
-    ritualStore.rituals = [...DEFAULT_RITUALS]
+    ritualStore.rituals = getDefaultRituals()
     ritualStore.activeRitual = ritualStore.rituals[0]
     saveToStorage()
     console.log('🎭 Created and activated default ritual:', ritualStore.activeRitual.name)
   }
+  
+  // Sync with current nodes (in case nodes were updated)
+  syncRitualsWithCurrentNodes()
   
   // Debug log the active ritual and its nodes
   if (ritualStore.activeRitual) {
@@ -181,6 +291,76 @@ export function initializeRitualManager(): void {
     console.log('🎭 Configured nodes:', ritualStore.activeRitual.nodes.map(n => `${n.nodeId} (${n.behavior})`))
   }
 }
+
+/**
+ * Sync existing rituals with current node configuration
+ */
+function syncRitualsWithCurrentNodes(): void {
+  const currentNodes = getMeldNodes()
+  const currentNodeIds = new Set(currentNodes.map(n => n.id))
+  
+  ritualStore.rituals = ritualStore.rituals.map(ritual => ({
+    ...ritual,
+    nodes: ritual.nodes.filter(node => currentNodeIds.has(node.nodeId))
+  }))
+  
+  // Update active ritual if it exists
+  if (ritualStore.activeRitual) {
+    ritualStore.activeRitual = {
+      ...ritualStore.activeRitual,
+      nodes: ritualStore.activeRitual.nodes.filter(node => currentNodeIds.has(node.nodeId))
+    }
+  }
+  
+  saveToStorage()
+}
+
+/**
+ * Create a new ritual with current nodes
+ */
+export function createRitualWithCurrentNodes(ritual: Omit<Ritual, 'id' | 'createdAt' | 'nodes'>): Ritual {
+  const currentNodes = getMeldNodes()
+  
+  const newRitual: Ritual = {
+    ...ritual,
+    id: `ritual-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+    createdAt: Date.now(),
+    nodes: currentNodes.map(node => ({
+      nodeId: node.id,
+      label: node.name,
+      behavior: 'save_moment' as NodeBehavior,
+      parameters: {
+        displayText: {
+          waiting_title: 'MELD',
+          waiting_subtitle: 'TAP TO BEGIN',
+          detected_title: 'NFC DETECTED',
+          detected_subtitle: 'AUTHENTICATING...',
+          auth_title: 'AUTHENTICATED',
+          auth_instruction: 'TAP AGAIN TO CONFIRM',
+          confirm_title: 'CONFIRM MOMENT',
+          confirm_button: 'CONFIRM',
+          success_title: 'MOMENT SAVED',
+          success_subtitle: 'ZK PROOF GENERATED',
+          error_title: 'ERROR',
+          error_subtitle: 'AUTH FAILED'
+        }
+      }
+    }))
+  }
+  
+  ritualStore.rituals.push(newRitual)
+  saveToStorage()
+  
+  return newRitual
+}
+
+// --- Event Handlers ---
+
+// Listen for node updates and sync rituals
+eventBus.on('nodesUpdated', () => {
+  syncRitualsWithCurrentNodes()
+  console.log('🎭 Synced rituals with updated nodes')
+})
 
 /**
  * Get all available rituals
@@ -204,7 +384,16 @@ export function setActiveRitual(ritualId: string): void {
   if (ritual) {
     ritualStore.activeRitual = ritual
     saveToStorage()
-    eventBus.emit('ritualChanged', { ritual })
+    
+    // Emit both events for complete system coverage
+    eventBus.emit('ritualActivated', ritual)
+    eventBus.emit('ritualChanged', ritual)
+    console.log('🎭 Activated ritual:', ritual.name)
+    
+    // Force a brief delay to ensure all components receive the update
+    setTimeout(() => {
+      eventBus.emit('ritualChanged', ritual)
+    }, 10)
   }
 }
 
@@ -214,14 +403,13 @@ export function setActiveRitual(ritualId: string): void {
 export function createRitual(ritual: Omit<Ritual, 'id' | 'createdAt'>): Ritual {
   const newRitual: Ritual = {
     ...ritual,
-    id: `ritual-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: `ritual-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
     createdAt: Date.now()
   }
   
   ritualStore.rituals.push(newRitual)
   saveToStorage()
   
-  eventBus.emit('ritualCreated', { ritual: newRitual })
   return newRitual
 }
 
@@ -239,7 +427,7 @@ export function updateRitual(ritualId: string, updates: Partial<Ritual>): void {
     }
     
     saveToStorage()
-    eventBus.emit('ritualUpdated', { ritual: ritualStore.rituals[index] })
+    eventBus.emit('ritualUpdated', ritualStore.rituals[index])
   }
 }
 
@@ -252,19 +440,26 @@ export function deleteRitual(ritualId: string): void {
   // Clear active ritual if it was deleted
   if (ritualStore.activeRitual?.id === ritualId) {
     ritualStore.activeRitual = ritualStore.rituals[0] || null
+    
+    // Emit events for the ritual change
+    eventBus.emit('ritualDeleted', { deletedId: ritualId })
+    eventBus.emit('ritualChanged', ritualStore.activeRitual)
+    
+    console.log('🎭 Deleted ritual and updated active ritual to:', ritualStore.activeRitual?.name || 'None')
+  } else {
+    // Just emit deleted event if it wasn't active
+    eventBus.emit('ritualDeleted', { deletedId: ritualId })
   }
   
   saveToStorage()
-  eventBus.emit('ritualDeleted', { ritualId })
 }
 
 /**
- * Get node configuration for a specific node in the active ritual
+ * Get node configuration for a specific node
  */
 export function getNodeConfig(nodeId: string): RitualNodeConfig | null {
   if (!ritualStore.activeRitual) return null
-  
-  return ritualStore.activeRitual.nodes.find(node => node.nodeId === nodeId) || null
+  return ritualStore.activeRitual.nodes.find(n => n.nodeId === nodeId) || null
 }
 
 /**

@@ -284,7 +284,6 @@ export class ZKMomentManager {
 
   /**
    * Save session to localStorage
-   * @note ESP32: Replace with NVS or EEPROM write
    */
   private saveSessionToStorage(): void {
     if (!this.currentSession || typeof window === 'undefined') return
@@ -305,7 +304,6 @@ export class ZKMomentManager {
 
   /**
    * Load session from localStorage
-   * @note ESP32: Replace with NVS or EEPROM read
    */
   private loadSessionFromStorage(): void {
     if (typeof window === 'undefined') return
@@ -333,7 +331,6 @@ export class ZKMomentManager {
 
   /**
    * Save installations to localStorage
-   * @note ESP32: Replace with program memory or config storage
    */
   private saveInstallationsToStorage(): void {
     if (typeof window === 'undefined') return
@@ -342,7 +339,6 @@ export class ZKMomentManager {
 
   /**
    * Load installations from localStorage
-   * @note ESP32: Replace with program memory or config read
    */
   private loadInstallationsFromStorage(): void {
     if (typeof window === 'undefined') return
@@ -359,7 +355,6 @@ export class ZKMomentManager {
 
   /**
    * Clear all stored data
-   * @note ESP32: Clear EEPROM/NVS sections
    */
   clearAllData(): void {
     this.currentSession = null

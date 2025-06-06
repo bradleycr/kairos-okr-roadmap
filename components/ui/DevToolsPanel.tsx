@@ -206,7 +206,7 @@ export const DevToolsPanel: React.FC<DevToolsPanelProps> = ({
                   </div>
                   <div>
                     <span className="text-gray-600">Storage:</span>
-                    <span className="ml-2 text-orange-600">{status.storageUsed}KB</span>
+                    <span className="ml-2 text-retro-coral-600">{status.storageUsed}KB</span>
                   </div>
                   <div>
                     <span className="text-gray-600">RAM:</span>

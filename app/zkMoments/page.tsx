@@ -36,12 +36,12 @@ const CATEGORY_ICONS = {
 
 // --- Category Colors ---
 const CATEGORY_COLORS = {
-  art: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-  music: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  food: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-  social: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  experience: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
-  other: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+  art: 'bg-retro-lavender-100 text-retro-lavender-800 dark:bg-retro-lavender-900 dark:text-retro-lavender-200',
+  music: 'bg-her-orange-100 text-her-orange-800 dark:bg-her-orange-900 dark:text-her-orange-200',
+  food: 'bg-retro-coral-100 text-retro-coral-800 dark:bg-retro-coral-900 dark:text-retro-coral-200',
+  social: 'bg-retro-teal-100 text-retro-teal-800 dark:bg-retro-teal-900 dark:text-retro-teal-200',
+  experience: 'bg-retro-sage-100 text-retro-sage-800 dark:bg-retro-sage-900 dark:text-retro-sage-200',
+  other: 'bg-warm-gray-100 text-warm-gray-800 dark:bg-warm-gray-900 dark:text-warm-gray-200'
 }
 
 export default function ZKMomentsPage() {
@@ -157,7 +157,7 @@ export default function ZKMomentsPage() {
       <Card 
         key={installation.id}
         className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-lg ${
-          isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950' : ''
+          isSelected ? 'ring-2 ring-primary bg-primary/10' : ''
         }`}
         onClick={() => handleTapInstallation(installation)}
       >
@@ -176,7 +176,7 @@ export default function ZKMomentsPage() {
           )}
         </div>
         {isSelected && (
-          <div className="mt-2 flex items-center gap-2 text-blue-600 dark:text-blue-400">
+          <div className="mt-2 flex items-center gap-2 text-primary">
             <Zap className="w-4 h-4 animate-pulse" />
             <span className="text-xs font-medium">Saving moment...</span>
           </div>
@@ -194,25 +194,25 @@ export default function ZKMomentsPage() {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="text-2xl font-bold text-primary">
             {stats.totalMoments}
           </div>
           <div className="text-xs text-gray-700 dark:text-gray-300">Total Moments</div>
         </Card>
         <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+          <div className="text-2xl font-bold text-primary">
             {stats.uniqueInstallations}
           </div>
           <div className="text-xs text-gray-700 dark:text-gray-300">Unique Places</div>
         </Card>
         <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+          <div className="text-2xl font-bold text-primary">
             {sessionDurationHours.toFixed(1)}h
           </div>
           <div className="text-xs text-gray-700 dark:text-gray-300">Session Time</div>
         </Card>
         <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+          <div className="text-2xl font-bold text-primary">
             {stats.averageMomentsPerHour.toFixed(1)}
           </div>
           <div className="text-xs text-gray-700 dark:text-gray-300">Moments/Hour</div>
@@ -229,7 +229,7 @@ export default function ZKMomentsPage() {
       <Card key={index} className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <Shield className="w-5 h-5 text-primary" />
             <span className="font-semibold">Proof #{index + 1}</span>
           </div>
           <Badge variant={hasBeenVerified ? (isVerified ? 'default' : 'destructive') : 'secondary'}>
@@ -275,7 +275,7 @@ export default function ZKMomentsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Sparkles className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <Sparkles className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-gray-700 dark:text-gray-300">Initializing crypto identity...</p>
         </div>
       </div>
@@ -286,7 +286,7 @@ export default function ZKMomentsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="p-8 max-w-md mx-auto text-center">
-          <Sparkles className="w-12 h-12 mx-auto mb-4 text-blue-600" />
+          <Sparkles className="w-12 h-12 mx-auto mb-4 text-primary" />
           <h2 className="text-xl font-bold mb-2">Welcome to ZK Moments</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-4">
             Generate your cryptographic identity to start collecting privacy-preserving moments.
@@ -300,12 +300,12 @@ export default function ZKMomentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-primary">
             ZK Moments
           </h1>
           <p className="text-gray-700 dark:text-gray-300 mt-2">
@@ -316,8 +316,8 @@ export default function ZKMomentsPage() {
         {/* Identity Card */}
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <Hash className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Hash className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold">Your Identity</h3>

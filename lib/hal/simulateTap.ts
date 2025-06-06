@@ -1,5 +1,5 @@
 // --- MELD Node Tap Simulation HAL ---
-// Simulates NFC pendant tapping on fixed MELD Node devices
+// Simulates NFC pendant tapping on flexible MELD Node devices (1-6 nodes)
 // ESP32-ready: Replace with actual NFC reader + crypto signing
 
 import { signMessage } from '@/lib/crypto/keys'
@@ -21,7 +21,7 @@ export interface MeldNode {
   id: string
   name: string
   location: string
-  type: 'dj' | 'vj' | 'bar' | 'stage' | 'entrance'
+  type: 'dj' | 'vj' | 'bar' | 'stage' | 'entrance' | 'custom'
   color: string
   icon: string
   status: 'online' | 'offline' | 'busy'
@@ -48,31 +48,142 @@ export interface TapSimulationParams {
 }
 
 // --- Event Bus for Real-time Updates ---
-type EventCallback = (data: any) => void
-const eventCallbacks: Record<string, EventCallback[]> = {}
+class EventBus {
+  private listeners: Record<string, Function[]> = {}
 
-export const eventBus = {
-  emit: (event: string, data: any) => {
-    if (eventCallbacks[event]) {
-      eventCallbacks[event].forEach(callback => callback(data))
+  on(event: string, callback: Function) {
+    if (!this.listeners[event]) {
+      this.listeners[event] = []
     }
-  },
-  
-  on: (event: string, callback: EventCallback) => {
-    if (!eventCallbacks[event]) {
-      eventCallbacks[event] = []
-    }
-    eventCallbacks[event].push(callback)
-  },
-  
-  off: (event: string, callback: EventCallback) => {
-    if (eventCallbacks[event]) {
-      const index = eventCallbacks[event].indexOf(callback)
-      if (index > -1) {
-        eventCallbacks[event].splice(index, 1)
-      }
-    }
+    this.listeners[event].push(callback)
   }
+
+  off(event: string, callback: Function) {
+    if (!this.listeners[event]) return
+    this.listeners[event] = this.listeners[event].filter(cb => cb !== callback)
+  }
+
+  emit(event: string, data: any) {
+    if (!this.listeners[event]) return
+    this.listeners[event].forEach(callback => callback(data))
+  }
+}
+
+export const eventBus = new EventBus()
+
+// --- Dynamic Node Management ---
+export const NODE_TEMPLATES = {
+  minimal: {
+    id: 'node-1',
+    name: 'MELD Terminal',
+    location: 'Main Stage',
+    type: 'stage' as const,
+    color: '#A78BFA',
+    icon: '✨',
+    status: 'online' as const
+  },
+  dj: {
+    id: 'dj-node',
+    name: 'DJ Booth',
+    location: 'Main Stage Left',
+    type: 'dj' as const,
+    color: '#FF6B6B',
+    icon: '🎧',
+    status: 'online' as const
+  },
+  vj: {
+    id: 'vj-node',
+    name: 'VJ Station',
+    location: 'Visual Control',
+    type: 'vj' as const,
+    color: '#4ECDC4',
+    icon: '🎥',
+    status: 'online' as const
+  },
+  bar: {
+    id: 'bar-node',
+    name: 'Bar Terminal',
+    location: 'Main Bar',
+    type: 'bar' as const,
+    color: '#45B7D1',
+    icon: '🍸',
+    status: 'online' as const
+  },
+  stage: {
+    id: 'stage-node',
+    name: 'Stage Terminal',
+    location: 'Center Stage',
+    type: 'stage' as const,
+    color: '#FFA726',
+    icon: '🎤',
+    status: 'online' as const
+  },
+  entrance: {
+    id: 'entrance-node',
+    name: 'Entry Point',
+    location: 'Main Entrance',
+    type: 'entrance' as const,
+    color: '#66BB6A',
+    icon: '🚪',
+    status: 'online' as const
+  }
+}
+
+// --- Dynamic MELD Nodes (1-6 flexible) ---
+let DYNAMIC_MELD_NODES: MeldNode[] = [NODE_TEMPLATES.minimal]
+
+// --- Node Management Functions ---
+export function getMeldNodes(): MeldNode[] {
+  return [...DYNAMIC_MELD_NODES]
+}
+
+export function setMeldNodes(nodes: MeldNode[]): void {
+  if (nodes.length < 1 || nodes.length > 6) {
+    throw new Error('MELD nodes must be between 1 and 6')
+  }
+  DYNAMIC_MELD_NODES = [...nodes]
+  eventBus.emit('nodesUpdated', DYNAMIC_MELD_NODES)
+}
+
+export function addMeldNode(template: keyof typeof NODE_TEMPLATES = 'minimal'): MeldNode {
+  if (DYNAMIC_MELD_NODES.length >= 6) {
+    throw new Error('Maximum 6 nodes allowed')
+  }
+  
+  const templateNode = NODE_TEMPLATES[template]
+  const newNode: MeldNode = {
+    ...templateNode,
+    id: `node-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+    name: `${templateNode.name} ${DYNAMIC_MELD_NODES.length + 1}`
+  }
+  
+  DYNAMIC_MELD_NODES.push(newNode)
+  eventBus.emit('nodesUpdated', DYNAMIC_MELD_NODES)
+  return newNode
+}
+
+export function removeMeldNode(nodeId: string): boolean {
+  if (DYNAMIC_MELD_NODES.length <= 1) {
+    throw new Error('Must have at least 1 node')
+  }
+  
+  const initialLength = DYNAMIC_MELD_NODES.length
+  DYNAMIC_MELD_NODES = DYNAMIC_MELD_NODES.filter(node => node.id !== nodeId)
+  
+  if (DYNAMIC_MELD_NODES.length < initialLength) {
+    eventBus.emit('nodesUpdated', DYNAMIC_MELD_NODES)
+    return true
+  }
+  return false
+}
+
+export function updateMeldNode(nodeId: string, updates: Partial<MeldNode>): boolean {
+  const nodeIndex = DYNAMIC_MELD_NODES.findIndex(node => node.id === nodeId)
+  if (nodeIndex === -1) return false
+  
+  DYNAMIC_MELD_NODES[nodeIndex] = { ...DYNAMIC_MELD_NODES[nodeIndex], ...updates }
+  eventBus.emit('nodesUpdated', DYNAMIC_MELD_NODES)
+  return true
 }
 
 // --- Core Tap Simulation Function ---
@@ -128,40 +239,9 @@ export const simulateTap = async ({
   return moment
 }
 
-// --- Pre-defined MELD Nodes for Event ---
-export const MELD_NODES: MeldNode[] = [
-  {
-    id: 'dj-node',
-    name: 'DJ Booth',
-    location: 'Main Stage Left',
-    type: 'dj',
-    color: '#FF6B6B',
-    icon: '🎧',
-    status: 'online'
-  },
-  {
-    id: 'vj-node', 
-    name: 'VJ Station',
-    location: 'Visual Control',
-    type: 'vj',
-    color: '#4ECDC4',
-    icon: '🎥',
-    status: 'online'
-  },
-  {
-    id: 'bar-node',
-    name: 'Bar Terminal',
-    location: 'Main Bar',
-    type: 'bar',
-    color: '#45B7D1',
-    icon: '🍸',
-    status: 'online'
-  }
-]
-
 // --- Utility Functions ---
 export const getNodeById = (nodeId: string): MeldNode | undefined => {
-  return MELD_NODES.find(node => node.id === nodeId)
+  return DYNAMIC_MELD_NODES.find(node => node.id === nodeId)
 }
 
 export const formatTimestamp = (timestamp: number): string => {
@@ -169,9 +249,12 @@ export const formatTimestamp = (timestamp: number): string => {
 }
 
 export const truncateHash = (hash: string, length: number = 8): string => {
-  return `${hash.slice(0, length)}...${hash.slice(-4)}`
+  return `${hash.substring(0, length)}...`
 }
 
-export const truncateDID = (did: string, length: number = 20): string => {
-  return `${did.slice(0, length)}...`
+// --- Initialize Default Configuration ---
+export function initializeDefaultNodes(): void {
+  // Start with a single beautiful minimal node
+  DYNAMIC_MELD_NODES = [NODE_TEMPLATES.minimal]
+  eventBus.emit('nodesUpdated', DYNAMIC_MELD_NODES)
 } 

@@ -5,9 +5,6 @@
 import type { Moment } from "../types"
 import { HAL } from "@/lib/hardwareAbstraction"
 
-// --- CONFIG ---
-export const IS_SIMULATION_MODE = true // Set to false for hardware mode
-
 // --- CRYPTOGRAPHY ---
 
 /**
@@ -104,22 +101,4 @@ function base58Encode(bytes: Uint8Array): string {
     result = "1" + result
   }
   return result
-}
-
-// --- FUTURE HOOKS ---
-
-/**
- * Placeholder for sending moment data to Raspberry Pi over serial/BLE
- * @note To be implemented on ESP32
- */
-export function sendToRaspberryPi(moment: Moment) {
-  // TODO: replace this with serial/BLE send on ESP32
-}
-
-/**
- * Placeholder for receiving NFC tag data from a real NFC module
- * @note To be implemented on ESP32
- */
-export function receiveNFCData() {
-  // TODO: replace this with NFC read logic on ESP32
 } 
