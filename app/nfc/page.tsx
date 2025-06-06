@@ -782,7 +782,7 @@ function NFCPageContent() {
                   <div className="relative">
                     <NfcIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-[float_3s_ease-in-out_infinite]" />
                   </div>
-                  <span className="font-mono tracking-wide">MELD.ECOSYSTEM</span>
+                  <span className="font-mono tracking-wide">PENDANT.CONFIGURATION</span>
                   {deviceInfo.isAndroid && deviceInfo.isChrome && (
                     <Badge variant="default" className="ml-2 text-xs font-mono bg-green-600">OPTIMAL</Badge>
                   )}
@@ -790,47 +790,76 @@ function NFCPageContent() {
                 <CardDescription className="text-xs sm:text-sm">
                   {deviceInfo.isAndroid && deviceInfo.isChrome 
                     ? "Chrome on Android - optimal pendant experience"
-                    : "Where physical pendants meet decentralized identity"
+                    : "Configure or scan your MELD pendant"
                   }
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-center">
                 <div className="space-y-3">
-                  <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                    {/* MAIN PULSING ICON - This is the one that should pulse! */}
-                    <NfcIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary animate-pulse" />
+                  <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
+                    {/* Configuration icon instead of pulsing NFC */}
+                    <WifiIcon className="h-6 w-6 sm:h-8 sm:w-8 text-amber-600" />
                   </div>
                   
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <h3 className="text-base sm:text-lg md:text-xl font-semibold text-foreground font-mono">
-                      Present your pendant
+                      Pendant Setup Required
                     </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                      Hold your MELD pendant near your device to initiate secure authentication
-                </p>
-              </div>
+                    <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        <span className="text-amber-600 font-medium">Expected automatic authentication?</span>
+                        <br />
+                        If you tapped a programmed pendant, you should have been authenticated automatically.
+                        <br />
+                        <span className="text-primary font-medium">Seeing this page means your pendant needs configuration or scanning.</span>
+                      </p>
+                    </div>
+                  </div>
                   
-                  <div className="flex flex-col gap-2 pt-3 max-w-xs mx-auto">
-                    <Button variant="outline" onClick={() => router.push('/chip-config')} size="sm" className="font-mono text-xs">
-                      <WifiIcon className="h-3 w-3 mr-2" />
-                      Configure Pendants
+                  <div className="flex flex-col gap-3 pt-3 max-w-xs mx-auto">
+                    <Button 
+                      onClick={() => router.push('/chip-config')} 
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-sm"
+                      size="lg"
+                    >
+                      <WifiIcon className="h-4 w-4 mr-2" />
+                      Configure Your Pendant
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      onClick={() => router.push('/nfc/scan')}
+                      className="w-full border-primary/30 text-primary hover:bg-primary/5 font-mono text-sm"
+                      size="lg"
+                    >
+                      <ScanIcon className="h-4 w-4 mr-2" />
+                      Scan Raw Pendant
                     </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Sexy little button for scanning new chips */}
+            {/* Help Section */}
             <div className="text-center animate-[fadeIn_1.2s_ease-out]">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => router.push('/nfc/scan')}
-                className="text-xs text-muted-foreground hover:text-primary transition-all duration-300 font-mono"
-              >
-                <ScanIcon className="h-3 w-3 mr-1" />
-                Raw pendant discovery? <span className="ml-1 underline underline-offset-2">Enter scanner</span>
-              </Button>
+              <div className="bg-muted/30 rounded-lg p-4 border border-border/30">
+                <h4 className="text-sm font-semibold text-foreground mb-2 font-mono">Need Help?</h4>
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                  • <span className="font-medium">Programmed pendants</span> should auto-authenticate when tapped
+                  <br />
+                  • <span className="font-medium">Raw pendants</span> need configuration or scanning
+                  <br />
+                  • <span className="font-medium">No pendant?</span> Configure one to get started
+                </p>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => router.push('/installation-guide')}
+                  className="text-xs text-muted-foreground hover:text-primary transition-all duration-300 font-mono"
+                >
+                  View Setup Guide
+                </Button>
+              </div>
             </div>
           </>
         )}
