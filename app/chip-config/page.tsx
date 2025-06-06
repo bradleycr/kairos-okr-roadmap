@@ -81,36 +81,117 @@ function generateChipUID(): string {
 }
 
 // --- Real Ed25519 Cryptography Functions ---
-async function generateRealEd25519KeyPair(chipUID: string): Promise<{ 
+async function generateDecentralizedNFCConfig(chipUID: string): Promise<{ 
   privateKey: string, 
   publicKey: string, 
   signature: string,
   privateKeyBytes: Uint8Array,
   publicKeyBytes: Uint8Array,
   challengeMessage: string,
-  did: string
+  did: string,
+  deviceId: string
 }> {
-  // Call the server to generate real crypto
-  const response = await fetch('/api/crypto/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chipUID })
-  })
-  
-  if (!response.ok) {
-    throw new Error('Failed to generate cryptographic keys')
+  try {
+    // Import the decentralized NFC functions
+    const { 
+      loadLocalIdentity, 
+      initializeLocalIdentity,
+      registerNewDevice
+    } = await import('@/lib/crypto/decentralizedNFC')
+    
+    // Check if user has a local identity, create one if not
+    let identity = loadLocalIdentity()
+    if (!identity) {
+      // Auto-create identity for chip config
+      identity = initializeLocalIdentity('chip-config-user')
+    }
+    
+    // Register a new device for this chip
+    const { deviceId, nfcChipData } = registerNewDevice(
+      `NFC Chip ${chipUID.substring(0, 8)}`, 
+      "nfc-pocket-watch"
+    )
+    
+    if (!nfcChipData) {
+      throw new Error('Failed to generate NFC chip data')
+    }
+    
+    // Update the chip UID to match the provided one
+    // Note: In real deployment, chipUID would be read from actual hardware
+    identity.devices[deviceId].chipUID = chipUID
+    localStorage.setItem('kairOS_identity', JSON.stringify(identity))
+    
+    // Convert public key to bytes
+    const publicKeyBytes = new Uint8Array(
+      nfcChipData.publicKey.match(/.{2}/g)!.map(byte => parseInt(byte, 16))
+    )
+    
+    // Generate a challenge message
+    const challengeMessage = `KairOS_NFC_Challenge_${chipUID}`
+    
+    // Create a signature for this specific challenge using decentralized auth
+    const { DecentralizedNFCAuth } = await import('@/lib/crypto/decentralizedNFC')
+    const { signature } = await DecentralizedNFCAuth.authenticateLocally(deviceId, challengeMessage)
+    
+    // Convert signature to bytes
+    const signatureBytes = new Uint8Array(
+      signature.match(/.{2}/g)!.map(byte => parseInt(byte, 16))
+    )
+    
+    // Generate a simple DID (for compatibility)
+    const did = `did:key:z${nfcChipData.publicKey.substring(0, 32)}`
+    
+    // For security, we don't return the actual private key
+    // Instead, we return a placeholder since the private key stays in localStorage
+    const privateKeyPlaceholder = 'STORED_LOCALLY_IN_BROWSER_' + generateRandomHex(16)
+    
+    return {
+      privateKey: privateKeyPlaceholder,
+      publicKey: nfcChipData.publicKey,
+      signature,
+      privateKeyBytes: new Uint8Array(32), // Placeholder - real key stays local
+      publicKeyBytes,
+      challengeMessage,
+      did,
+      deviceId
+    }
+    
+  } catch (error) {
+    console.error('Failed to generate decentralized NFC config:', error)
+    throw new Error(`Decentralized crypto generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
+}
+
+// --- Decentralized NFC URL Generation ---
+function generateDecentralizedNFCUrl(
+  deviceId: string,
+  chipUID: string,
+  baseUrl: string
+): {
+  nfcUrl: string
+  urlAnalysis: { bytes: number; chars: number; compatibility: Record<string, string> }
+  compressionLevel: string
+} {
+  // Generate new decentralized format: /nfc?d=deviceId&c=chipUID
+  const encodedChipUID = encodeURIComponent(chipUID)
+  const nfcUrl = `${baseUrl}/nfc?d=${deviceId}&c=${encodedChipUID}`
   
-  const data = await response.json()
+  const bytes = new TextEncoder().encode(nfcUrl).length
+  const chars = nfcUrl.length
   
   return {
-    privateKey: data.privateKey,
-    publicKey: data.publicKey,
-    signature: data.signature,
-    privateKeyBytes: new Uint8Array(data.privateKeyBytes),
-    publicKeyBytes: new Uint8Array(data.publicKeyBytes),
-    challengeMessage: data.challengeMessage,
-    did: data.did
+    nfcUrl,
+    urlAnalysis: {
+      bytes,
+      chars,
+      compatibility: {
+        'NTAG213': bytes <= 137 ? 'Perfect' : 'Too Large',
+        'NTAG215': bytes <= 504 ? 'Perfect' : 'Too Large',
+        'NTAG216': bytes <= 904 ? 'Perfect' : 'Too Large',
+        'NTAG424_DNA': bytes <= 416 ? 'Perfect' : 'Too Large'
+      }
+    },
+    compressionLevel: 'Decentralized (No Private Keys)'
   }
 }
 
@@ -355,49 +436,42 @@ export default function ChipConfigPage() {
       const chipId = chipName || `KAIROS_${generateRandomHex(4).toUpperCase()}`
       const chipUID = generateChipUID()
       
-      // Step 1: Generate REAL cryptographic keypair with server validation
-      const keyPair = await generateRealEd25519KeyPair(chipUID)
+      // Step 1: Generate REAL cryptographic keypair with decentralized validation
+      const keyPair = await generateDecentralizedNFCConfig(chipUID)
       const did = keyPair.did
       
-      // Step 2: Validate cryptographic parameters before URL generation
-      if (!keyPair.signature || !keyPair.publicKey || !keyPair.challengeMessage) {
+      // Step 2: Validate cryptographic parameters
+      if (!keyPair.signature || !keyPair.publicKey || !keyPair.challengeMessage || !keyPair.deviceId) {
         throw new Error('Incomplete cryptographic parameters generated')
       }
       
-      // Step 3: Use the SMART URL generator with validation
-      const urlResult = generateSmartNFCUrl(
+      // Step 3: Generate decentralized NFC URL format
+      const urlResult = generateDecentralizedNFCUrl(
+        keyPair.deviceId,
         chipUID,
-        keyPair.signature,
-        keyPair.publicKey,
-        did,
-        customBaseUrl,
-        selectedChipType
+        customBaseUrl
       )
       
-      // Step 4: Create multiple URL formats for testing and fallback
+      // Step 4: Create test URL for legacy compatibility
       const fullTestUrl = `${customBaseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${keyPair.signature}&publicKey=${keyPair.publicKey}&uid=${chipUID}&challenge=${encodeURIComponent(keyPair.challengeMessage)}`
       
-      // Step 5: Validate URL will work by doing a test signature verification
-      const testVerification = await fetch('/api/nfc/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chipUID,
-          did,
-          signature: keyPair.signature,
-          publicKey: keyPair.publicKey,
-          challenge: keyPair.challengeMessage,
-          deviceInfo: {
-            platform: 'web',
-            userAgent: navigator.userAgent
-          }
-        })
-      })
-      
-      const testResult = await testVerification.json()
-      
-      if (!testResult.success || !testResult.verified) {
-        throw new Error(`Generated URL would fail authentication: ${testResult.error || 'Unknown verification error'}`)
+      // Step 5: Validate using local decentralized verification
+      try {
+        const { DecentralizedNFCAuth } = await import('@/lib/crypto/decentralizedNFC')
+        
+        // Test local verification
+        const verified = await DecentralizedNFCAuth.verifyLocally(
+          keyPair.signature,
+          keyPair.challengeMessage,
+          keyPair.publicKey
+        )
+        
+        if (!verified) {
+          throw new Error('Generated configuration failed local verification')
+        }
+        
+      } catch (verifyError) {
+        throw new Error(`Local verification failed: ${verifyError instanceof Error ? verifyError.message : 'Unknown error'}`)
       }
       
       const config: NTAG424Config = {
@@ -411,29 +485,33 @@ export default function ChipConfigPage() {
         testUrl: fullTestUrl,
         createdAt: new Date().toISOString(),
         challengeMessage: keyPair.challengeMessage,
-        urlAnalysis: urlResult.urlAnalysis,
-        validated: true // Mark as pre-validated
+        urlAnalysis: {
+          ...urlResult.urlAnalysis,
+          urlType: 'Decentralized HTTPS',
+          isIntent: false
+        },
+        validated: true // Mark as pre-validated with local crypto
       }
       
       setConfigs(prev => [config, ...prev])
       setChipName('')
       
       toast({
-        title: `✅ Cryptographically Verified URL Generated (${urlResult.compressionLevel})`,
-        description: `${config.chipId} ready - ${urlResult.urlAnalysis.urlType} - ${urlResult.urlAnalysis.bytes} bytes - Crypto verified`,
+        title: `✅ Decentralized NFC Config Generated (${urlResult.compressionLevel})`,
+        description: `${config.chipId} ready - ${urlResult.urlAnalysis.bytes} bytes - Local crypto verified`,
       })
       
     } catch (error) {
-      console.error('❌ Configuration generation failed:', error)
+      console.error('❌ Decentralized configuration generation failed:', error)
       toast({
         title: "❌ Generation Failed",
-        description: error instanceof Error ? error.message : "Unable to generate chip configuration",
+        description: error instanceof Error ? error.message : "Unable to generate decentralized chip configuration",
         variant: "destructive"
       })
     } finally {
       setIsGenerating(false)
     }
-  }, [chipName, customBaseUrl, selectedChipType, generateSmartNFCUrl, toast])
+  }, [chipName, customBaseUrl, selectedChipType, toast])
   
   // --- Test End-to-End Authentication Flow ---
   const testEndToEndAuthFlow = useCallback(async (config: NTAG424Config) => {

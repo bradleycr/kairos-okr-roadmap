@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { zkProofSystem } from '@/lib/zk/zkProofSystem'
 import type { ZKMomentProof } from '@/lib/types'
-import { createDIDFromPublicKey, verifySignature } from '@/lib/crypto/server'
+import { createDIDKey, verifySignature, importPublicKey } from '@/lib/crypto'
 
 // --- Real User Account Management ---
 interface RealUserAccount {
@@ -310,7 +310,7 @@ async function verifyEd25519Signature(
     debugInfo.push(`Converted to bytes: pubkey=${publicKeyBytes.length}, sig=${signatureBytes.length}`)
     
     // Generate the expected DID from the public key and compare
-    const expectedDID = createDIDFromPublicKey(publicKeyBytes)
+    const expectedDID = createDIDKey(publicKeyBytes)
     debugInfo.push(`Expected DID: ${expectedDID}`)
     debugInfo.push(`Provided DID: ${did}`)
     
@@ -413,263 +413,87 @@ export async function POST(request: NextRequest) {
   const debugLogs: string[] = []
   
   try {
-    // Parse request body
     const body: NFCVerificationRequest = await request.json()
-    
-    debugLogs.push('Ed25519 verification request received')
-    
-    // Handle URL parameters from NFC URLs
-    if (!body.chipUID && !body.did && !body.signature && !body.publicKey) {
-      // Check if we have URL parameters in the request
-      const url = new URL(request.url)
-      
-      // Strategy 1: Check for ultra-compressed parameters (u, s, k) - NEW FORMAT
-      const ultraUID = url.searchParams.get('u')
-      const ultraSig = url.searchParams.get('s')
-      const ultraKey = url.searchParams.get('k')
-      
-      if (ultraUID && ultraSig && ultraKey) {
-        debugLogs.push('Using smart-compressed URL parameters (u, s, k) with base64 encoding')
-        
-        // Helper function to decode base64 to hex
-        function base64ToHex(base64: string): string {
-          try {
-            // Add padding if needed and restore URL-safe characters
-            const restored = base64.replace(/-/g, '+').replace(/_/g, '/')
-            const padded = restored + '='.repeat((4 - restored.length % 4) % 4)
-            
-            // Decode base64 to binary
-            const binary = atob(padded)
-            
-            // Convert binary to hex
-            return Array.from(binary)
-              .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
-              .join('')
-          } catch (error) {
-            debugLogs.push(`Base64 decode failed, trying as hex: ${error}`)
-            return base64 // Return as-is if decode fails (maybe it's already hex)
-          }
-        }
-        
-        // Reconstruct from smart-compressed format
-        const chipUID = `04:${ultraUID.match(/.{2}/g)?.join(':') || ultraUID}`
-        
-        // Try to decode as base64 first, fallback to hex with padding
-        let signature = ultraSig
-        let publicKey = ultraKey
-        
-        // Check if it looks like base64 (length and characters)
-        if (ultraSig.length < 120 && /^[A-Za-z0-9\-_]+$/.test(ultraSig)) {
-          signature = base64ToHex(ultraSig)
-          debugLogs.push(`Decoded signature from base64: ${signature.substring(0, 16)}...`)
-        } else {
-          // Fallback: pad if it's truncated hex
-          signature = ultraSig.padEnd(128, '0')
-          debugLogs.push(`Using hex signature with padding: ${signature.substring(0, 16)}...`)
-        }
-        
-        if (ultraKey.length < 60 && /^[A-Za-z0-9\-_]+$/.test(ultraKey)) {
-          publicKey = base64ToHex(ultraKey)
-          debugLogs.push(`Decoded public key from base64: ${publicKey.substring(0, 16)}...`)
-        } else {
-          // Fallback: pad if it's truncated hex
-          publicKey = ultraKey.padEnd(64, '0')
-          debugLogs.push(`Using hex public key with padding: ${publicKey.substring(0, 16)}...`)
-        }
-        
-        // Generate DID from public key
-        const publicKeyBytes = new Uint8Array(
-          publicKey.match(/.{2}/g)?.map(byte => parseInt(byte, 16)) || []
-        )
-        const did = createDIDFromPublicKey(publicKeyBytes)
-        
-        body.chipUID = chipUID
-        body.did = did
-        body.signature = signature
-        body.publicKey = publicKey
-        
-        debugLogs.push(`Reconstructed UID: ${body.chipUID}`)
-        debugLogs.push(`Final Public Key: ${body.publicKey.substring(0, 16)}... (${body.publicKey.length} chars)`)
-        debugLogs.push(`Final Signature: ${body.signature.substring(0, 16)}... (${body.signature.length} chars)`)
-        debugLogs.push(`Generated DID: ${body.did}`)
-      } else {
-        // Strategy 2: Check for compressed parameters (c, s, p) - LEGACY FORMAT
-        const compressedUID = url.searchParams.get('c')
-        const compressedSig = url.searchParams.get('s')
-        const compressedKey = url.searchParams.get('p')
-        
-        if (compressedUID && compressedSig && compressedKey) {
-          debugLogs.push('Using compressed URL parameters (c, s, p)')
-          
-          // Expand compressed parameters
-          body.chipUID = decodeURIComponent(compressedUID)
-          body.publicKey = compressedKey.padEnd(64, '0') // Pad to 64 chars with zeros
-          body.signature = compressedSig.padEnd(128, '0') // Pad to 128 chars with zeros
-          
-          // Convert hex public key to bytes for proper DID generation
-          const publicKeyBytes = new Uint8Array(
-            body.publicKey.match(/.{2}/g)?.map(byte => parseInt(byte, 16)) || []
-          )
-          body.did = createDIDFromPublicKey(publicKeyBytes) // Use proper DID generation
-          
-          debugLogs.push(`Expanded UID: ${body.chipUID}`)
-          debugLogs.push(`Expanded Public Key: ${body.publicKey.substring(0, 16)}...`)
-          debugLogs.push(`Expanded Signature: ${body.signature.substring(0, 16)}...`)
-          debugLogs.push(`Generated DID: ${body.did}`)
-        } else {
-          // Strategy 3: Check for full parameters (legacy)
-          const fullDID = url.searchParams.get('did')
-          const fullSig = url.searchParams.get('signature') 
-          const fullKey = url.searchParams.get('publicKey')
-          const fullUID = url.searchParams.get('uid')
-          
-          if (fullDID && fullSig && fullKey && fullUID) {
-            debugLogs.push('Using full URL parameters')
-            body.chipUID = fullUID
-            body.did = fullDID
-            body.signature = fullSig
-            body.publicKey = fullKey
-          }
-        }
-      }
-    }
-    
-    debugLogs.push(`Chip UID: ${body.chipUID}`)
-    debugLogs.push(`DID: ${body.did}`)
-    debugLogs.push(`Signature: ${body.signature?.substring(0, 16)}...`)
-    debugLogs.push(`Public Key: ${body.publicKey?.substring(0, 16)}...`)
-    
-    if (!body.chipUID || !body.did || !body.signature || !body.publicKey) {
-      return NextResponse.json({
-        success: false,
-        verified: false,
-        verificationTime: Date.now() - startTime,
-        chipAuthenticated: false,
-        signatureValid: false,
-        didValid: false,
-        error: 'Missing required Ed25519 parameters (need u,s,k or c,s,p or full format)',
-        debugLogs
-      } as NFCVerificationResponse, { status: 400 })
-    }
+    const { chipUID, did, signature, publicKey, challenge, deviceInfo } = body
 
-    // Phase 1: Ed25519 Signature Verification
-    debugLogs.push('━'.repeat(50))
-    debugLogs.push('🔍 PHASE 1: Ed25519 Authentication')
-    
-    const signatureVerification = await verifyEd25519Signature(
-      body.signature,
-      body.publicKey,
-      body.did,
-      body.chipUID,
-      body.challenge
-    )
-    
-    debugLogs.push(...signatureVerification.debugInfo)
-    
-    if (!signatureVerification.valid) {
-      return NextResponse.json({
-        success: true,
-        verified: false,
-        verificationTime: Date.now() - startTime,
-        chipAuthenticated: false,
-        signatureValid: false,
-        didValid: false,
-        error: 'Invalid Ed25519 signature',
-        debugLogs
-      } as NFCVerificationResponse, { status: 200 })
-    }
-
-    // Phase 2: Session Token Creation
-    debugLogs.push('━'.repeat(50))
-    debugLogs.push('🎫 PHASE 2: Session Token Creation')
-    
-    const sessionData = await createEd25519Session(body.did, body.chipUID)
-    debugLogs.push(`✅ Session token created: ${sessionData.sessionToken.substring(0, 24)}...`)
-    debugLogs.push(`📝 Moment ID created: ${sessionData.momentId}`)
-
-    // Phase 3: Account Creation (Optional)
-    let accountCreated = false
-    let userAccount: RealUserAccount | undefined
-    
-    if (body.createAccount !== false) {
-      debugLogs.push('━'.repeat(50))
-      debugLogs.push('👤 PHASE 3: Real User Account Creation/Update')
-      
-      // Create or update real user account
-      const deviceInfoString = body.deviceInfo ? 
-        `${body.deviceInfo.platform} ${body.deviceInfo.userAgent?.substring(0, 50) || ''}` : 
-        'unknown'
-      
-      userAccount = await getOrCreateRealUser(
-        body.chipUID,
-        body.did,
-        body.publicKey,
-        signatureVerification.debugInfo.includes('SUCCESS') ? Date.now() - startTime : 0,
-        deviceInfoString
+    // Validate required fields
+    if (!chipUID || !did || !signature || !publicKey) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Missing required fields: chipUID, did, signature, publicKey' 
+        },
+        { status: 400 }
       )
-      
-      accountCreated = userAccount.verificationCount === 1 // New user if first verification
-      
-      debugLogs.push(`${accountCreated ? '✅ New account created' : '🔄 Existing account updated'}: ${userAccount.displayName}`)
-      debugLogs.push(`🆔 DID: ${userAccount.did}`)
-      debugLogs.push(`🔑 Public key: ${userAccount.publicKey.substring(0, 16)}...`)
-      debugLogs.push(`📊 Total verifications: ${userAccount.verificationCount}`)
-      debugLogs.push(`🕐 Last seen: ${userAccount.lastSeen}`)
     }
 
-    const verificationTime = Date.now() - startTime
-    
-    // Log successful verification
-    console.log(`[NFC VERIFY] Success: ${body.chipUID} (${verificationTime}ms)`, {
-      chipUID: body.chipUID,
-      sessionId: body.sessionId,
-      accountCreated,
-      userDID: userAccount?.did,
-      platform: body.deviceInfo?.platform || 'unknown'
+    console.log('🔐 Verifying NFC authentication:', {
+      chipUID,
+      did: did.substring(0, 20) + '...',
+      signatureLength: signature.length,
+      publicKeyLength: publicKey.length,
+      challenge: challenge ? challenge.substring(0, 16) + '...' : 'none',
+      platform: deviceInfo?.platform || 'unknown'
     })
+
+    // Convert hex strings back to Uint8Array
+    const signatureBytes = new Uint8Array(signature.match(/.{2}/g)!.map(byte => parseInt(byte, 16)))
+    const publicKeyBytes = new Uint8Array(publicKey.match(/.{2}/g)!.map(byte => parseInt(byte, 16)))
+
+    // Import and validate the public key
+    const importedPublicKey = await importPublicKey(publicKeyBytes)
+
+    // Determine the message that was signed
+    const messageToVerify = challenge || `KairOS_NFC_Challenge_${chipUID}`
+
+    // Verify the Ed25519 signature
+    const isValidSignature = await verifySignature(
+      signatureBytes, 
+      messageToVerify, 
+      importedPublicKey
+    )
+
+    if (!isValidSignature) {
+      console.log('❌ Signature verification failed')
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid signature' 
+        },
+        { status: 401 }
+      )
+    }
+
+    // Additional validations could be added here:
+    // - Check if DID matches public key
+    // - Verify chip UID format
+    // - Check against revocation lists
+    // - Rate limiting
+
+    console.log('✅ NFC authentication successful')
 
     return NextResponse.json({
       success: true,
-      verified: true,
-      verificationTime,
-      chipAuthenticated: true,
-      signatureValid: true,
-      didValid: true,
-      sessionCreated: true,
-      accountCreated,
-      userDID: userAccount?.did,
-      accountId: userAccount?.chipUID,
-      publicKey: userAccount?.publicKey,
-      sessionToken: sessionData.sessionToken,
-      momentId: sessionData.momentId,
-      debugLogs,
+      message: 'Authentication successful',
       data: {
-        did: userAccount?.did,
-        accountId: userAccount?.chipUID,
-        publicKey: userAccount?.publicKey,
-        displayName: userAccount?.displayName,
-        verificationCount: userAccount?.verificationCount,
-        joinedAt: userAccount?.joinedAt,
-        sessionToken: sessionData.sessionToken,
-        verifiedAt: Date.now(),
-        chipUID: body.chipUID
+        chipUID,
+        did,
+        verified: true,
+        timestamp: new Date().toISOString(),
+        algorithm: 'Ed25519'
       }
-    } as NFCVerificationResponse, { status: 200 })
+    })
 
   } catch (error) {
-    debugLogs.push(`💥 Error: ${error}`)
-    console.error('[NFC VERIFY] Error:', error)
+    console.error('❌ NFC verification error:', error)
     
-    return NextResponse.json({
-      success: false,
-      verified: false,
-      verificationTime: Date.now() - startTime,
-      chipAuthenticated: false,
-      signatureValid: false,
-      didValid: false,
-      error: error instanceof Error ? error.message : 'Unknown verification error',
-      debugLogs
-    } as NFCVerificationResponse, { status: 500 })
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Internal server error during verification' 
+      },
+      { status: 500 }
+    )
   }
 }
 
