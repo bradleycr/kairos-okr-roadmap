@@ -103,19 +103,19 @@ function NFCPageContent() {
       
       // Fallback after 2 seconds if Chrome doesn't open
       setTimeout(() => {
-            toast({
+        toast({
           title: "Chrome Not Found",
-          description: "Continuing with current browser...",
-            })
-            }, 2000)
-          } catch (error) {
+          description: "Continuing with current browser for NFC authentication...",
+        })
+      }, 2000)
+    } catch (error) {
       console.warn('Intent URL failed:', error)
-            toast({
+      toast({
         title: "Opening in Current Browser",
-        description: "Chrome intent not available",
-              variant: "destructive"
-            })
-          }
+        description: "Chrome intent not available - proceeding with authentication",
+        variant: "default"
+      })
+    }
   }, [deviceInfo.canUseIntent, toast])
   
   // --- Parse URL Parameters ---
@@ -519,6 +519,9 @@ function NFCPageContent() {
     })
   }, [verificationState, nfcParams, toast])
 
+  // Check if user should be prompted to switch to Chrome
+  const shouldPromptChromeSwitch = deviceInfo.isAndroid && !deviceInfo.isChrome && Object.keys(nfcParams).length > 0
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-hidden">
       {/* Animated background grid - retro terminal vibes */}
@@ -551,180 +554,205 @@ function NFCPageContent() {
         {/* Check if we have URL parameters (programmed chip) vs manual access */}
         {Object.keys(nfcParams).length > 0 ? (
           /* PROGRAMMED NFC CHIP: Show authentication flow */
-          <Card className="border border-border shadow-lg bg-card/80 backdrop-blur-sm animate-[slideIn_0.5s_ease-out]">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <div className="relative">
-                  <ShieldCheckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+          <>
+            {/* Chrome Switch Prompt for Android Non-Chrome Users */}
+            {shouldPromptChromeSwitch && verificationState.status === 'initializing' && (
+              <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 animate-[fadeIn_0.5s_ease-out]">
+                <AlertTriangleIcon className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong>Optimize NFC Experience</strong>
+                      <p className="text-sm mt-1">Chrome provides better NFC authentication support on Android devices.</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={openInChrome}
+                      className="ml-4 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <SmartphoneIcon className="h-3 w-3 mr-1" />
+                      Open in Chrome
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Card className="border border-border shadow-lg bg-card/80 backdrop-blur-sm animate-[slideIn_0.5s_ease-out]">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <div className="relative">
+                    <ShieldCheckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    {verificationState.status === 'verifying' && (
+                      <div className="absolute inset-0 animate-spin">
+                        <div className="w-full h-full border-2 border-primary border-t-transparent rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-mono tracking-wide">RITUAL.AUTHENTICATION.PROTOCOL</span>
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm font-mono">
+                  {verificationState.status === 'verifying' 
+                    ? <span className="animate-pulse">CONNECTING TO DECENTRALIZED NETWORK...</span>
+                    : <span>Cryptographic pendant detected - initiating verification</span>
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Status Icon */}
+                <div className="flex justify-center py-2">
                   {verificationState.status === 'verifying' && (
-                    <div className="absolute inset-0 animate-spin">
-                      <div className="w-full h-full border-2 border-primary border-t-transparent rounded-full"></div>
+                    <div className="relative mx-auto w-12 h-12 sm:w-16 sm:h-16">
+                      {/* Outer rotating ring - dial-up connection feel */}
+                      <div className="absolute inset-0 border-2 border-primary rounded-full animate-spin" style={{animationDuration: '2s'}}></div>
+                      <div className="absolute inset-1 border border-primary/50 rounded-full animate-spin" style={{animationDuration: '3s', animationDirection: 'reverse'}}></div>
+                      <div className="absolute inset-2 bg-card rounded-full flex items-center justify-center">
+                        <NfcIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary animate-pulse" />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {verificationState.status === 'success' && (
+                    <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center animate-[bounceIn_0.5s_ease-out]">
+                      <CheckCircleIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+                    </div>
+                  )}
+                  
+                  {(verificationState.status === 'failure' || verificationState.status === 'error') && (
+                    <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-destructive/10 rounded-full flex items-center justify-center animate-[shake_0.5s_ease-out]">
+                      <XCircleIcon className="h-6 w-6 sm:h-8 sm:w-8 text-destructive" />
+                    </div>
+                  )}
+                  
+                  {verificationState.status === 'initializing' && (
+                    <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center">
+                      <NfcIcon className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                     </div>
                   )}
                 </div>
-                <span className="font-mono tracking-wide">RITUAL.AUTHENTICATION.PROTOCOL</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm font-mono">
-                {verificationState.status === 'verifying' 
-                  ? <span className="animate-pulse">CONNECTING TO DECENTRALIZED NETWORK...</span>
-                  : <span>Cryptographic pendant detected - initiating verification</span>
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Status Icon */}
-              <div className="flex justify-center py-2">
+                
+                {/* Debug Icon - Top Right Corner */}
+                <div className="absolute top-4 right-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDebugLogs(!showDebugLogs)}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                  >
+                    <BugIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* Title */}
+                <div className="text-center">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground font-mono tracking-wide">
+                    {verificationState.status === 'success' 
+                      ? <span className="animate-[typewriter_1s_ease-in] text-primary">◈ RITUAL COMPLETE ◈</span>
+                      : <span className="animate-[typewriter_1s_ease-in]">◈ AUTHENTICATING ◈</span>
+                    }
+                </h3>
+                </div>
+                
+                {/* Status Message */}
+                <div className="text-center px-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground font-mono animate-pulse">
+                  {verificationState.currentPhase}
+                </p>
+                </div>
+                
+                {/* Progress Bar */}
                 {verificationState.status === 'verifying' && (
-                  <div className="relative mx-auto w-12 h-12 sm:w-16 sm:h-16">
-                    {/* Outer rotating ring - dial-up connection feel */}
-                    <div className="absolute inset-0 border-2 border-primary rounded-full animate-spin" style={{animationDuration: '2s'}}></div>
-                    <div className="absolute inset-1 border border-primary/50 rounded-full animate-spin" style={{animationDuration: '3s', animationDirection: 'reverse'}}></div>
-                    <div className="absolute inset-2 bg-card rounded-full flex items-center justify-center">
-                      <NfcIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary animate-pulse" />
+                  <div className="space-y-2">
+                    <Progress value={verificationState.progress} className="h-1.5 sm:h-2 animate-[pulse_1s_ease-in-out_infinite]" />
+                    <div className="text-center">
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {verificationState.progress}% COMPLETE
+                      </span>
                     </div>
                   </div>
                 )}
                 
-                {verificationState.status === 'success' && (
-                  <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center animate-[bounceIn_0.5s_ease-out]">
-                    <CheckCircleIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-                  </div>
-                )}
-                
+                {/* Error Message */}
                 {(verificationState.status === 'failure' || verificationState.status === 'error') && (
-                  <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-destructive/10 rounded-full flex items-center justify-center animate-[shake_0.5s_ease-out]">
-                    <XCircleIcon className="h-6 w-6 sm:h-8 sm:w-8 text-destructive" />
-                  </div>
+                  <Alert className="border-destructive/20 bg-destructive/10">
+                    <AlertTriangleIcon className="h-4 w-4 text-destructive" />
+                    <AlertDescription className="text-destructive">
+                      {verificationState.error}
+                    </AlertDescription>
+                  </Alert>
                 )}
                 
-                {verificationState.status === 'initializing' && (
-                  <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center">
-                    <NfcIcon className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+                {/* Debug Logs Section */}
+                {showDebugLogs && (
+                  <div className="text-left">
+                    <div className="bg-muted rounded-lg p-4 border border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <BugIcon className="h-4 w-4" />
+                          Debug Information
+                        </h4>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={copyDebugInfo}
+                          className="h-6 px-2 text-xs"
+                        >
+                          <CopyIcon className="h-3 w-3 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                      
+                      <ScrollArea className="h-40">
+                        <div className="space-y-1 text-xs font-mono">
+                          {verificationState.debugLogs.map((log, index) => (
+                            <div key={index} className="text-muted-foreground">
+                              {log}
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
                   </div>
                 )}
-              </div>
-              
-              {/* Debug Icon - Top Right Corner */}
-              <div className="absolute top-4 right-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowDebugLogs(!showDebugLogs)}
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                >
-                  <BugIcon className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {/* Title */}
-              <div className="text-center">
-                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground font-mono tracking-wide">
-                  {verificationState.status === 'success' 
-                    ? <span className="animate-[typewriter_1s_ease-in] text-primary">◈ RITUAL COMPLETE ◈</span>
-                    : <span className="animate-[typewriter_1s_ease-in]">◈ AUTHENTICATING ◈</span>
-                  }
-              </h3>
-              </div>
-              
-              {/* Status Message */}
-              <div className="text-center px-2">
-                <p className="text-xs sm:text-sm text-muted-foreground font-mono animate-pulse">
-                {verificationState.currentPhase}
-              </p>
-              </div>
-              
-              {/* Progress Bar */}
-              {verificationState.status === 'verifying' && (
-                <div className="space-y-2">
-                  <Progress value={verificationState.progress} className="h-1.5 sm:h-2 animate-[pulse_1s_ease-in-out_infinite]" />
-                  <div className="text-center">
-                    <span className="text-xs font-mono text-muted-foreground">
-                      {verificationState.progress}% COMPLETE
-                    </span>
+
+                {/* Success Actions - Only show Back to Home, no Profile button */}
+                {verificationState.status === 'success' && (
+                  <div className="space-y-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push('/')}
+                      className="w-full"
+                    >
+                      <HomeIcon className="h-4 w-4 mr-2" />
+                      Back to Home
+                    </Button>
                   </div>
-                </div>
-              )}
-              
-              {/* Error Message */}
-              {(verificationState.status === 'failure' || verificationState.status === 'error') && (
-                <Alert className="border-destructive/20 bg-destructive/10">
-                  <AlertTriangleIcon className="h-4 w-4 text-destructive" />
-                  <AlertDescription className="text-destructive">
-                    {verificationState.error}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              {/* Debug Logs Section */}
-              {showDebugLogs && (
-                <div className="text-left">
-                  <div className="bg-muted rounded-lg p-4 border border-border">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <BugIcon className="h-4 w-4" />
-                        Debug Information
-                      </h4>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={copyDebugInfo}
-                        className="h-6 px-2 text-xs"
-                      >
-                        <CopyIcon className="h-3 w-3 mr-1" />
-                        Copy
-                      </Button>
-                    </div>
+                )}
+
+                {/* Retry Actions */}
+                {(verificationState.status === 'failure' || verificationState.status === 'error') && (
+                  <div className="space-y-3">
+                    <Button
+                      onClick={() => window.location.reload()}
+                      className="w-full"
+                    >
+                      <RefreshCwIcon className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
                     
-                    <ScrollArea className="h-40">
-                      <div className="space-y-1 text-xs font-mono">
-                        {verificationState.debugLogs.map((log, index) => (
-                          <div key={index} className="text-muted-foreground">
-                            {log}
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push('/')}
+                      className="w-full"
+                    >
+                      <HomeIcon className="h-4 w-4 mr-2" />
+                      Back to Home
+                    </Button>
                   </div>
-                </div>
-              )}
-
-              {/* Success Actions - Only show Back to Home, no Profile button */}
-              {verificationState.status === 'success' && (
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push('/')}
-                    className="w-full"
-                  >
-                    <HomeIcon className="h-4 w-4 mr-2" />
-                    Back to Home
-                  </Button>
-                </div>
-              )}
-
-              {/* Retry Actions */}
-              {(verificationState.status === 'failure' || verificationState.status === 'error') && (
-                <div className="space-y-3">
-                  <Button
-                    onClick={() => window.location.reload()}
-                    className="w-full"
-                  >
-                    <RefreshCwIcon className="h-4 w-4 mr-2" />
-                    Try Again
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push('/')}
-                    className="w-full"
-                  >
-                    <HomeIcon className="h-4 w-4 mr-2" />
-                    Back to Home
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          </>
         ) : (
           /* MANUAL PAGE ACCESS: Show welcome message with link to scanner */
           <>

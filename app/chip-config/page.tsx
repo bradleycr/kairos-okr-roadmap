@@ -47,7 +47,6 @@ interface NTAG424Config {
   publicKey: string
   privateKey: string
   nfcUrl: string
-  httpsUrl: string
   testUrl: string
   createdAt: string
   challengeMessage: string
@@ -329,32 +328,20 @@ export default function ChipConfigPage() {
     baseUrl: string,
     chipType: string
   ) => {
-    // Generate the optimized URL first
+    // Always generate regular HTTPS URLs for chips
+    // Intent logic will be handled in-app when URL is opened
     const urlData = generateOptimizedNFCUrl(chipUID, signature, publicKey, did, baseUrl, chipType)
     
-    // For Android Chrome users, use intent URL by default
-    let finalUrl = urlData.nfcUrl
-    let urlType = 'HTTPS (Universal)'
-    
-    if (deviceInfo.isAndroid && deviceInfo.isChrome) {
-      finalUrl = generateAndroidIntentUrl(urlData.nfcUrl)
-      urlType = 'Chrome Intent (Optimized)'
-    } else if (deviceInfo.isAndroid && deviceInfo.canUseIntent) {
-      finalUrl = generateAndroidIntentUrl(urlData.nfcUrl)
-      urlType = 'Chrome Intent (Recommended)'
-    }
-    
     return {
-      nfcUrl: finalUrl,
-      httpsUrl: urlData.nfcUrl, // Keep original for fallback
+      nfcUrl: urlData.nfcUrl, // Always HTTPS URL
       urlAnalysis: {
         ...urlData.urlAnalysis,
-        urlType,
-        isIntent: finalUrl.startsWith('intent://')
+        urlType: 'HTTPS (Universal)',
+        isIntent: false // No intent URLs on chips
       },
       compressionLevel: urlData.compressionLevel
     }
-  }, [deviceInfo, generateAndroidIntentUrl])
+  }, [])
 
   // --- Generate New NTAG424 DNA Configuration ---
   const generateNTAG424Config = useCallback(async () => {
@@ -392,7 +379,6 @@ export default function ChipConfigPage() {
         createdAt: new Date().toISOString(),
         challengeMessage: keyPair.challengeMessage,
         urlAnalysis: urlResult.urlAnalysis,
-        httpsUrl: urlResult.httpsUrl // Store fallback URL
       }
       
       setConfigs(prev => [config, ...prev])
@@ -777,33 +763,7 @@ export default function ChipConfigPage() {
                                   Copy for NFC Tools
                                 </Button>
 
-                                {/* HTTPS Fallback Button - For Non-Android or Issues */}
-                                {config.httpsUrl && config.httpsUrl !== config.nfcUrl && (
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => {
-                                      copyToClipboard(config.httpsUrl, 'HTTPS Fallback URL')
-                                      toast({
-                                        title: "📋 HTTPS URL Copied!",
-                                        description: "Universal fallback for all devices",
-                                      })
-                                    }}
-                                    className="border-2 border-green-500 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                                  >
-                                    <CopyIcon className="h-4 w-4 mr-2" />
-                                    Copy HTTPS Fallback
-                                  </Button>
-                                )}
-
-                                {/* Intent URL Info - Show when intent is being used */}
-                                {config.urlAnalysis.isIntent && (
-                                  <div className="text-xs text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded border border-blue-200">
-                                    🚀 Using Chrome Intent URL - optimized for Android
-                                  </div>
-                                )}
-
-                                {/* 🚀 Web NFC Write Button - Progressive Enhancement */}
+                                {/* Web NFC Write Button - Progressive Enhancement */}
                                 {nfcCompatibility?.supported && nfcSupport?.estimatedReliability && nfcSupport.estimatedReliability !== 'none' && (
                                   <Button 
                                     size="sm" 
@@ -951,38 +911,8 @@ export default function ChipConfigPage() {
                             </div>
                           )}
 
-                          {/* 🚀 Android Chrome Intent Instructions */}
-                          {deviceInfo.canUseIntent && (
-                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm space-y-3">
-                              <div className="flex items-center gap-2">
-                                <RocketIcon className="h-5 w-5 text-blue-600" />
-                                <h4 className="font-medium text-foreground">🚀 Android Chrome Intent (Ultimate Method):</h4>
-                              </div>
-                              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                                <li>Click the <strong>"Copy Intent"</strong> button above</li>
-                                <li>Use the intent URL in your NFC programming app</li>
-                                <li>When NFC tag is tapped, it will <strong>guarantee</strong> opening in Chrome</li>
-                                <li>Better NFC support, faster authentication, app-like experience</li>
-                              </ol>
-                              <div className="flex items-start gap-2 bg-white/50 dark:bg-gray-900/50 rounded p-2 text-xs">
-                                <InfoIcon className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <p className="font-medium text-blue-800 dark:text-blue-200">
-                                    🎯 Why Intent URLs are Better on Android:
-                                  </p>
-                                  <ul className="mt-1 space-y-0.5 text-blue-600 dark:text-blue-300">
-                                    <li>• Bypasses browser selection dialog</li>
-                                    <li>• Guaranteed Chrome compatibility for NFC auth</li>
-                                    <li>• Faster tag → authentication workflow</li>
-                                    <li>• More reliable than generic HTTPS URLs</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
                           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm space-y-3">
-                            <h4 className="font-medium text-foreground">📱 Universal NFC Programming Steps (Copy-Paste Method):</h4>
+                            <h4 className="font-medium text-foreground">📱 Universal NFC Programming Steps:</h4>
                             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                               <li>Copy the URL above using the "Copy" button</li>
                               <li>Download <strong>"NFC Tools"</strong> (free on iOS/Android)</li>
@@ -993,6 +923,11 @@ export default function ChipConfigPage() {
                               <li>Wait for the success sound/vibration</li>
                               <li>Test by tapping the tag - it should open the URL in your browser</li>
                             </ol>
+                            <div className="mt-3 pt-3 border-t border-primary/20">
+                              <p className="text-xs text-muted-foreground">
+                                <strong>Android users:</strong> The app will automatically suggest switching to Chrome for optimal NFC authentication experience when you tap the tag.
+                              </p>
+                            </div>
                           </div>
                           
                           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm space-y-3">
