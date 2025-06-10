@@ -1,16 +1,14 @@
 'use client'
 
 /**
- * NFC Authentication Gateway
+ * NFC Gateway - Minimal Holographic Interface
  * 
- * Professional Web3 NFC authentication system for decentralized identity
- * Enterprise-grade architecture with beautiful crypto-themed UI
- * 
- * Built for MELD ecosystem and edge computing applications
+ * Elegant NFC authentication matching the KairOS holographic aesthetic
+ * Minimal design inspired by the Figma interface
  */
 
 import React, { Suspense, useEffect } from 'react'
-import { NfcIcon, LoaderIcon, SmartphoneIcon } from 'lucide-react'
+import { NfcIcon, LoaderIcon } from 'lucide-react'
 
 // Import our professional component architecture
 import { useNFCParameterParser } from './hooks/useNFCParameterParser'
@@ -44,65 +42,45 @@ function NFCPageContent() {
   }, [hasValidParameters, parsedParams, verificationState.status, executeAuthentication])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-hidden">
-      {/* Animated background grid - retro terminal vibes */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px] animate-pulse"></div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden">
+      {/* Holographic Background Effect - Matching Main Page */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/25 to-secondary/15 animate-pulse"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(245,181,145,0.08)_0%,transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(144,193,196,0.12)_0%,transparent_50%)]"></div>
       </div>
       
-      <div className="container mx-auto px-3 py-4 max-w-sm sm:max-w-md md:max-w-2xl space-y-4 relative z-10">
-        
-        {/* Professional Header */}
-        <div className="text-center space-y-2 pt-4">
-          <div className="flex items-center justify-center gap-2">
-            <div className="relative p-2 sm:p-3 rounded-full bg-primary/10 border border-primary/20">
-              <NfcIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary relative z-10" />
-            </div>
-            <div className="text-left">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-                <span className="animate-[fadeIn_0.6s_ease-in]">Cryptographic</span>
-                <br />
-                <span className="animate-[fadeIn_0.8s_ease-in] text-primary">Ritual Gateway</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground animate-[fadeIn_1s_ease-in]">
-                Decentralized identity for MELD ecosystem
-              </p>
+      <div className="container mx-auto px-4 py-8 max-w-md relative z-10">
+        {/* Minimal Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="relative p-3 rounded-full bg-primary/10 border border-primary/20">
+              <NfcIcon className="h-8 w-8 text-primary relative z-10 animate-pulse" />
             </div>
           </div>
+          <h1 className="text-3xl font-mono font-light tracking-wider text-foreground/90 mb-2">
+            KairOS
+          </h1>
+          <p className="text-lg font-mono font-light tracking-wide text-muted-foreground/70">
+            Connect your key
+          </p>
         </div>
 
         {/* Main Content - Conditional Rendering */}
-        {hasValidParameters() ? (
-          /* PROGRAMMED NFC CHIP: Show authentication flow */
-          <NFCAuthFlow 
-            verificationState={verificationState}
-            nfcParams={parsedParams}
-            format={format}
-          />
-        ) : (
-          /* MANUAL PAGE ACCESS: Show welcome screen */
-          <NFCWelcomeScreen />
-        )}
-
-        {/* Professional Footer */}
-        <div className="text-center pt-6 pb-4">
-          <p className="text-xs text-muted-foreground font-mono animate-[fadeIn_1.5s_ease-out]">
-            DECENTRALIZED.RITUAL.GATEWAY • POWERED.BY.MELD
-          </p>
+        <div className="min-h-[400px] flex items-center justify-center">
+          {hasValidParameters() ? (
+            /* PROGRAMMED NFC CHIP: Show authentication flow */
+            <NFCAuthFlow 
+              verificationState={verificationState}
+              nfcParams={parsedParams}
+              format={format}
+            />
+          ) : (
+            /* MANUAL PAGE ACCESS: Show welcome screen */
+            <NFCWelcomeScreen />
+          )}
         </div>
       </div>
-      
-      {/* CSS Animations */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   )
 }
@@ -112,25 +90,26 @@ function NFCPageContent() {
  */
 function NFCPageLoading() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-4 bg-primary rounded-lg shadow-minimal">
-              <SmartphoneIcon className="h-10 w-10 text-primary-foreground" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden">
+      {/* Holographic Background Effect */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/25 to-secondary/15 animate-pulse"></div>
+      </div>
+      
+      <div className="container mx-auto px-4 py-8 relative z-10">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center space-y-6">
+            <div className="relative p-4 rounded-full bg-primary/10 border border-primary/20 mx-auto w-fit">
+              <LoaderIcon className="h-12 w-12 animate-spin text-primary" />
             </div>
-          </div>
-          <h1 className="text-4xl font-bold gradient-text mb-2">
-            NFC Authentication
-          </h1>
-          <p className="text-foreground text-lg">
-            Loading authentication system...
-          </p>
-        </div>
-        <div className="flex items-center justify-center py-16">
-          <div className="text-center space-y-4">
-            <LoaderIcon className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="text-foreground">Initializing secure authentication...</p>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-mono font-light text-foreground/90">
+                KairOS
+              </h1>
+              <p className="text-muted-foreground font-mono text-sm">
+                Initializing secure gateway...
+              </p>
+            </div>
           </div>
         </div>
       </div>

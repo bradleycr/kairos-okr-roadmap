@@ -6,7 +6,7 @@ import { randomBytes } from '@noble/hashes/utils';
 
 // Enable synchronous methods for @noble/ed25519
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
-ed.etc.sha512Async = (...m) => Promise.resolve(ed.etc.sha512Sync(...m));
+ed.etc.sha512Async = (...m) => Promise.resolve(ed.etc.sha512Sync?.(...m) || sha512(ed.etc.concatBytes(...m)));
 
 // Simple base58 alphabet (Bitcoin/IPFS style)
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"

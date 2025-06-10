@@ -879,7 +879,7 @@ export default function ESP32WearableDevice({
     <div className="relative">
       {/* ESP32 Device Housing */}
       <div 
-        className={`relative p-2 rounded-2xl border-2 transition-all duration-300 cursor-pointer select-none ${
+        className={`relative p-1.5 sm:p-2 rounded-2xl border-2 transition-all duration-300 cursor-pointer select-none ${
           disabled 
             ? 'opacity-50 cursor-not-allowed' 
             : 'hover:shadow-lg active:scale-95'
@@ -892,23 +892,23 @@ export default function ESP32WearableDevice({
         onClick={handleTap}
       >
         {/* Device Status Indicators */}
-        <div className="absolute top-1.5 right-1.5 flex gap-1.5">
+        <div className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 flex gap-1 sm:gap-1.5">
           {/* NFC Indicator */}
           <div 
-            className={`w-2 h-2 rounded-full transition-colors ${nfcDetected ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'}`} 
+            className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-colors ${nfcDetected ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'}`} 
             title="NFC Activity"
           />
           
           {/* Touch Indicator */}
           <div 
-            className={`w-2 h-2 rounded-full transition-colors ${touchDetected ? 'bg-purple-500 animate-pulse' : 'bg-gray-300'}`} 
+            className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-colors ${touchDetected ? 'bg-purple-500 animate-pulse' : 'bg-gray-300'}`} 
             title="Touch Activity"
           />
         </div>
 
         {/* E-Paper Display - Perfect size that doesn't crowd the screen */}
         <div 
-          className={`w-72 h-72 mx-auto rounded-lg border-2 relative overflow-hidden ${
+          className={`w-64 h-64 sm:w-72 sm:h-72 mx-auto rounded-lg border-2 relative overflow-hidden ${
             refreshing ? 'animate-pulse' : ''
           }`}
           style={{
@@ -951,7 +951,7 @@ export default function ESP32WearableDevice({
           {/* E-paper refresh indicator */}
           <div className="absolute top-1 right-1">
             <div 
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+              className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full transition-colors ${
                 refreshing ? 'bg-amber-500 animate-pulse' : 'bg-gray-400'
               }`} 
               title="E-Paper Refresh Status"
@@ -960,18 +960,19 @@ export default function ESP32WearableDevice({
         </div>
 
         {/* Hardware Status - Clean and simple */}
-        <div className="mt-1.5 flex justify-between items-center">
-          <div className="flex gap-3 text-xs text-gray-600">
+        <div className="mt-1 sm:mt-1.5 flex justify-between items-center">
+          <div className="flex gap-2 sm:gap-3 text-xs text-gray-600">
             <div className="flex items-center gap-1">
-              <Cpu className="w-3 h-3" />
-              <span>240MHz</span>
+              <Cpu className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <span className="hidden sm:inline">240MHz</span>
+              <span className="sm:hidden">240M</span>
             </div>
             <div className="flex items-center gap-1">
-              <Wifi className="w-3 h-3" />
+              <Wifi className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               <span>NFC</span>
             </div>
             <div className="flex items-center gap-1">
-              <Bluetooth className="w-3 h-3" />
+              <Bluetooth className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               <span>BLE</span>
             </div>
           </div>

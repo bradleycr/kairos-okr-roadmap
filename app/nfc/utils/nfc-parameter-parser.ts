@@ -46,14 +46,15 @@ export class NFCParameterParser {
       }
     }
 
-    // Strategy 2: Legacy full format (did, signature, publicKey, uid)
+    // Strategy 2: Legacy full format (did, signature, publicKey, uid/chipUID)
     const fullDID = searchParams.get('did')
     const fullSig = searchParams.get('signature') 
     const fullKey = searchParams.get('publicKey')
-    const fullUID = searchParams.get('uid')
+    const fullUID = searchParams.get('uid') || searchParams.get('chipUID') // Support both uid and chipUID
     
     if (fullDID && fullSig && fullKey && fullUID) {
       debugInfo.push('✅ Legacy full format detected')
+      debugInfo.push(`Using chipUID from: ${searchParams.get('uid') ? 'uid' : 'chipUID'} parameter`)
       
       return {
         params: {
@@ -84,8 +85,8 @@ export class NFCParameterParser {
         )
         
         debugInfo.push(`Reconstructed: chipUID=${reconstructed.chipUID}`)
-        debugInfo.push(`Signature length: ${reconstructed.signature.length}`)
-        debugInfo.push(`Public key length: ${reconstructed.publicKey.length}`)
+        debugInfo.push(`Signature length: ${reconstructed.signature?.length || 0}`)
+        debugInfo.push(`Public key length: ${reconstructed.publicKey?.length || 0}`)
         
         return {
           params: reconstructed,

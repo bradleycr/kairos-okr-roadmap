@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { generateEd25519KeyPair, createDIDKey, signMoment, verifyMomentSignature, exportKeyPair, importKeyPair } from "@/lib/crypto"
 import type { Moment } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
@@ -8,160 +8,928 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CopyButton } from "@/components/ui/copy-button"
 import { HAL } from "@/lib/hardwareAbstraction"
+import { 
+  Terminal, 
+  Cpu, 
+  Shield, 
+  Database, 
+  Activity, 
+  Settings, 
+  Book, 
+  Eye, 
+  Zap, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Wifi, 
+  HardDrive, 
+  Network,
+  Download,
+  Upload,
+  RefreshCw,
+  BarChart3,
+  TrendingUp,
+  AlertTriangle,
+  Globe,
+  Lock,
+  Key,
+  Code,
+  FileText,
+  Smartphone,
+  Tablet,
+  Github,
+  ExternalLink,
+  Copy,
+  Play,
+  ChevronRight,
+  ChevronDown,
+  Sparkles,
+  Layers,
+  Fingerprint
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
-// Utility: Validate DID:key format (W3C-style, base58btc, multicodec)
+// Enhanced diagnostic types
+type DiagnosticResult = {
+  label: string
+  pass: boolean
+  details: string
+  performance?: number
+  category: 'crypto' | 'system' | 'network' | 'storage'
+}
+
+type SystemMetrics = {
+  memory: number
+  storage: number
+  performance: number
+  latency: number
+  timestamp: number
+}
+
+type LogEntry = {
+  id: string
+  timestamp: string
+  level: 'info' | 'warn' | 'error' | 'debug'
+  category: string
+  message: string
+  details?: any
+}
+
+// Utility functions for diagnostics
 function isValidDIDKey(did: string): boolean {
   return /^did:key:z[1-9A-HJ-NP-Za-km-z]+$/.test(did)
 }
 
-// Utility: Check timestamp within ±5min
 function isTimestampValid(ts: string): boolean {
   const now = Date.now()
   const t = new Date(ts).getTime()
   return Math.abs(now - t) <= 5 * 60 * 1000
 }
 
-// Test runner
-async function runDiagnostics(setResults: (r: DiagnosticResult[]) => void) {
+// Mock system metrics generator
+function generateSystemMetrics(): SystemMetrics {
+  return {
+    memory: Math.random() * 100,
+    storage: Math.random() * 100,
+    performance: 95 + Math.random() * 5,
+    latency: 10 + Math.random() * 20,
+    timestamp: Date.now()
+  }
+}
+
+// Enhanced crypto diagnostics runner
+async function runCryptoDiagnostics(setResults: (r: DiagnosticResult[]) => void, setProgress: (p: number) => void) {
   const results: DiagnosticResult[] = []
+  const totalTests = 8
 
-  // 1. Keypair & DID determinism
-  const keyA = await generateEd25519KeyPair()
-  const didA = await createDIDKey(keyA.publicKey)
-  const didA2 = await createDIDKey(keyA.publicKey)
-  results.push({
-    label: "DID is deterministic (same key, same DID)",
+  // Helper to add progress
+  const addResult = (result: DiagnosticResult, index: number) => {
+    results.push(result)
+    setProgress((index + 1) / totalTests * 100)
+  }
+
+  // Simulate realistic test timing
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  // 1. Keypair generation performance
+  const startTime = performance.now()
+  const keyA = await HAL.crypto.generateKeyPair()
+  const keyGenTime = performance.now() - startTime
+  await delay(200)
+  
+  addResult({
+    label: "Crypto Key Generation Performance",
+    pass: keyGenTime < 100,
+    details: `Generated in ${keyGenTime.toFixed(2)}ms`,
+    performance: keyGenTime,
+    category: 'crypto'
+  }, 0)
+
+  // 2. DID determinism (we'll use exported keys for DID creation)
+  const keyAPublicBytes = await HAL.crypto.exportPublicKey(keyA.publicKey)
+  const didA = createDIDKey(keyAPublicBytes)
+  const didA2 = createDIDKey(keyAPublicBytes)
+  await delay(150)
+  
+  addResult({
+    label: "DID Deterministic Generation",
     pass: didA === didA2,
-    details: didA === didA2 ? didA : `Mismatch: ${didA} vs ${didA2}`,
-  })
+    details: didA === didA2 ? `Consistent: ${didA.substring(0, 30)}...` : `Mismatch detected`,
+    category: 'crypto'
+  }, 1)
 
-  // 2. DID uniqueness
-  const keyB = await generateEd25519KeyPair()
-  const didB = await createDIDKey(keyB.publicKey)
-  results.push({
-    label: "DIDs are unique (different keys, different DIDs)",
-    pass: didA !== didB,
-    details: didA !== didB ? `${didA} ≠ ${didB}` : `Collision: ${didA}`,
-  })
+  // 3. DID uniqueness with multiple keys
+  const keyB = await HAL.crypto.generateKeyPair()
+  const keyC = await HAL.crypto.generateKeyPair()
+  const keyBPublicBytes = await HAL.crypto.exportPublicKey(keyB.publicKey)
+  const keyCPublicBytes = await HAL.crypto.exportPublicKey(keyC.publicKey)
+  const didB = createDIDKey(keyBPublicBytes)
+  const didC = createDIDKey(keyCPublicBytes)
+  await delay(100)
+  
+  addResult({
+    label: "DID Uniqueness Verification",
+    pass: didA !== didB && didB !== didC && didA !== didC,
+    details: `Generated 3 unique DIDs from 3 different keys`,
+    category: 'crypto'
+  }, 2)
 
-  // 3. DID W3C-validity
-  results.push({
-    label: "DID:key is W3C-valid format",
-    pass: isValidDIDKey(didA),
-    details: didA,
-  })
+  // 4. W3C compliance
+  const w3cValid = isValidDIDKey(didA) && isValidDIDKey(didB) && isValidDIDKey(didC)
+  await delay(50)
+  
+  addResult({
+    label: "W3C DID:key Standard Compliance",
+    pass: w3cValid,
+    details: w3cValid ? "All DIDs follow W3C specification" : "Non-compliant DID format detected",
+    category: 'crypto'
+  }, 3)
 
-  // 4. Signature verification (valid)
+  // 5. Signature performance and verification
   const moment: Omit<Moment, "signature"> = {
     subject: didA,
     issuer: didB,
     timestamp: new Date().toISOString(),
-    description: "Test moment",
+    description: "KairOS diagnostic test moment",
   }
+  
+  const signStart = performance.now()
   const signature = await signMoment(keyB.privateKey, moment)
+  const signTime = performance.now() - signStart
+  
+  const verifyStart = performance.now()
   const valid = await verifyMomentSignature(keyB.publicKey, moment, signature)
-  results.push({
-    label: "Signature verifies (valid)",
-    pass: valid,
-    details: valid ? "Signature valid" : "Signature failed",
-  })
+  const verifyTime = performance.now() - verifyStart
+  await delay(100)
+  
+  addResult({
+    label: "Signature Generation & Verification",
+    pass: valid && signTime < 100 && verifyTime < 100,
+    details: `Sign: ${signTime.toFixed(2)}ms, Verify: ${verifyTime.toFixed(2)}ms`,
+    performance: signTime + verifyTime,
+    category: 'crypto'
+  }, 4)
 
-  // 5. Signature verification (tampered)
-  const tampered = { ...moment, description: "Tampered" }
+  // 6. Tampering detection
+  const tampered = { ...moment, description: "Tampered diagnostic moment" }
   const tamperedValid = await verifyMomentSignature(keyB.publicKey, tampered, signature)
-  results.push({
-    label: "Signature fails if tampered",
+  await delay(50)
+  
+  addResult({
+    label: "Cryptographic Tampering Detection",
     pass: !tamperedValid,
-    details: !tamperedValid ? "Tampering detected" : "Tampering not detected",
-  })
+    details: !tamperedValid ? "Tampering correctly detected and rejected" : "Security vulnerability: tampering not detected",
+    category: 'crypto'
+  }, 5)
 
-  // 6. Key mismatch detection
+  // 7. Cross-key verification failure
   const mismatchValid = await verifyMomentSignature(keyA.publicKey, moment, signature)
-  results.push({
-    label: "Signature fails with wrong public key",
+  await delay(50)
+  
+  addResult({
+    label: "Cross-Key Verification Security",
     pass: !mismatchValid,
-    details: !mismatchValid ? "Key mismatch detected" : "Key mismatch not detected",
-  })
+    details: !mismatchValid ? "Properly rejects signatures from different keys" : "Security vulnerability: accepts wrong keys",
+    category: 'crypto'
+  }, 6)
 
-  // 7. Timestamp validity
-  results.push({
-    label: "Timestamp is within ±5min",
-    pass: isTimestampValid(moment.timestamp),
-    details: moment.timestamp,
-  })
+  // 8. Timestamp validation
+  const timestampValid = isTimestampValid(moment.timestamp)
+  await delay(50)
+  
+  addResult({
+    label: "Temporal Validation System",
+    pass: timestampValid,
+    details: timestampValid ? `Valid timestamp: ${moment.timestamp}` : "Timestamp outside acceptable window",
+    category: 'crypto'
+  }, 7)
 
   setResults(results)
 }
 
-type DiagnosticResult = {
-  label: string
-  pass: boolean
-  details: string
+// System diagnostics runner
+async function runSystemDiagnostics(): Promise<DiagnosticResult[]> {
+  const results: DiagnosticResult[] = []
+  
+  // Browser capabilities
+  const hasWebCrypto = !!window.crypto?.subtle
+  const hasLocalStorage = !!window.localStorage
+  const hasSessionStorage = !!window.sessionStorage
+  const hasIndexedDB = !!window.indexedDB
+  const hasWorkers = !!window.Worker
+  
+  results.push({
+    label: "Web Crypto API Support",
+    pass: hasWebCrypto,
+    details: hasWebCrypto ? "Native cryptographic operations available" : "Web Crypto API not supported",
+    category: 'system'
+  })
+  
+  results.push({
+    label: "Local Storage Availability",
+    pass: hasLocalStorage,
+    details: hasLocalStorage ? "Client-side persistence available" : "Local storage not available",
+    category: 'storage'
+  })
+  
+  results.push({
+    label: "IndexedDB Support",
+    pass: hasIndexedDB,
+    details: hasIndexedDB ? "Advanced client-side database available" : "IndexedDB not supported",
+    category: 'storage'
+  })
+  
+  results.push({
+    label: "Web Workers Support",
+    pass: hasWorkers,
+    details: hasWorkers ? "Background processing capabilities available" : "Web Workers not supported",
+    category: 'system'
+  })
+  
+  // Performance metrics
+  const connectionType = (navigator as any)?.connection?.effectiveType || 'unknown'
+  const isOnline = navigator.onLine
+  
+  results.push({
+    label: "Network Connectivity",
+    pass: isOnline,
+    details: isOnline ? `Online (${connectionType})` : "Offline mode",
+    category: 'network'
+  })
+  
+  return results
 }
 
-export default function CryptoDiagnostics() {
-  const [results, setResults] = useState<DiagnosticResult[] | null>(null)
-  const [running, setRunning] = useState(false)
+export default function DeveloperDiagnosticsHub() {
+  // Main state management
+  const [activeTab, setActiveTab] = useState<'overview' | 'crypto' | 'system' | 'logs' | 'guides' | 'settings'>('overview')
+  const [cryptoResults, setCryptoResults] = useState<DiagnosticResult[] | null>(null)
+  const [systemResults, setSystemResults] = useState<DiagnosticResult[] | null>(null)
+  const [cryptoRunning, setCryptoRunning] = useState(false)
+  const [cryptoProgress, setCryptoProgress] = useState(0)
+  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics[]>([])
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [isMonitoring, setIsMonitoring] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']))
+  
+  const metricsInterval = useRef<NodeJS.Timeout | null>(null)
+  
+  // Auto-generate logs and metrics
   useEffect(() => {
-    if (running) window.scrollTo({ top: 0, behavior: "smooth" })
-  }, [running])
-
+    const generateLog = () => {
+      const categories = ['crypto', 'system', 'network', 'storage', 'ui']
+      const levels: LogEntry['level'][] = ['info', 'warn', 'error', 'debug']
+      const messages = [
+        'Key pair generation completed',
+        'DID verification successful',
+        'System health check passed',
+        'Network latency within normal range',
+        'Cache cleared successfully',
+        'WebCrypto API initialized',
+        'Local storage quota checked',
+        'Performance metrics updated'
+      ]
+      
+      const newLog: LogEntry = {
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+        level: levels[Math.floor(Math.random() * levels.length)],
+        category: categories[Math.floor(Math.random() * categories.length)],
+        message: messages[Math.floor(Math.random() * messages.length)]
+      }
+      
+      setLogs(prev => [newLog, ...prev.slice(0, 49)]) // Keep last 50 logs
+    }
+    
+    // Generate initial logs
+    for (let i = 0; i < 10; i++) {
+      setTimeout(() => generateLog(), i * 100)
+    }
+    
+    const logInterval = setInterval(generateLog, 3000)
+    return () => clearInterval(logInterval)
+  }, [])
+  
+  // System metrics monitoring
+  useEffect(() => {
+    if (isMonitoring) {
+      metricsInterval.current = setInterval(() => {
+        setSystemMetrics(prev => {
+          const newMetrics = [...prev, generateSystemMetrics()].slice(-20) // Keep last 20 metrics
+          return newMetrics
+        })
+      }, 1000)
+    } else {
+      if (metricsInterval.current) {
+        clearInterval(metricsInterval.current)
+      }
+    }
+    
+    return () => {
+      if (metricsInterval.current) {
+        clearInterval(metricsInterval.current)
+      }
+    }
+  }, [isMonitoring])
+  
+  // Auto-run system diagnostics on mount
+  useEffect(() => {
+    runSystemDiagnostics().then(setSystemResults)
+  }, [])
+  
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(section)) {
+        newSet.delete(section)
+      } else {
+        newSet.add(section)
+      }
+      return newSet
+    })
+  }
+  
+  const getStatusColor = (pass: boolean) => pass ? 'text-primary' : 'text-destructive'
+  const getStatusIcon = (pass: boolean) => pass ? CheckCircle : XCircle
+  
+  const TabButton = ({ id, icon: Icon, label, active }: { 
+    id: string, 
+    icon: React.ComponentType<any>, 
+    label: string, 
+    active: boolean 
+  }) => (
+    <button
+      onClick={() => setActiveTab(id as any)}
+      className={cn(
+        "flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200",
+        "border border-transparent hover:border-border/50",
+        active 
+          ? "bg-primary/10 text-primary border-primary/20 shadow-minimal" 
+          : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+      )}
+    >
+      <Icon className="w-4 h-4" />
+      <span className="text-sm">{label}</span>
+    </button>
+  )
+  
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-800 p-2 pb-[var(--footer-height,2.7rem)]">
-      <Card className="w-full max-w-md p-4 sm:p-6 shadow-2xl rounded-2xl bg-white/95 dark:bg-gray-900/95 border border-gray-200 dark:border-gray-700">
-        <h1 className="text-2xl font-mono font-bold text-gray-800 dark:text-gray-100 mb-2 text-center">KairOS Crypto Diagnostics</h1>
-        <p className="text-sm text-gray-800 dark:text-gray-200 font-mono mb-4 text-center">
-          Real-time cryptographic integrity & decentralization tests
-        </p>
-        <Button
-          aria-label="Run Diagnostics"
-          className={`w-full mb-4 font-mono text-lg rounded-full border shadow-md transition-all duration-300 relative overflow-hidden
-            bg-gradient-to-br from-green-100 via-blue-50 to-green-200 border-green-300
-            hover:from-green-200 hover:to-blue-100
-            focus:outline-none focus:ring-2 focus:ring-green-400
-            text-green-900`
-          }
-          style={{
-            boxShadow: '0 2px 8px 0 rgba(60,80,60,0.10)',
-            backgroundImage: `url('/images/recycled-texture.png'), linear-gradient(120deg, #e6f4ea 0%, #f0f7fa 100%)`,
-            backgroundBlendMode: 'multiply',
-            backgroundSize: 'cover',
-          }}
-          disabled={running}
-          onClick={async () => {
-            setRunning(true)
-            setResults(null)
-            await runDiagnostics(setResults)
-            setRunning(false)
-          }}
-        >
-          {running ? "Running..." : "Run Diagnostics"}
-        </Button>
-        {results && (
-          <div className="space-y-3 mt-2">
-            {results.map((r, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <Badge className={r.pass ? "bg-green-600 text-white text-base px-3 py-1" : "bg-red-600 text-white text-base px-3 py-1"}>
-                  {r.pass ? "PASS" : "FAIL"}
-                </Badge>
-                <div className="flex-1 min-w-0">
-                  <div className="font-mono text-gray-800 dark:text-gray-100 text-sm flex items-center">
-                    {r.label}
-                    {r.details.startsWith("did:key:") && <CopyButton value={r.details} label="DID" />}
-                  </div>
-                  <div className="font-mono text-xs text-gray-700 dark:text-gray-300 break-all">{r.details}</div>
-                </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border/30 bg-background/80 backdrop-blur-sm sticky top-0 z-40">
+        <div className="container-adaptive py-6">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center shadow-minimal">
+                <Terminal className="w-5 h-5 text-primary-foreground" />
               </div>
-            ))}
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Developer Diagnostics Hub</h1>
+                <p className="text-sm text-muted-foreground">Comprehensive system analysis, monitoring & development tools</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Badge className={cn(
+                "flex items-center gap-1.5 px-3 py-1",
+                isMonitoring ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+              )}>
+                <Activity className={cn("w-3 h-3", isMonitoring && "animate-pulse")} />
+                {isMonitoring ? "Monitoring" : "Standby"}
+              </Badge>
+              <Button
+                onClick={() => setIsMonitoring(!isMonitoring)}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                {isMonitoring ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                {isMonitoring ? "Stop" : "Start"} Monitoring
+              </Button>
+            </div>
+          </div>
+          
+          {/* Navigation Tabs */}
+          <div className="flex flex-wrap gap-2 mt-6">
+            <TabButton id="overview" icon={BarChart3} label="Overview" active={activeTab === 'overview'} />
+            <TabButton id="crypto" icon={Shield} label="Cryptography" active={activeTab === 'crypto'} />
+            <TabButton id="system" icon={Cpu} label="System" active={activeTab === 'system'} />
+            <TabButton id="logs" icon={FileText} label="Logs" active={activeTab === 'logs'} />
+            <TabButton id="guides" icon={Book} label="Guides" active={activeTab === 'guides'} />
+            <TabButton id="settings" icon={Settings} label="Settings" active={activeTab === 'settings'} />
+          </div>
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="container-adaptive py-8">
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="space-y-8 animate-fade-slide-up">
+            {/* System Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+                <div className="flex items-center justify-between mb-3">
+                  <Shield className="w-8 h-8 text-primary" />
+                  <Badge className="bg-primary/10 text-primary">Secure</Badge>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Cryptography</h3>
+                <p className="text-sm text-muted-foreground">Ed25519 + DID:key verified</p>
+                <div className="mt-4 text-2xl font-bold text-primary">
+                  {cryptoResults ? `${cryptoResults.filter(r => r.pass).length}/${cryptoResults.length}` : '—'}
+                </div>
+              </Card>
+              
+              <Card className="p-6 bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
+                <div className="flex items-center justify-between mb-3">
+                  <Cpu className="w-8 h-8 text-accent" />
+                  <Badge className="bg-accent/10 text-accent">Active</Badge>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">System</h3>
+                <p className="text-sm text-muted-foreground">Browser capabilities</p>
+                <div className="mt-4 text-2xl font-bold text-accent">
+                  {systemResults ? `${systemResults.filter(r => r.pass).length}/${systemResults.length}` : '—'}
+                </div>
+              </Card>
+              
+              <Card className="p-6 bg-gradient-to-br from-secondary/5 to-secondary/10 border-secondary/20">
+                <div className="flex items-center justify-between mb-3">
+                  <Activity className="w-8 h-8 text-secondary" />
+                  <Badge className="bg-orange-100 text-orange-700">Demo</Badge>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Performance</h3>
+                <p className="text-sm text-muted-foreground">Simulated metrics</p>
+                <div className="mt-4 text-2xl font-bold text-secondary">
+                  {systemMetrics.length > 0 ? `${systemMetrics[systemMetrics.length - 1]?.performance.toFixed(0)}%` : '—'}
+                </div>
+              </Card>
+              
+              <Card className="p-6 bg-gradient-to-br from-muted/5 to-muted/10 border-muted/20">
+                <div className="flex items-center justify-between mb-3">
+                  <FileText className="w-8 h-8 text-foreground" />
+                  <Badge className="bg-orange-100 text-orange-700">Demo</Badge>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Activity Logs</h3>
+                <p className="text-sm text-muted-foreground">Sample log entries</p>
+                <div className="mt-4 text-2xl font-bold text-foreground">
+                  {logs.length}
+                </div>
+              </Card>
+            </div>
+            
+            {/* Real-time Metrics Chart - SIMULATION ONLY */}
+            {systemMetrics.length > 0 && (
+              <Card className="p-6 border-orange-200 bg-orange-50/50">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Real-time Performance</h3>
+                    <p className="text-xs text-orange-600 font-medium">⚠️ SIMULATION DATA - Not actual system metrics</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <TrendingUp className="w-4 h-4" />
+                    Simulated readings
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">Mock Performance Score</span>
+                    <span className="text-sm text-primary font-mono">
+                      {systemMetrics[systemMetrics.length - 1]?.performance.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${systemMetrics[systemMetrics.length - 1]?.performance || 0}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">Simulated Network Latency</span>
+                    <span className="text-sm text-accent font-mono">
+                      {systemMetrics[systemMetrics.length - 1]?.latency.toFixed(0)}ms
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-accent h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(systemMetrics[systemMetrics.length - 1]?.latency / 50 * 100 || 0, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </Card>
+            )}
+            
+            {/* Quick Actions */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <Button
+                  onClick={() => {
+                    setCryptoRunning(true)
+                    setCryptoProgress(0)
+                    runCryptoDiagnostics(setCryptoResults, setCryptoProgress).finally(() => setCryptoRunning(false))
+                  }}
+                  disabled={cryptoRunning}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  <Shield className="w-4 h-4" />
+                  Run Crypto Tests
+                </Button>
+                <Button
+                  onClick={() => runSystemDiagnostics().then(setSystemResults)}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  <Cpu className="w-4 h-4" />
+                  System Check
+                </Button>
+                <Button
+                  onClick={() => setLogs([])}
+                  className="w-full gap-2 justify-start"
+                  variant="outline"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Clear Logs
+                </Button>
+              </div>
+            </Card>
           </div>
         )}
-        <div className="mt-6 text-xs text-gray-700 dark:text-gray-300 font-mono text-center">
-          <div className="mb-2">No keys are ever stored. All verification is local. No backend trust required.</div>
-          <div className="mb-2">DID:key is derived per W3C spec (base58btc, multicodec, no Postgres).</div>
-          <div className="mb-2">If any test fails, your system is not fully decentralized or verifiable.</div>
-          <div className="mt-4 text-gray-700 dark:text-gray-300">Inspired by Cursive, but exceeds their decentralization & standards.</div>
-        </div>
-      </Card>
-    </main>
+        
+        {/* Crypto Tab */}
+        {activeTab === 'crypto' && (
+          <div className="space-y-6 animate-fade-slide-up">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Cryptographic Integrity Tests</h3>
+                  <p className="text-sm text-muted-foreground">Ed25519 key generation, DID:key creation, and signature verification</p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setCryptoRunning(true)
+                    setCryptoProgress(0)
+                    runCryptoDiagnostics(setCryptoResults, setCryptoProgress).finally(() => setCryptoRunning(false))
+                  }}
+                  disabled={cryptoRunning}
+                  className="gap-2"
+                >
+                  {cryptoRunning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                  {cryptoRunning ? "Running..." : "Run Tests"}
+                </Button>
+              </div>
+              
+              {cryptoRunning && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-foreground">Progress</span>
+                    <span className="text-sm text-muted-foreground">{cryptoProgress.toFixed(0)}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${cryptoProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {cryptoResults && (
+                <div className="space-y-3">
+                  {cryptoResults.map((result, index) => {
+                    const StatusIcon = getStatusIcon(result.pass)
+                    return (
+                      <div key={index} className="flex items-start gap-3 p-4 rounded-lg border border-border/50 bg-background/50">
+                        <StatusIcon className={cn("w-5 h-5 mt-0.5 flex-shrink-0", getStatusColor(result.pass))} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-foreground">{result.label}</span>
+                            <Badge className={result.pass ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}>
+                              {result.pass ? "PASS" : "FAIL"}
+                            </Badge>
+                            {result.performance && (
+                              <Badge variant="outline" className="font-mono text-xs">
+                                {result.performance.toFixed(2)}ms
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground font-mono break-all">{result.details}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+            
+            {/* Crypto Information */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Cryptographic Standards</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Key className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-foreground">Ed25519 Signatures</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    State-of-the-art elliptic curve cryptography providing 128-bit security with fast verification.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Fingerprint className="w-4 h-4 text-accent" />
+                    <span className="font-medium text-foreground">DID:key Standard</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    W3C compliant decentralized identifiers derived directly from public keys.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+        
+        {/* System Tab */}
+        {activeTab === 'system' && (
+          <div className="space-y-6 animate-fade-slide-up">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">System Capabilities</h3>
+                  <p className="text-sm text-muted-foreground">Browser features and platform compatibility</p>
+                </div>
+                <Button
+                  onClick={() => runSystemDiagnostics().then(setSystemResults)}
+                  className="gap-2"
+                  variant="outline"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh
+                </Button>
+              </div>
+              
+              {systemResults && (
+                <div className="space-y-3">
+                  {systemResults.map((result, index) => {
+                    const StatusIcon = getStatusIcon(result.pass)
+                    const categoryIcons = {
+                      system: Cpu,
+                      storage: HardDrive,
+                      network: Network,
+                      crypto: Shield
+                    }
+                    const CategoryIcon = categoryIcons[result.category]
+                    
+                    return (
+                      <div key={index} className="flex items-start gap-3 p-4 rounded-lg border border-border/50 bg-background/50">
+                        <div className="flex items-center gap-2">
+                          <CategoryIcon className="w-4 h-4 text-muted-foreground" />
+                          <StatusIcon className={cn("w-5 h-5 flex-shrink-0", getStatusColor(result.pass))} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-foreground">{result.label}</span>
+                            <Badge className={result.pass ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}>
+                              {result.pass ? "SUPPORTED" : "MISSING"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{result.details}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+            
+            {/* Device Information */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Device Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">User Agent</span>
+                    <span className="text-sm text-foreground font-mono text-right max-w-xs truncate">
+                      {navigator.userAgent.split(' ')[0]}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Platform</span>
+                    <span className="text-sm text-foreground font-mono">{navigator.platform}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Language</span>
+                    <span className="text-sm text-foreground font-mono">{navigator.language}</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Viewport</span>
+                    <span className="text-sm text-foreground font-mono">
+                      {window.innerWidth}×{window.innerHeight}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Color Depth</span>
+                    <span className="text-sm text-foreground font-mono">{screen.colorDepth}-bit</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Time Zone</span>
+                    <span className="text-sm text-foreground font-mono">
+                      {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+        
+        {/* Logs Tab */}
+        {activeTab === 'logs' && (
+          <div className="space-y-6 animate-fade-slide-up">
+            <Card className="p-6 border-orange-200 bg-orange-50/50">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Activity Logs</h3>
+                  <p className="text-xs text-orange-600 font-medium">⚠️ DEMO DATA - Auto-generated sample logs for UI testing</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-orange-100 text-orange-700">{logs.length} demo entries</Badge>
+                  <Button onClick={() => setLogs([])} variant="outline" size="sm" className="gap-2">
+                    <RefreshCw className="w-4 h-4" />
+                    Clear Demo Logs
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {logs.map((log) => {
+                  const levelColors = {
+                    info: 'text-primary',
+                    warn: 'text-orange-500',
+                    error: 'text-destructive',
+                    debug: 'text-muted-foreground'
+                  }
+                  
+                  return (
+                    <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg border border-border/30 bg-background/50 font-mono text-sm">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                      <Badge className={cn("text-xs", `bg-${log.level === 'info' ? 'primary' : log.level === 'warn' ? 'orange' : log.level === 'error' ? 'destructive' : 'muted'}/10 text-${log.level === 'info' ? 'primary' : log.level === 'warn' ? 'orange-500' : log.level === 'error' ? 'destructive' : 'muted-foreground'}`)}>
+                        {log.level.toUpperCase()}
+                      </Badge>
+                      <span className="text-xs text-accent">{log.category}</span>
+                      <span className="text-foreground flex-1">{log.message}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+          </div>
+        )}
+        
+        {/* Guides Tab */}
+        {activeTab === 'guides' && (
+          <div className="space-y-6 animate-fade-slide-up">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Code className="w-6 h-6 text-primary" />
+                  <h3 className="text-lg font-semibold text-foreground">API Reference</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Complete documentation for KairOS cryptographic APIs and system integration.
+                </p>
+                <Button className="w-full gap-2" variant="outline" disabled>
+                  <ExternalLink className="w-4 h-4" />
+                  Coming Soon
+                </Button>
+              </Card>
+              
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Github className="w-6 h-6 text-accent" />
+                  <h3 className="text-lg font-semibold text-foreground">Source Code</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Explore the open-source implementation and contribute to the project.
+                </p>
+                <Button className="w-full gap-2" variant="outline" disabled>
+                  <ExternalLink className="w-4 h-4" />
+                  Coming Soon
+                </Button>
+              </Card>
+              
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Layers className="w-6 h-6 text-secondary" />
+                  <h3 className="text-lg font-semibold text-foreground">Architecture</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Deep dive into the decentralized architecture and cryptographic foundations.
+                </p>
+                <Button className="w-full gap-2" variant="outline" disabled>
+                  <ExternalLink className="w-4 h-4" />
+                  Coming Soon
+                </Button>
+              </Card>
+              
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                  <h3 className="text-lg font-semibold text-foreground">Examples</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ready-to-use code examples and integration patterns.
+                </p>
+                <Button className="w-full gap-2" variant="outline" disabled>
+                  <ExternalLink className="w-4 h-4" />
+                  Coming Soon
+                </Button>
+              </Card>
+            </div>
+          </div>
+        )}
+        
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6 animate-fade-slide-up">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-6">Developer Preferences</h3>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-foreground">Auto-refresh Monitoring</h4>
+                    <p className="text-sm text-muted-foreground">Automatically update demo metrics simulation</p>
+                  </div>
+                  <Button
+                    onClick={() => setIsMonitoring(!isMonitoring)}
+                    variant={isMonitoring ? "default" : "outline"}
+                    size="sm"
+                  >
+                    {isMonitoring ? "Enabled" : "Disabled"}
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-foreground">Verbose Logging</h4>
+                    <p className="text-sm text-muted-foreground">Include debug information in logs</p>
+                  </div>
+                  <Button variant="outline" size="sm" disabled>
+                    Coming Soon
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-foreground">Export Diagnostics</h4>
+                    <p className="text-sm text-muted-foreground">Download complete system report</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-2" disabled>
+                    <Download className="w-4 h-4" />
+                    Coming Soon
+                  </Button>
+                </div>
+              </div>
+            </Card>
+            
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">System Information</h3>
+              <div className="text-sm text-muted-foreground space-y-2 font-mono">
+                <div>KairOS Version: 0.1.0-alpha</div>
+                <div>Build: {new Date().toISOString().split('T')[0]}</div>
+                <div>Environment: {process.env.NODE_ENV || 'development'}</div>
+                <div>Deployment: Vercel Edge Runtime</div>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    </div>
   )
 } 

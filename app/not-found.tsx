@@ -1,22 +1,20 @@
 // --- KairOS Not Found: A Beautiful 404 Experience ---
+import Link from 'next/link'
+
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-background">
-      <div className="w-full max-w-md p-8 bg-card rounded-lg shadow-minimal">
-        <h2 className="text-2xl font-mono font-bold gradient-text mb-4">
-          404: Not Found
-        </h2>
-        <p className="text-sm text-foreground mb-6">
-          The page you're looking for doesn't exist.<br />
-          Try checking the URL or return to the home screen.
-        </p>
-        <a
-          href="/"
-          className="w-full block py-2.5 px-4 text-center bg-primary text-primary-foreground font-medium rounded-lg shadow-sm hover:bg-primary/90 transition-all duration-200"
-        >
-          Go Home
-        </a>
-      </div>
-    </main>
-  );
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <h1 className="text-6xl font-bold text-gray-800 mb-4">404</h1>
+      <h2 className="text-2xl font-semibold text-gray-600 mb-4">Page Not Found</h2>
+      <p className="text-gray-500 mb-8">
+        The page you&apos;re looking for doesn&apos;t exist.
+      </p>
+      <Link 
+        href="/" 
+        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Go back home
+      </Link>
+    </div>
+  )
 } 

@@ -2,9 +2,10 @@
 
 // --- React Hook for ZK Proof Generation ---
 // Beautiful, client-side integration with the ZK proof system
-import { useState, useCallback } from 'react'
-import { zkProofSystem } from '@/lib/zk/zkProofSystem'
-import type { ZKMoment, ZKMomentProof, ZKSession, ZKCircuitConfig, ProofGenerationResult } from '@/lib/zk/zkProofSystem'
+import { useState, useCallback, useRef } from 'react'
+import { ZKProofSystem } from '@/lib/zk/zkProofSystem'
+import type { ZKMoment, ZKMomentProof, ZKSession, ProofGenerationResult } from '@/lib/types'
+import type { ZKCircuitConfig } from '@/lib/zk/zkProofSystem'
 
 /**
  * Elegant React hook for zero-knowledge proof generation
@@ -13,6 +14,7 @@ import type { ZKMoment, ZKMomentProof, ZKSession, ZKCircuitConfig, ProofGenerati
 export function useZKProofSystem() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [lastProof, setLastProof] = useState<ZKMomentProof | null>(null)
+  const zkSystemRef = useRef(new ZKProofSystem())
 
   const generateProof = useCallback(async (
     moments: ZKMoment[],
@@ -21,7 +23,7 @@ export function useZKProofSystem() {
   ): Promise<ProofGenerationResult> => {
     setIsGenerating(true)
     try {
-      const result = await zkProofSystem.generateMomentCountProof(moments, threshold, userPublicKey)
+      const result = await zkSystemRef.current.generateMomentCountProof(moments, threshold, userPublicKey)
       if (result.success && result.proof) {
         setLastProof(result.proof)
       }
@@ -32,7 +34,7 @@ export function useZKProofSystem() {
   }, [])
 
   const verifyProof = useCallback(async (proof: ZKMomentProof): Promise<boolean> => {
-    return await zkProofSystem.verifyMomentCountProof(proof)
+    return await zkSystemRef.current.verifyMomentCountProof(proof)
   }, [])
 
   const generateSessionProofs = useCallback(async (
@@ -42,7 +44,7 @@ export function useZKProofSystem() {
   ) => {
     setIsGenerating(true)
     try {
-      return await zkProofSystem.generateSessionProofs(session, thresholds, userPublicKey)
+      return await zkSystemRef.current.generateSessionProofs(session, thresholds, userPublicKey)
     } finally {
       setIsGenerating(false)
     }
@@ -54,8 +56,8 @@ export function useZKProofSystem() {
     generateProof,
     verifyProof,
     generateSessionProofs,
-    getRecommendedThresholds: (count: number) => zkProofSystem.getRecommendedThresholds(count),
-    getConfig: () => zkProofSystem.getConfig(),
-    updateConfig: (config: Partial<ZKCircuitConfig>) => zkProofSystem.updateConfig(config)
+    getRecommendedThresholds: (count: number) => zkSystemRef.current.getRecommendedThresholds(count),
+    getConfig: () => zkSystemRef.current.getConfig(),
+    updateConfig: (config: Partial<ZKCircuitConfig>) => zkSystemRef.current.updateConfig(config)
   }
 } 

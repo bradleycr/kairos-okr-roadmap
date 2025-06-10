@@ -5,8 +5,17 @@
   "framework": "nextjs",
   "regions": ["iad1"],
   "functions": {
+    "app/api/zkbirthday/**/*.ts": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "app/api/health/**/*.ts": {
+      "maxDuration": 5,
+      "memory": 128
+    },
     "app/api/**/*.ts": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
   "headers": [
@@ -26,6 +35,12 @@
           "value": "Content-Type, Authorization"
         }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/zk-moments/zkbirthday/quick-add",
+      "destination": "/zk-moments/zkbirthday/quick-add"
     }
   ]
 } 

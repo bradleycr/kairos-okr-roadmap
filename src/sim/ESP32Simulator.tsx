@@ -39,7 +39,7 @@ export default function ESP32Simulator({
   
   const wasmModuleRef = useRef<any>(null)
   const framebufferRef = useRef<DisplayFramebuffer>(new DisplayFramebuffer())
-  const animationFrameRef = useRef<number>()
+  const animationFrameRef = useRef<number | null>(null)
 
   /**
    * Load WebAssembly module

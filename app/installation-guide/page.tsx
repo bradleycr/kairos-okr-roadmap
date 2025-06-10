@@ -26,7 +26,7 @@ import {
   NfcIcon,
   LoaderIcon
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import { Ritual } from '@/lib/ritual/types'
 
 // --- Types ---

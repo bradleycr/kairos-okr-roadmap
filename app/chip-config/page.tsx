@@ -30,7 +30,7 @@ import {
   WifiIcon,
   RocketIcon
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import { generateiPhoneNFCUrl } from '@/lib/url-shortener'
 
 // --- Web NFC Imports ---
@@ -114,6 +114,12 @@ async function generateDecentralizedNFCConfig(chipUID: string): Promise<{
     
     if (!nfcChipData) {
       throw new Error('Failed to generate NFC chip data')
+    }
+    
+    // Reload identity to get the updated object with the new device
+    identity = loadLocalIdentity()
+    if (!identity || !identity.devices[deviceId]) {
+      throw new Error('Failed to create device in local identity')
     }
     
     // Update the chip UID to match the provided one
@@ -445,12 +451,35 @@ export default function ChipConfigPage() {
         throw new Error('Incomplete cryptographic parameters generated')
       }
       
-      // Step 3: Generate decentralized NFC URL format
-      const urlResult = generateDecentralizedNFCUrl(
-        keyPair.deviceId,
+      // Step 3: Generate URLs with production safety in mind
+      let urlResult: {
+        nfcUrl: string
+        urlAnalysis: { bytes: number; chars: number; compatibility: Record<string, string> }
+        compressionLevel: string
+      }
+      
+      // For production safety, use full crypto format that doesn't rely on localStorage
+      // This ensures chips work on any device, anywhere
+      const urlData = generateOptimizedNFCUrl(
         chipUID,
-        customBaseUrl
+        keyPair.signature,
+        keyPair.publicKey,
+        did,
+        customBaseUrl,
+        selectedChipType
       )
+      
+      // If the full format fits the chip, use it for maximum reliability
+      if (urlData.urlAnalysis.bytes <= 400 || selectedChipType !== 'NTAG213') {
+        urlResult = urlData
+      } else {
+        // Fallback to decentralized format only for very small chips
+        urlResult = generateDecentralizedNFCUrl(
+          keyPair.deviceId,
+          chipUID,
+          customBaseUrl
+        )
+      }
       
       // Step 4: Create test URL for legacy compatibility
       const fullTestUrl = `${customBaseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${keyPair.signature}&publicKey=${keyPair.publicKey}&uid=${chipUID}&challenge=${encodeURIComponent(keyPair.challengeMessage)}`
@@ -497,8 +526,8 @@ export default function ChipConfigPage() {
       setChipName('')
       
       toast({
-        title: `✅ Decentralized NFC Config Generated (${urlResult.compressionLevel})`,
-        description: `${config.chipId} ready - ${urlResult.urlAnalysis.bytes} bytes - Local crypto verified`,
+        title: `✅ NFC Config Generated`,
+        description: `${config.chipId} ready - ${urlResult.urlAnalysis.bytes} bytes - ${urlResult.compressionLevel === 'Decentralized (No Private Keys)' ? 'Decentralized format (requires local storage)' : 'Production-safe format (works anywhere)'}`,
       })
       
     } catch (error) {
@@ -647,29 +676,29 @@ export default function ChipConfigPage() {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-her-orange-400 to-her-orange-500 rounded-xl blur-lg opacity-75 animate-pulse"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-xl blur-lg opacity-75 animate-pulse"></div>
               <div className="relative p-4 bg-primary rounded-xl">
                 <NfcIcon className="h-8 w-8 text-primary-foreground" />
               </div>
             </div>
             <div>
               <h1 className="text-4xl font-bold text-primary">
-                NFC URL Generator
+                NFC Chip Setup
               </h1>
-              <p className="text-gray-700 dark:text-gray-300 text-lg">
-                Generate <span className="font-semibold text-primary">copy-paste URLs</span> for NFC programming apps
+              <p className="text-muted-foreground text-lg">
+                Generate secure URLs for NFC chips
               </p>
             </div>
           </div>
           
-          <Alert className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10">
+          <Alert className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
             <NfcIcon className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-gray-800 dark:text-gray-200">
-              <strong>🎯 Universal Workflow:</strong> Generate URL → Copy → Open NFC Tools app → Paste into "URL/URI" → Write to NFC tag. Works on iPhone, Android & other NFC programming tools!
+            <AlertDescription>
+              <strong>Quick Workflow:</strong> Generate URL → Copy → Open NFC app → Paste → Write to chip
             </AlertDescription>
           </Alert>
 
-          {/* 🚀 Web NFC Status Indicator - Progressive Enhancement */}
+          {/* Enhanced Web NFC Status */}
           {nfcSupport && (
             <Alert className={`border ${
               nfcSupport.estimatedReliability === 'high' ? 'border-green-200 bg-green-50 dark:bg-green-900/20' :
@@ -698,10 +727,10 @@ export default function ChipConfigPage() {
                     )}
                   </div>
                   {nfcSupport.estimatedReliability === 'high' && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {nfcCompatibility && nfcCompatibility.supported 
-                        ? `✨ Direct NFC writing available ${nfcCompatibility.fallbackRequired ? '(with copy-paste backup)' : ''}`
-                        : `�� ${nfcCompatibility && nfcCompatibility.reason} - Copy-paste method available`
+                        ? `Direct NFC writing available ${nfcCompatibility.fallbackRequired ? '(with copy-paste backup)' : ''}`
+                        : `Copy-paste method available`
                       }
                     </p>
                   )}
@@ -721,62 +750,57 @@ export default function ChipConfigPage() {
               <CardHeader className="bg-muted/10">
                 <CardTitle className="flex items-center gap-2 text-primary">
                   <NfcIcon className="h-5 w-5 text-primary" />
-                  NFC URL Generator
+                  Generator
                 </CardTitle>
-                <CardDescription className="text-gray-700 dark:text-gray-300">
-                  Create URLs optimized for NFC programming apps
+                <CardDescription>
+                  Create NFC chip configurations
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
                 <div className="space-y-2">
-                  <Label htmlFor="chipName" className="text-gray-800 dark:text-gray-300 font-medium">Chip Name (Optional)</Label>
+                  <Label htmlFor="chipName">Chip Name (Optional)</Label>
                   <Input
                     id="chipName"
                     placeholder="e.g., KAIROS_CHIP_01"
                     value={chipName}
                     onChange={(e) => setChipName(e.target.value)}
-                    className="text-gray-800 dark:text-gray-300 border-border focus:border-primary"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="chipType" className="text-gray-800 dark:text-gray-300 font-medium">NFC Chip Type</Label>
+                  <Label htmlFor="chipType">NFC Chip Type</Label>
                   <select
                     id="chipType"
                     value={selectedChipType}
                     onChange={(e) => setSelectedChipType(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-border rounded-md text-gray-800 dark:text-gray-300 bg-card focus:border-primary"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-card"
                   >
-                    <option value="NTAG213">NTAG213 (137 bytes) - Ultra Cheap</option>
-                    <option value="NTAG215">NTAG215 (492 bytes) - Standard</option>
-                    <option value="NTAG216">NTAG216 (900 bytes) - Large</option>
-                    <option value="NTAG424_DNA">NTAG424 DNA (256 bytes) - Secure</option>
+                    <option value="NTAG213">NTAG213 (137 bytes)</option>
+                    <option value="NTAG215">NTAG215 (492 bytes)</option>
+                    <option value="NTAG216">NTAG216 (900 bytes)</option>
+                    <option value="NTAG424_DNA">NTAG424 DNA (256 bytes)</option>
                   </select>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="baseUrl" className="text-gray-800 dark:text-gray-300 font-medium">Base URL</Label>
+                  <Label htmlFor="baseUrl">Base URL</Label>
                   <Input
                     id="baseUrl"
                     value={customBaseUrl}
                     onChange={(e) => setCustomBaseUrl(e.target.value)}
                     placeholder="https://kair-os.vercel.app"
-                    className="text-gray-800 dark:text-gray-300 border-border focus:border-primary"
                   />
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    💡 Use your live domain: kair-os.vercel.app
-                  </p>
                 </div>
                 
                 <Button 
                   onClick={generateNTAG424Config}
                   disabled={isGenerating}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-minimal transition-all duration-200"
+                  className="w-full"
                 >
                   {isGenerating ? (
                     <>
                       <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
-                      Generating URL...
+                      Generating...
                     </>
                   ) : (
                     <>
@@ -803,7 +827,7 @@ export default function ChipConfigPage() {
                       'NTAG213': { memory: 137, price: '$0.15', compression: 'Ultra' },
                       'NTAG215': { memory: 492, price: '$0.25', compression: 'Standard' },
                       'NTAG216': { memory: 900, price: '$0.35', compression: 'Full' },
-                      'NTAG424_DNA': { memory: 256, price: '$1.50', compression: 'Standard' }
+                      'NTAG424_DNA': { memory: 256, price: '$1.50', compression: 'Secure' }
                     }
                     const spec = chipSpecs[selectedChipType]
                     const urlLength = customBaseUrl.length + 35 // Estimate
@@ -813,19 +837,19 @@ export default function ChipConfigPage() {
                       <>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="flex justify-between">
-                            <span className="text-gray-700 dark:text-gray-300">Memory:</span>
+                            <span>Memory:</span>
                             <span className="font-mono text-primary">{spec.memory}B</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-700 dark:text-gray-300">Price:</span>
+                            <span>Price:</span>
                             <span className="font-mono text-primary">{spec.price}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-700 dark:text-gray-300">Compression:</span>
+                            <span>Type:</span>
                             <span className="font-mono text-primary">{spec.compression}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-700 dark:text-gray-300">Est. Usage:</span>
+                            <span>Usage:</span>
                             <span className="font-mono text-primary">{utilizationPercent}%</span>
                           </div>
                         </div>
@@ -834,7 +858,7 @@ export default function ChipConfigPage() {
                         
                         <div>
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-gray-700 dark:text-gray-300">URL Fit Analysis:</span>
+                            <span>URL Fit Analysis:</span>
                             <span className="text-xs font-mono">
                               ~{urlLength}/{spec.memory}B
                             </span>
@@ -847,13 +871,13 @@ export default function ChipConfigPage() {
                             {utilizationPercent <= 70 ? (
                               <CheckCircleIcon className="h-3 w-3 text-primary" />
                             ) : utilizationPercent <= 90 ? (
-                              <AlertTriangleIcon className="h-3 w-3 text-destructive" />
+                              <AlertTriangleIcon className="h-3 w-3 text-orange-500" />
                             ) : (
                               <AlertTriangleIcon className="h-3 w-3 text-destructive" />
                             )}
-                            <span className="text-xs text-gray-600 dark:text-gray-400">
-                              {utilizationPercent <= 70 ? 'Perfect fit for NFC programming' : 
-                               utilizationPercent <= 90 ? 'Should work fine' : 'May need shorter URL'}
+                            <span className="text-xs text-muted-foreground">
+                              {utilizationPercent <= 70 ? 'Perfect fit' : 
+                               utilizationPercent <= 90 ? 'Good fit' : 'Tight fit'}
                             </span>
                           </div>
                         </div>
@@ -877,15 +901,11 @@ export default function ChipConfigPage() {
                     </div>
                   </div>
                   <h3 className="text-xl font-semibold text-primary mb-2">
-                    No NFC URLs Yet
+                    Ready to Generate
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md">
-                    Generate your first URL optimized for NFC programming apps. Works with NFC Tools, TagWriter, and other apps!
+                  <p className="text-muted-foreground mb-4 max-w-md">
+                    Create your first NFC chip configuration
                   </p>
-                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-500">
-                    <CopyIcon className="h-4 w-4" />
-                    <span>Simple copy-paste workflow</span>
-                  </div>
                 </CardContent>
               </Card>
             ) : (
@@ -923,12 +943,12 @@ export default function ChipConfigPage() {
                         
                         <TabsContent value="url" className="space-y-4">
                           <div>
-                            <Label className="text-sm text-gray-700 dark:text-gray-300 font-medium">Copy this URL into NFC programming apps</Label>
+                            <Label className="text-sm font-medium">Copy this URL for NFC apps</Label>
                             <div className="mt-2">
                               <Textarea 
                                 value={config.nfcUrl}
                                 readOnly
-                                className="font-mono text-sm h-20 text-foreground bg-muted border-border"
+                                className="font-mono text-sm h-20 bg-muted"
                               />
                               <div className="flex gap-2 mt-3">
                                 <Button 
@@ -940,7 +960,6 @@ export default function ChipConfigPage() {
                                   Copy for NFC Tools
                                 </Button>
 
-                                {/* Web NFC Write Button - Progressive Enhancement */}
                                 {nfcCompatibility?.supported && nfcSupport?.estimatedReliability && nfcSupport.estimatedReliability !== 'none' && (
                                   <Button 
                                     size="sm" 
@@ -981,7 +1000,7 @@ export default function ChipConfigPage() {
                                   onClick={() => createBrowserTestUrl(config)}
                                 >
                                   <ExternalLinkIcon className="h-4 w-4 mr-2" />
-                                  Open
+                                  Open Test
                                 </Button>
                               </div>
                             </div>
@@ -998,7 +1017,6 @@ export default function ChipConfigPage() {
                               ))}
                             </div>
 
-                            {/* 🚀 Web NFC Compatibility Status */}
                             {nfcSupport && (
                               <>
                                 <div className="mt-3 pt-3 border-t border-border">
@@ -1052,25 +1070,25 @@ export default function ChipConfigPage() {
                               <strong>Total size:</strong> {config.urlAnalysis.bytes} bytes ({config.urlAnalysis.chars} characters)
                             </div>
                             <div className="mt-2 pt-2 border-t border-border text-xs text-muted-foreground">
-                              ✅ <strong>Format:</strong> Uses ultra-compressed format with base64 encoding - optimized for all chip types
+                              ✅ <strong>Format:</strong> Optimized compression with base64 encoding
                             </div>
                           </div>
                         </TabsContent>
                         
                         <TabsContent value="instructions" className="space-y-4">
-                          {/* 🚀 Web NFC Instructions (when available) */}
+                          {/* Enhanced Web NFC Instructions (when available) */}
                           {nfcCompatibility?.supported && (
                             <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-sm space-y-3">
                               <div className="flex items-center gap-2">
                                 <ZapIcon className="h-5 w-5 text-green-600" />
-                                <h4 className="font-medium text-foreground">🚀 Direct Web NFC Writing (Enhanced Method):</h4>
+                                <h4 className="font-medium">🚀 Direct Web NFC Writing:</h4>
                               </div>
                               <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                                 <li>Click the <strong>"Write Directly"</strong> button above</li>
-                                <li>Grant NFC permission when prompted by your browser</li>
-                                <li>Hold your NFC tag close to your device when instructed</li>
-                                <li>Keep the tag steady until writing completes (a few seconds)</li>
-                                <li>Test by tapping the tag - it should open the URL immediately</li>
+                                <li>Grant NFC permission when prompted</li>
+                                <li>Hold your NFC chip close to your device</li>
+                                <li>Keep steady until writing completes</li>
+                                <li>Test by tapping the chip</li>
                               </ol>
                               <div className="flex items-start gap-2 bg-white/50 dark:bg-gray-900/50 rounded p-2 text-xs">
                                 <InfoIcon className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -1079,9 +1097,9 @@ export default function ChipConfigPage() {
                                     💡 Web NFC Tips:
                                   </p>
                                   <ul className="mt-1 space-y-0.5 text-blue-600 dark:text-blue-300">
-                                    <li>• Works best on Chrome/Edge browsers with Android</li>
-                                    <li>• Keep tag within 1-2cm of device during writing</li>
-                                    <li>• If write fails, try the copy-paste method below</li>
+                                    <li>• Works best on Chrome/Edge with Android</li>
+                                    <li>• Keep chip within 1-2cm during writing</li>
+                                    <li>• If write fails, try copy-paste method below</li>
                                   </ul>
                                 </div>
                               </div>
@@ -1089,43 +1107,43 @@ export default function ChipConfigPage() {
                           )}
 
                           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm space-y-3">
-                            <h4 className="font-medium text-foreground">📱 Universal NFC Programming Steps:</h4>
+                            <h4 className="font-medium">📱 Universal NFC Programming:</h4>
                             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                               <li>Copy the URL above using the "Copy" button</li>
                               <li>Download <strong>"NFC Tools"</strong> (free on iOS/Android)</li>
                               <li>Open your NFC app and tap <strong>"Write"</strong></li>
                               <li>Select <strong>"Add a record"</strong> → <strong>"URL/URI"</strong></li>
                               <li>Paste the copied URL into the text field</li>
-                              <li>Tap <strong>"Write"</strong> and hold your NFC tag near your phone</li>
+                              <li>Tap <strong>"Write"</strong> and hold your NFC chip near your phone</li>
                               <li>Wait for the success sound/vibration</li>
-                              <li>Test by tapping the tag - it should open the URL in your browser</li>
+                              <li>Test by tapping the chip - it should open the URL</li>
                             </ol>
                             <div className="mt-3 pt-3 border-t border-primary/20">
                               {deviceInfo.isIPhone ? (
                                 <p className="text-xs text-muted-foreground">
-                                  <strong>iPhone users:</strong> NFC authentication works perfectly in Safari when you tap programmed tags. NFC writing requires the NFC Tools app.
+                                  <strong>iPhone:</strong> NFC authentication works perfectly in Safari when you tap programmed chips. Writing requires NFC Tools app.
                                 </p>
                               ) : deviceInfo.isAndroid ? (
                                 <p className="text-xs text-muted-foreground">
-                                  <strong>Android users:</strong> The app will automatically suggest switching to Chrome for optimal NFC authentication experience when you tap the tag.
+                                  <strong>Android:</strong> App will suggest Chrome for optimal NFC authentication when you tap the chip.
                                 </p>
                               ) : (
                                 <p className="text-xs text-muted-foreground">
-                                  <strong>All platforms:</strong> NFC authentication works on any modern browser with programmed tags.
+                                  <strong>All platforms:</strong> NFC authentication works on any modern browser with programmed chips.
                                 </p>
                               )}
                             </div>
                           </div>
                           
                           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm space-y-3">
-                            <h4 className="font-medium text-foreground">💡 Universal NFC Tips:</h4>
+                            <h4 className="font-medium">💡 Pro Tips:</h4>
                             <ul className="space-y-1 text-muted-foreground text-xs">
                               <li>• <strong>iPhone:</strong> NFC antenna is near the top back (camera area)</li>
-                              <li>• <strong>Android:</strong> NFC antenna is usually in the center back</li>
-                              <li>• <strong>Writing distance:</strong> Hold tag within 1-2cm of phone</li>
+                              <li>• <strong>Android:</strong> NFC antenna is usually in center back</li>
+                              <li>• <strong>Writing distance:</strong> Hold chip within 1-2cm of phone</li>
                               <li>• <strong>If write fails:</strong> Try "Erase tag" first, then write</li>
                               <li>• <strong>Alternative apps:</strong> TagWriter by NXP, Trigger, etc.</li>
-                              <li>• <strong>Testing:</strong> Written tags work on any NFC-enabled phone</li>
+                              <li>• <strong>Testing:</strong> Written chips work on any NFC-enabled phone</li>
                             </ul>
                           </div>
                         </TabsContent>

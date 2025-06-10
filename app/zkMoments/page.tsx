@@ -12,7 +12,8 @@ import { useCryptoIdentity } from '@/lib/crypto/keys'
 import { useZKMomentManager } from '@/lib/moment/zkMomentManager'
 import { useZKProofSystem } from '@/hooks/useZKProofSystem'
 import type { MomentInstallation, ZKMomentProof } from '@/lib/types'
-import { Sparkles, Zap, Music, Palette, Coffee, Users, Star, Shield, Clock, Hash } from 'lucide-react'
+import { Sparkles, Zap, Music, Palette, Coffee, Users, Star, Shield, Clock, Hash, Heart, ArrowRight, Calendar } from 'lucide-react'
+import Link from 'next/link'
 
 // --- Sample Event Configuration ---
 const SAMPLE_INSTALLATIONS: MomentInstallation[] = [
@@ -22,6 +23,21 @@ const SAMPLE_INSTALLATIONS: MomentInstallation[] = [
   { id: 'social_1', name: 'Connection Hub', location: 'Lounge C', category: 'social', isActive: true },
   { id: 'art_2', name: 'Light Sculptures', location: 'Garden D', category: 'art', isActive: true },
   { id: 'experience_1', name: 'VR Portal', location: 'Tech Zone', category: 'experience', isActive: true },
+]
+
+// --- Special Experiences Configuration ---
+const SPECIAL_EXPERIENCES = [
+  {
+    id: 'charlie_birthday',
+    title: "Charlie's Birthday",
+    subtitle: "Memory Constellation Ritual",
+    description: "Create a beautiful word constellation around Charlie's name. Each friend contributes one word, building a poetic visual representation of memories and associations.",
+    href: '/zk-moments/zkbirthday',
+    icon: Heart,
+    gradient: 'from-pink-500/20 to-purple-500/20',
+    textColor: 'text-pink-600 dark:text-pink-400',
+    isActive: true
+  }
 ]
 
 // --- Category Icons ---
@@ -147,6 +163,46 @@ export default function ZKMomentsPage() {
   }
 
   // --- Render Functions ---
+
+  const renderSpecialExperienceCard = (experience: typeof SPECIAL_EXPERIENCES[0]) => {
+    const IconComponent = experience.icon
+
+    return (
+      <Link 
+        key={experience.id}
+        href={experience.href}
+        className="block group"
+      >
+        <Card className={`p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-2 border-transparent hover:border-primary/20 bg-gradient-to-br ${experience.gradient} backdrop-blur-sm`}>
+          <div className="flex items-start gap-4">
+            <div className={`p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 group-hover:scale-110 transition-transform duration-300`}>
+              <IconComponent className={`w-6 h-6 ${experience.textColor}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className={`font-bold text-lg ${experience.textColor}`}>
+                  {experience.title}
+                </h3>
+                <Badge variant="secondary" className="text-xs bg-white/10 backdrop-blur-sm border border-white/20">
+                  {experience.isActive ? 'Active' : 'Coming Soon'}
+                </Badge>
+              </div>
+              <p className={`text-sm font-medium ${experience.textColor} opacity-80 mb-3`}>
+                {experience.subtitle}
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {experience.description}
+              </p>
+              <div className="flex items-center gap-2 mt-4 text-primary group-hover:translate-x-1 transition-transform duration-300">
+                <span className="text-sm font-medium">Enter Experience</span>
+                <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
+      </Link>
+    )
+  }
 
   const renderInstallationCard = (installation: MomentInstallation) => {
     const IconComponent = CATEGORY_ICONS[installation.category]
@@ -386,12 +442,60 @@ export default function ZKMomentsPage() {
           </div>
         )}
 
+        {/* Special Experiences */}
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-lg">
+              <Heart className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+            </div>
+            <h2 className="text-xl font-semibold">
+              Special Experiences
+            </h2>
+            <div className="h-px bg-gradient-to-r from-pink-500/20 to-purple-500/20 flex-1"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {SPECIAL_EXPERIENCES.map(renderSpecialExperienceCard)}
+          </div>
+        </div>
+
         {/* Footer */}
         <div className="text-center text-xs text-gray-700 dark:text-gray-300 py-8">
           <p>🔐 All moments are signed locally. Proofs reveal counts without exposing individual moments.</p>
           <p className="mt-1">Ready for ESP32 porting with identical cryptographic guarantees.</p>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes fade-slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes gentle-pulse {
+          0%, 100% {
+            opacity: 0.6;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.1);
+          }
+        }
+        
+        .animate-fade-slide-up {
+          animation: fade-slide-up 0.6s ease-out forwards;
+        }
+        
+        .animate-gentle-pulse {
+          animation: gentle-pulse 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   )
 } 

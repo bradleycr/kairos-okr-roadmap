@@ -18,7 +18,7 @@ import {
   SmartphoneIcon,
   ZapIcon
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 
 // --- Types ---
 interface WebNFCSupport {
@@ -99,30 +99,56 @@ const generateDIDFromUID = async (uid: string): Promise<{ did: string; keyPair: 
 }
 
 const createAccountFromUID = async (uid: string): Promise<SimplifiedAccount> => {
-  const { did, keyPair, address } = await generateDIDFromUID(uid)
+  // Use the new privacy-first account manager
+  const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
   
-  // Export private key for storage (encrypted in production)
-  const privateKeyArrayBuffer = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
-  const publicKeyArrayBuffer = await crypto.subtle.exportKey('spki', keyPair.publicKey)
-  
-  const privateKeyHex = Array.from(new Uint8Array(privateKeyArrayBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
-  const publicKeyHex = Array.from(new Uint8Array(publicKeyArrayBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
-  
-  const account: SimplifiedAccount = {
-    uid,
-    did,
-    address,
-    privateKey: privateKeyHex, // In production: encrypt this!
-    publicKey: publicKeyHex,
-    created: Date.now(),
-    source: 'web-nfc'
+  try {
+    const result = await NFCAccountManager.authenticateOrCreateAccount(uid)
+    const { account, isNewAccount, isNewDevice } = result
+    
+    console.log(`🔐 Account status: ${isNewAccount ? 'New' : 'Existing'}, Device: ${isNewDevice ? 'New' : 'Familiar'}`)
+    
+    // Convert to SimplifiedAccount format for compatibility
+    const simplifiedAccount: SimplifiedAccount = {
+      uid: account.chipUID,
+      did: account.did,
+      address: account.accountId, // Use accountId as address for compatibility
+      privateKey: account.privateKey,
+      publicKey: account.publicKey,
+      created: Date.parse(account.createdAt),
+      source: 'web-nfc'
+    }
+    
+    return simplifiedAccount
+    
+  } catch (error) {
+    console.error('Privacy-first account creation failed, falling back to legacy:', error)
+    
+    // Fallback to legacy account creation
+    const { did, keyPair, address } = await generateDIDFromUID(uid)
+    
+    const privateKeyArrayBuffer = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
+    const publicKeyArrayBuffer = await crypto.subtle.exportKey('spki', keyPair.publicKey)
+    
+    const privateKeyHex = Array.from(new Uint8Array(privateKeyArrayBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+    const publicKeyHex = Array.from(new Uint8Array(publicKeyArrayBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+    
+    const account: SimplifiedAccount = {
+      uid,
+      did,
+      address,
+      privateKey: privateKeyHex,
+      publicKey: publicKeyHex,
+      created: Date.now(),
+      source: 'web-nfc'
+    }
+    
+    // Legacy storage
+    localStorage.setItem(`kairos:account:${uid}`, JSON.stringify(account))
+    localStorage.setItem('kairos:current-account', uid)
+    
+    return account
   }
-  
-  // Store securely in localStorage (in production: use IndexedDB with encryption)
-  localStorage.setItem(`kairos:account:${uid}`, JSON.stringify(account))
-  localStorage.setItem('kairos:current-account', uid)
-  
-  return account
 }
 
 // Main Web NFC Scanner Component
@@ -176,7 +202,8 @@ function WebNFCScanner() {
 
             // Auto-redirect to profile after 2 seconds
             setTimeout(() => {
-              router.push(`/profile?source=nfc&uid=${account.uid}`)
+              // Use proper authentication flow instead of direct profile access
+              router.push(`/nfc?chipUID=${account.uid}&deviceId=scanned-device-${Date.now()}&challenge=nfc-scan-auth`)
             }, 2000)
             
           } catch (error) {
@@ -317,11 +344,11 @@ function WebNFCScanner() {
                 
                 <Button 
                   size="sm" 
-                  onClick={() => router.push(`/profile?source=nfc&uid=${discoveredAccount.uid}`)}
+                  onClick={() => router.push(`/nfc?chipUID=${discoveredAccount.uid}&deviceId=scanned-device-${Date.now()}&challenge=nfc-scan-auth`)}
                   className="text-xs"
                 >
                   <UserIcon className="h-3 w-3 mr-1" />
-                  View Profile
+                  Authenticate
                 </Button>
               </div>
 

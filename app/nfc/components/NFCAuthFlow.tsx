@@ -19,7 +19,8 @@ import {
   RefreshCwIcon,
   AlertTriangleIcon,
   CheckCircleIcon,
-  SmartphoneIcon
+  SmartphoneIcon,
+  UserIcon
 } from 'lucide-react'
 import type { NFCVerificationState, NFCParameters } from '../types/nfc.types'
 import { NFCStatusDisplayWithAnimations } from './NFCStatusDisplay'
@@ -47,9 +48,9 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
     <>
       {/* Chrome Switch Prompt for Android Non-Chrome Users */}
       {shouldPromptChromeSwitch && verificationState.status === 'initializing' && (
-        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 animate-[fadeIn_0.5s_ease-out]">
-          <AlertTriangleIcon className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800 dark:text-blue-200">
+        <Alert className="border-warning/20 bg-warning/10 animate-[fadeIn_0.5s_ease-out]">
+          <AlertTriangleIcon className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-foreground">
             <div className="flex items-center justify-between">
               <div>
                 <strong>Optimize NFC Experience</strong>
@@ -58,7 +59,7 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
               <Button
                 size="sm"
                 onClick={openInChrome}
-                className="ml-4 bg-blue-600 hover:bg-blue-700 text-white"
+                className="ml-4 bg-primary hover:bg-primary/90 text-primary-foreground font-mono"
               >
                 <SmartphoneIcon className="h-3 w-3 mr-1" />
                 {recommendations?.actionText}
@@ -70,15 +71,15 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
 
       {/* iPhone Optimization Message */}
       {shouldShowIPhoneInfo && verificationState.status === 'initializing' && (
-        <Alert className="border-green-200 bg-green-50 dark:bg-green-900/20 animate-[fadeIn_0.5s_ease-out]">
-          <CheckCircleIcon className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800 dark:text-green-200">
+        <Alert className="border-success/20 bg-success/10 animate-[fadeIn_0.5s_ease-out]">
+          <CheckCircleIcon className="h-4 w-4 text-success" />
+          <AlertDescription className="text-foreground">
             <div className="flex items-center justify-between">
               <div>
                 <strong>Optimized for iPhone</strong>
                 <p className="text-sm mt-1">{recommendations?.message}</p>
               </div>
-              <div className="ml-4 text-green-600">
+              <div className="ml-4 text-success">
                 <SmartphoneIcon className="h-5 w-5" />
               </div>
             </div>
@@ -86,20 +87,22 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
         </Alert>
       )}
 
-      <Card className="border border-border shadow-lg bg-card/80 backdrop-blur-sm animate-[slideIn_0.5s_ease-out] relative">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <div className="relative">
-              <ShieldCheckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+      <Card className="border border-primary/20 shadow-lift bg-card/90 backdrop-blur-sm animate-[slideIn_0.5s_ease-out] relative mx-auto max-w-lg">
+        <CardHeader className="pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <CardTitle className="flex items-center gap-2 text-sm sm:text-base lg:text-lg">
+            <div className="relative flex-shrink-0">
+              <ShieldCheckIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               {verificationState.status === 'verifying' && (
                 <div className="absolute inset-0 animate-spin">
                   <div className="w-full h-full border-2 border-primary border-t-transparent rounded-full"></div>
                 </div>
               )}
             </div>
-            <span className="font-mono tracking-wide">RITUAL.AUTHENTICATION.PROTOCOL</span>
+            <span className="font-mono tracking-wide text-primary text-xs sm:text-sm lg:text-base truncate">
+              RITUAL.AUTHENTICATION.PROTOCOL
+            </span>
           </CardTitle>
-          <CardDescription className="text-xs sm:text-sm font-mono">
+          <CardDescription className="text-xs sm:text-sm font-mono text-muted-foreground mt-1">
             {verificationState.status === 'verifying' 
               ? <span className="animate-pulse">CONNECTING TO DECENTRALIZED NETWORK...</span>
               : <span>Cryptographic pendant detected - initiating verification</span>
@@ -107,7 +110,7 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
           {/* Debug Panel */}
           <NFCDebugPanel 
             verificationState={verificationState}
@@ -125,7 +128,7 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
           {(verificationState.status === 'failure' || verificationState.status === 'error') && (
             <Alert className="border-destructive/20 bg-destructive/10">
               <AlertTriangleIcon className="h-4 w-4 text-destructive" />
-              <AlertDescription className="text-destructive">
+              <AlertDescription className="text-destructive text-sm">
                 {verificationState.error}
               </AlertDescription>
             </Alert>
@@ -133,23 +136,32 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
 
           {/* Action Buttons */}
           {verificationState.status === 'success' && (
-            <div className="space-y-3">
+            <div className="pt-2">
               <Button
-                variant="outline"
-                onClick={() => router.push('/')}
-                className="w-full"
+                onClick={() => {
+                  // Construct profile URL with authentication parameters
+                  const profileUrl = new URL('/profile', window.location.origin)
+                  profileUrl.searchParams.set('verified', 'true')
+                  profileUrl.searchParams.set('source', 'api')
+                  profileUrl.searchParams.set('chipUID', nfcParams.chipUID || '')
+                  profileUrl.searchParams.set('session', verificationState.sessionToken || `session_${Date.now()}`)
+                  profileUrl.searchParams.set('momentId', verificationState.momentId || `moment_${Date.now()}`)
+                  
+                  router.push(profileUrl.toString())
+                }}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-sm"
               >
-                <HomeIcon className="h-4 w-4 mr-2" />
-                Back to Home
+                <UserIcon className="h-4 w-4 mr-2" />
+                Visit Your Profile
               </Button>
             </div>
           )}
 
           {(verificationState.status === 'failure' || verificationState.status === 'error') && (
-            <div className="space-y-3">
+            <div className="space-y-3 pt-2">
               <Button
                 onClick={() => window.location.reload()}
-                className="w-full"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-sm"
               >
                 <RefreshCwIcon className="h-4 w-4 mr-2" />
                 Try Again
@@ -158,7 +170,7 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
               <Button
                 variant="outline"
                 onClick={() => router.push('/')}
-                className="w-full"
+                className="w-full border-muted text-muted-foreground hover:bg-muted font-mono text-sm"
               >
                 <HomeIcon className="h-4 w-4 mr-2" />
                 Back to Home

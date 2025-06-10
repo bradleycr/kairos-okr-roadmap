@@ -332,7 +332,7 @@ async function verifyEd25519Signature(
     debugInfo.push(`Challenge source: ${providedChallenge ? 'provided' : 'default'}`)
     
     // Verify the Ed25519 signature using real cryptography
-    const isValidSignature = await verifySignature(challengeMessage, signatureBytes, publicKeyBytes)
+    const isValidSignature = await verifySignature(signatureBytes, new TextEncoder().encode(challengeMessage), publicKeyBytes)
     
     if (isValidSignature) {
       debugInfo.push(`REAL Ed25519 signature verification: SUCCESS`)
@@ -356,7 +356,7 @@ async function verifyEd25519Signature(
       debugInfo.push(`Trying alternative challenge formats for debugging...`)
       for (const altChallenge of altChallenges) {
         try {
-          const altValid = await verifySignature(altChallenge, signatureBytes, publicKeyBytes)
+          const altValid = await verifySignature(signatureBytes, new TextEncoder().encode(altChallenge), publicKeyBytes)
           debugInfo.push(`Challenge "${altChallenge}": ${altValid ? 'VALID' : 'invalid'}`)
           if (altValid) {
             debugInfo.push(`Found working challenge format: ${altChallenge}`)
@@ -497,279 +497,44 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// --- GET: NFC System Status & Account Lookup ---
+// --- NEW GET HANDLER ---
+/**
+ * Handles simple GET requests to look up a user by their chip UID.
+ * This is used by the profile page to fetch user data.
+ */
 export async function GET(request: NextRequest) {
-  try {
     const { searchParams } = new URL(request.url)
-    
-    // Strategy 1: Check for ultra-short URL pattern (from /n/[id] redirect)
-    const source = searchParams.get('source')
-    if (source === 'short_url') {
-      const did = searchParams.get('did')
-      const signature = searchParams.get('signature')
-      const publicKey = searchParams.get('publicKey')
-      const chipUID = searchParams.get('uid')
+  const chipUID = searchParams.get('chipUID')
+
+  if (!chipUID) {
+    return NextResponse.json({ success: false, error: 'chipUID is required' }, { status: 400 })
+  }
+
+  try {
+    const user = await findUserByChipUID(chipUID)
       
-      if (did && signature && publicKey && chipUID) {
-        console.log('📱 iPhone NFC tap detected from ultra-short URL redirect')
-        
-        const verificationBody: NFCVerificationRequest = {
-          chipUID,
-          did,
-          signature,
-          publicKey,
-          deviceInfo: {
-            platform: 'mobile',
-            userAgent: request.headers.get('user-agent') || 'unknown'
-          },
-          createAccount: true
+    if (user) {
+      return NextResponse.json({
+        success: true,
+        found: true,
+        account: {
+          did: user.did,
+          chipUID: user.chipUID,
+          publicKey: user.publicKey,
+          displayName: user.displayName,
+          joinedAt: user.joinedAt,
+          lastSeen: user.lastSeen,
+          verificationCount: user.verificationCount,
+          totalMoments: user.moments.length
         }
-        
-        const startTime = Date.now()
-        const debugLogs: string[] = []
-        
-        debugLogs.push('🚀 iPhone NFC verification from ultra-short URL')
-        debugLogs.push(`📱 Chip UID: ${chipUID}`)
-        debugLogs.push(`🔑 Public Key: ${publicKey.substring(0, 16)}...`)
-        debugLogs.push(`✍️ Signature: ${signature.substring(0, 16)}...`)
-        debugLogs.push(`🆔 DID: ${did}`)
-        
-        const signatureVerification = await verifyEd25519Signature(
-          signature,
-          publicKey,
-          did,
-          chipUID
-        )
-        
-        if (!signatureVerification.verified) {
-          return NextResponse.redirect(new URL(`/nfc?error=verification_failed&details=${encodeURIComponent(signatureVerification.error || 'Signature verification failed')}`, request.url), 302)
-        }
-        
-        const nfcUrl = new URL('/nfc', request.url)
-        nfcUrl.searchParams.set('did', did)
-        nfcUrl.searchParams.set('signature', signature)
-        nfcUrl.searchParams.set('publicKey', publicKey)
-        nfcUrl.searchParams.set('uid', chipUID)
-        nfcUrl.searchParams.set('source', 'short_url')
-        
-        return NextResponse.redirect(nfcUrl, { status: 302 })
-      }
+      })
+    } else {
+      return NextResponse.json({ success: true, found: false, message: 'User not found' })
     }
-    
-    // Strategy 2: Check for iPhone NFC ultra-compressed format (u, s, k)
-    const ultraUID = searchParams.get('u')
-    const ultraSig = searchParams.get('s')
-    const ultraKey = searchParams.get('k')
-    
-    if (ultraUID && ultraSig && ultraKey) {
-      console.log('📱 iPhone NFC tap detected with ultra-compressed format (u, s, k)')
-      
-      // Reconstruct from ultra-compressed format
-      const chipUID = `04:${ultraUID.match(/.{2}/g)?.join(':') || ultraUID}`
-      
-      // Pad compressed signature and public key back to full length
-      const signature = ultraSig.padEnd(128, '0') // Pad to 128 chars (64 bytes)
-      const publicKey = ultraKey.padEnd(64, '0')  // Pad to 64 chars (32 bytes)
-      
-      // Generate DID from public key
-      const did = `did:key:z${publicKey.substring(0, 32)}`
-      
-      const verificationBody: NFCVerificationRequest = {
-        chipUID,
-        did,
-        signature,
-        publicKey,
-        deviceInfo: {
-          platform: 'mobile',
-          userAgent: request.headers.get('user-agent') || 'unknown'
-        },
-        createAccount: true
-      }
-      
-      const startTime = Date.now()
-      const debugLogs: string[] = []
-      
-      debugLogs.push('🚀 iPhone NFC verification (ultra-compressed)')
-      debugLogs.push(`📱 Original UID: ${ultraUID} → Reconstructed: ${chipUID}`)
-      debugLogs.push(`🔑 Original Key: ${ultraKey} → Padded: ${publicKey.substring(0, 16)}...`)
-      debugLogs.push(`✍️ Original Sig: ${ultraSig} → Padded: ${signature.substring(0, 16)}...`)
-      debugLogs.push(`🆔 Generated DID: ${did}`)
-      
-      const signatureVerification = await verifyEd25519Signature(
-        signature,
-        publicKey,
-        did,
-        chipUID
-      )
-      
-      if (!signatureVerification.verified) {
-        return NextResponse.redirect(new URL(`/nfc?error=verification_failed&details=${encodeURIComponent(signatureVerification.error || 'Signature verification failed')}`, request.url), 302)
-      }
-      
-      const nfcUrl = new URL('/nfc', request.url)
-      nfcUrl.searchParams.set('did', did)
-      nfcUrl.searchParams.set('signature', signature)
-      nfcUrl.searchParams.set('publicKey', publicKey)
-      nfcUrl.searchParams.set('uid', chipUID)
-      nfcUrl.searchParams.set('source', 'iphone_ultra')
-      
-      return NextResponse.redirect(nfcUrl, { status: 302 })
-    }
-    
-    // Strategy 3: Check for iPhone NFC compressed format (c, s, p)
-    const compressedUID = searchParams.get('c')
-    const compressedSig = searchParams.get('s')
-    const compressedKey = searchParams.get('p')
-    
-    if (compressedUID && compressedSig && compressedKey) {
-      console.log('📱 iPhone NFC tap detected with compressed format (c, s, p)')
-      
-      // Reconstruct from compressed format
-      const chipUID = `04:${compressedUID.match(/.{2}/g)?.join(':') || compressedUID}`
-      
-      // Pad compressed signature and public key back to full length
-      const signature = compressedSig.padEnd(128, '0') // Pad to 128 chars (64 bytes)
-      const publicKey = compressedKey.padEnd(64, '0')  // Pad to 64 chars (32 bytes)
-      
-      // Generate DID from public key
-      const did = `did:key:z${publicKey.substring(0, 32)}`
-      
-      const verificationBody: NFCVerificationRequest = {
-        chipUID,
-        did,
-        signature,
-        publicKey,
-        deviceInfo: {
-          platform: 'mobile',
-          userAgent: request.headers.get('user-agent') || 'unknown'
-        },
-        createAccount: true
-      }
-      
-      const startTime = Date.now()
-      const debugLogs: string[] = []
-      
-      debugLogs.push('🚀 iPhone NFC verification (compressed)')
-      debugLogs.push(`📱 Original UID: ${compressedUID} → Reconstructed: ${chipUID}`)
-      debugLogs.push(`🔑 Original Key: ${compressedKey} → Padded: ${publicKey.substring(0, 16)}...`)
-      debugLogs.push(`✍️ Original Sig: ${compressedSig} → Padded: ${signature.substring(0, 16)}...`)
-      debugLogs.push(`🆔 Generated DID: ${did}`)
-      
-      const signatureVerification = await verifyEd25519Signature(
-        signature,
-        publicKey,
-        did,
-        chipUID
-      )
-      
-      if (!signatureVerification.verified) {
-        return NextResponse.redirect(new URL(`/nfc?error=verification_failed&details=${encodeURIComponent(signatureVerification.error || 'Signature verification failed')}`, request.url), 302)
-      }
-      
-      const nfcUrl = new URL('/nfc', request.url)
-      nfcUrl.searchParams.set('did', did)
-      nfcUrl.searchParams.set('signature', signature)
-      nfcUrl.searchParams.set('publicKey', publicKey)
-      nfcUrl.searchParams.set('uid', chipUID)
-      nfcUrl.searchParams.set('source', 'iphone_compressed')
-      
-      return NextResponse.redirect(nfcUrl, { status: 302 })
-    }
-    
-    // Strategy 4: Check for full parameter format (original)
-    const fullDID = searchParams.get('did')
-    const fullSig = searchParams.get('signature')
-    const fullKey = searchParams.get('publicKey')
-    const fullUID = searchParams.get('uid')
-    
-    if (fullDID && fullSig && fullKey && fullUID) {
-      console.log('📱 iPhone NFC tap detected with full format')
-      
-      const verificationBody: NFCVerificationRequest = {
-        chipUID: fullUID,
-        did: fullDID,
-        signature: fullSig,
-        publicKey: fullKey,
-        deviceInfo: {
-          platform: 'mobile',
-          userAgent: request.headers.get('user-agent') || 'unknown'
-        },
-        createAccount: true
-      }
-      
-      const startTime = Date.now()
-      const debugLogs: string[] = []
-      
-      debugLogs.push('🚀 iPhone NFC verification (full format)')
-      debugLogs.push(`📱 Chip UID: ${fullUID}`)
-      debugLogs.push(`🔑 Public Key: ${fullKey.substring(0, 16)}...`)
-      debugLogs.push(`✍️ Signature: ${fullSig.substring(0, 16)}...`)
-      debugLogs.push(`🆔 DID: ${fullDID}`)
-      
-      const signatureVerification = await verifyEd25519Signature(
-        fullSig,
-        fullKey,
-        fullDID,
-        fullUID
-      )
-      
-      if (!signatureVerification.verified) {
-        return NextResponse.redirect(new URL(`/nfc?error=verification_failed&details=${encodeURIComponent(signatureVerification.error || 'Signature verification failed')}`, request.url), 302)
-      }
-      
-      const nfcUrl = new URL('/nfc', request.url)
-      nfcUrl.searchParams.set('did', fullDID)
-      nfcUrl.searchParams.set('signature', fullSig)
-      nfcUrl.searchParams.set('publicKey', fullKey)
-      nfcUrl.searchParams.set('uid', fullUID)
-      nfcUrl.searchParams.set('source', 'iphone_full')
-      
-      return NextResponse.redirect(nfcUrl, { status: 302 })
-    }
-    
-    // No valid iPhone NFC parameters found - show status
-    console.log('ℹ️ No iPhone NFC parameters found, showing API status')
-    
-    return NextResponse.json({
-      status: 'operational',
-      message: 'iPhone NFC Verification API Ready',
-      ed25519Sessions: {
-        active: 0, // Would count from database
-        maxAge: '24h'
-      },
-      integration: {
-        zkProofSystem: 'enabled',
-        ed25519Crypto: 'enabled', 
-        iPhoneNFC: 'enabled'
-      },
-      supportedFormats: [
-        'Ultra-compressed: ?u=chipUID&s=signature&k=publicKey',
-        'Compressed: ?c=chipUID&s=signature&p=publicKey', 
-        'Full: ?did=...&signature=...&publicKey=...&uid=...',
-        'Ultra-short: /n/[id] (redirects to full)'
-      ],
-      supportedChips: [
-        'NTAG213 (137 bytes)',
-        'NTAG215 (492 bytes)',
-        'NTAG216 (900 bytes)',
-        'NTAG424 DNA (256 bytes)'
-      ],
-      iPhoneInstructions: [
-        '1. Generate URL from /chip-config',
-        '2. Copy URL to clipboard',
-        '3. Open iPhone NFC Tools app',
-        '4. Select Write → URL/URI',
-        '5. Paste URL and write to tag',
-        '6. Tap tag to verify authentication'
-      ],
-      timestamp: Date.now()
-    })
   } catch (error) {
-    console.error('GET /api/nfc/verify error:', error)
-    return NextResponse.json({
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+    console.error(`[API GET /api/nfc/verify] Error: ${errorMessage}`)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }
 

@@ -1,6 +1,6 @@
 {
-  "name": "KairOS - Cryptographic Authentication",
-  "short_name": "KairOS",
+  "name": "kairOS by MELD - Cryptographic Authentication",
+  "short_name": "kairOS",
   "description": "Elegant NFC-based cryptographic authentication and zero-knowledge proof system",
   "start_url": "/",
   "display": "standalone",

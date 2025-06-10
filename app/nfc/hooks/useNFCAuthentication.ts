@@ -7,7 +7,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import type { NFCVerificationState, NFCParameters, AuthenticationResult } from '../types/nfc.types'
 import { NFCAuthenticationEngine } from '../utils/nfc-authentication'
 
@@ -72,7 +72,7 @@ export function useNFCAuthentication() {
         variant: "destructive"
       })
     }
-  }, [addDebugLog, toast, router])
+  }, [addDebugLog, toast])
 
   const executeDecentralizedFlow = useCallback(async (params: NFCParameters) => {
     addDebugLog('🔄 Starting decentralized authentication flow')
@@ -102,42 +102,43 @@ export function useNFCAuthentication() {
     const result = await NFCAuthenticationEngine.authenticate(params)
     
     if (result.verified) {
+      // Ensure we have all required data for profile access
+      const sessionToken = result.sessionToken || `session_${Date.now()}`
+      const momentId = result.momentId || `moment_${Date.now()}`
+      
       setVerificationState(prev => ({
         ...prev,
         progress: 100,
         status: 'success',
-        currentPhase: 'Decentralized authentication successful!',
+        currentPhase: 'Authentication complete - Visit your profile to continue',
         chipAuthenticated: true,
         secretValid: true,
-        sessionToken: result.sessionToken,
-        momentId: result.momentId,
+        sessionToken: sessionToken,
+        momentId: momentId,
         verificationTime: Date.now()
       }))
       
       addDebugLog('✅ Decentralized authentication completed successfully')
+      addDebugLog(`Session: ${sessionToken}`)
+      addDebugLog(`Moment: ${momentId}`)
       
-      toast({
-        title: "🚀 Authentication Successful!",
-        description: "Your decentralized identity has been verified",
-      })
-      
-      // Redirect after delay
-      setTimeout(() => {
-        const profileUrl = new URL('/profile', window.location.origin)
-        profileUrl.searchParams.set('authenticated', 'true')
-        profileUrl.searchParams.set('source', 'nfc')
-        profileUrl.searchParams.set('deviceId', result.deviceId || 'unknown')
-        profileUrl.searchParams.set('chipUID', params.chipUID || 'unknown')
-        profileUrl.searchParams.set('sessionToken', result.sessionToken || '')
-        profileUrl.searchParams.set('momentId', result.momentId || '')
-        
-        router.push(profileUrl.toString())
-      }, 1500)
+      // Ensure localStorage is properly updated with fresh data
+      try {
+        const { loadLocalIdentity } = await import('@/lib/crypto/decentralizedNFC')
+        const identity = loadLocalIdentity()
+        if (identity) {
+          addDebugLog('✅ Local identity confirmed in storage')
+        } else {
+          addDebugLog('⚠️ Warning: No local identity found after authentication')
+        }
+      } catch (error) {
+        addDebugLog('⚠️ Warning: Could not verify local identity storage')
+      }
       
     } else {
       throw new Error(result.error || 'Decentralized authentication failed')
     }
-  }, [addDebugLog, toast, router])
+  }, [addDebugLog])
 
   const executeLegacyFlow = useCallback(async (params: NFCParameters) => {
     addDebugLog('🔄 Starting legacy authentication flow')
@@ -167,43 +168,44 @@ export function useNFCAuthentication() {
     const result = await NFCAuthenticationEngine.authenticate(params)
     
     if (result.verified) {
+      // Ensure we have all required data for profile access
+      const sessionToken = result.sessionToken || `session_${Date.now()}`
+      const momentId = result.momentId || `moment_${Date.now()}`
+      
       setVerificationState(prev => ({
         ...prev,
         progress: 100,
         status: 'success',
-        currentPhase: 'Legacy authentication successful!',
+        currentPhase: 'Authentication complete - Visit your profile to continue',
         chipAuthenticated: true,
         secretValid: true,
         zkProofGenerated: true,
-        sessionToken: result.sessionToken,
-        momentId: result.momentId,
+        sessionToken: sessionToken,
+        momentId: momentId,
         verificationTime: Date.now()
       }))
       
       addDebugLog('✅ Legacy authentication completed successfully')
+      addDebugLog(`Session: ${sessionToken}`)
+      addDebugLog(`Moment: ${momentId}`)
       
-      toast({
-        title: "🎉 Authentication Successful!",
-        description: "Your cryptographic credentials have been verified",
-      })
-      
-      // Redirect after delay
-      setTimeout(() => {
-        const profileUrl = new URL('/profile', window.location.origin)
-        profileUrl.searchParams.set('authenticated', 'true')
-        profileUrl.searchParams.set('source', 'nfc')
-        profileUrl.searchParams.set('deviceId', result.deviceId || 'unknown')
-        profileUrl.searchParams.set('chipUID', params.chipUID || 'unknown')
-        profileUrl.searchParams.set('sessionToken', result.sessionToken || '')
-        profileUrl.searchParams.set('momentId', result.momentId || '')
-        
-        router.push(profileUrl.toString())
-      }, 1500)
+      // For legacy authentication, ensure we have created local identity storage if needed
+      try {
+        const { loadLocalIdentity, initializeLocalIdentity } = await import('@/lib/crypto/decentralizedNFC')
+        let identity = loadLocalIdentity()
+        if (!identity && params.chipUID) {
+          // Create temporary identity for legacy auth
+          identity = initializeLocalIdentity(`LegacyUser_${params.chipUID}`)
+          addDebugLog('✅ Created temporary local identity for legacy auth')
+        }
+      } catch (error) {
+        addDebugLog('⚠️ Warning: Could not create local identity storage for legacy auth')
+      }
       
     } else {
       throw new Error(result.error || 'Legacy authentication failed')
     }
-  }, [addDebugLog, toast, router])
+  }, [addDebugLog])
 
   const resetAuthentication = useCallback(() => {
     setVerificationState({

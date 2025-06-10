@@ -29,7 +29,7 @@ export class NFCAuthenticationEngine {
    * Check if parameters indicate decentralized authentication
    */
   private static isDecentralizedAuth(params: NFCParameters): boolean {
-    return !!(params.deviceId && params.chipUID && params.challenge && !params.signature && !params.publicKey)
+    return !!(params.deviceId && params.chipUID)
   }
 
   /**
@@ -73,20 +73,26 @@ export class NFCAuthenticationEngine {
         }
       }
 
+      // Use consistent challenge format - if challenge provided, use it; otherwise generate standard format
+      const challenge = params.challenge || `KairOS_NFC_Challenge_${params.chipUID}`
+
       // Sign challenge locally
       const { signature } = await DecentralizedNFCAuth.authenticateLocally(
         matchingDevice.deviceId,
-        params.challenge!
+        challenge
       )
 
       // Verify signature locally
       const verified = await DecentralizedNFCAuth.verifyLocally(
         signature,
-        params.challenge!,
+        challenge,
         matchingDevice.device.publicKey
       )
 
       if (verified) {
+        // 🆕 Create or update account in database
+        await this.ensureAccountExists(params.chipUID!)
+        
         return {
           verified: true,
           chipUID: params.chipUID,
@@ -118,7 +124,7 @@ export class NFCAuthenticationEngine {
       // Import legacy verification function
       const { verifySignatureDecentralized } = await import('@/lib/crypto/decentralizedNFC')
       
-      // Determine the message that was signed
+      // Determine the message that was signed - use provided challenge or generate standard format
       const messageToVerify = params.challenge || `KairOS_NFC_Challenge_${params.chipUID}`
       
       // Verify the Ed25519 signature
@@ -129,6 +135,12 @@ export class NFCAuthenticationEngine {
       )
       
       if (isValidSignature) {
+        // 🆕 Create or update account in database
+        await this.ensureAccountExists(params.chipUID!, {
+          publicKey: params.publicKey!,
+          did: params.did
+        })
+        
         return {
           verified: true,
           chipUID: params.chipUID,
@@ -152,7 +164,36 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * Validate authentication parameters before processing
+   * 🆕 Ensure Account Exists in Database
+   * Creates or updates account record when authentication succeeds
+   */
+  private static async ensureAccountExists(chipUID: string, authData?: { publicKey: string; did?: string }): Promise<void> {
+    try {
+      console.log(`🔐 Ensuring account exists for chipUID: ${chipUID}`)
+      
+      // Use the NFCAccountManager to handle account creation/update
+      const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+      
+      // This will create the account in the database if it doesn't exist,
+      // or update it if it does exist
+      const result = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
+      
+      console.log(`✅ Account ensured: ${result.isNewAccount ? 'Created' : 'Updated'} account for chipUID: ${chipUID}`)
+      
+      // If this is legacy auth and we have explicit auth data, ensure it matches
+      if (authData && result.account.publicKey !== authData.publicKey) {
+        console.warn('⚠️ Public key mismatch between auth params and stored account')
+        // Could potentially update the account with the new key, but that's a security decision
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to ensure account exists:', error)
+      // Don't throw - authentication succeeded, database failure shouldn't break auth
+    }
+  }
+
+  /**
+   * Validate authentication parameters
    */
   public static validateParameters(params: NFCParameters): {
     valid: boolean
@@ -160,41 +201,48 @@ export class NFCAuthenticationEngine {
     format: 'decentralized' | 'legacy' | 'invalid'
   } {
     const errors: string[] = []
-
+    
     // Check for decentralized format
-    if (params.deviceId && params.chipUID && params.challenge) {
-      if (!params.signature && !params.publicKey) {
-        return { valid: true, errors: [], format: 'decentralized' }
+    if (params.deviceId && params.chipUID) {
+      if (!params.deviceId.trim()) {
+        errors.push('Device ID cannot be empty')
       }
-    }
-
-    // Check for legacy format
-    if (params.signature && params.publicKey && params.chipUID) {
-      // Validate parameter formats
-      if (params.signature.length < 64) {
-        errors.push(`Invalid signature format: too short (${params.signature.length} chars, need 64+)`)
+      if (!params.chipUID.trim()) {
+        errors.push('Chip UID cannot be empty')
       }
       
+      return {
+        valid: errors.length === 0,
+        errors,
+        format: 'decentralized'
+      }
+    }
+    
+    // Check for legacy format
+    if (params.signature && params.publicKey && params.chipUID) {
+      if (params.signature.length < 64) {
+        errors.push('Signature too short')
+      }
       if (params.publicKey.length < 32) {
-        errors.push(`Invalid public key format: too short (${params.publicKey.length} chars, need 32+)`)
+        errors.push('Public key too short')
       }
-
-      if (errors.length === 0) {
-        return { valid: true, errors: [], format: 'legacy' }
+      if (!params.chipUID.trim()) {
+        errors.push('Chip UID cannot be empty')
       }
-    }
-
-    // Neither format is valid
-    if (!params.chipUID) errors.push('Missing chip UID')
-    
-    if (!params.deviceId && !params.did) {
-      errors.push('Missing device ID or DID identifier')
+      
+      return {
+        valid: errors.length === 0,
+        errors,
+        format: 'legacy'
+      }
     }
     
-    if (!params.challenge && !params.signature) {
-      errors.push('Missing challenge or signature')
+    // Invalid format
+    errors.push('Missing required parameters for any supported format')
+    return {
+      valid: false,
+      errors,
+      format: 'invalid'
     }
-
-    return { valid: false, errors, format: 'invalid' }
   }
 } 

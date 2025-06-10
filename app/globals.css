@@ -379,6 +379,72 @@ body {
   }
 }
 
+/* Enhanced Mobile Container Padding */
+.container-mobile-padding {
+  padding-left: 1.5rem; /* px-6 on mobile */
+  padding-right: 1.5rem; /* px-6 on mobile */
+  padding-top: 2rem;    /* py-8 on mobile */
+  padding-bottom: 2rem; /* py-8 on mobile */
+}
+
+@media (min-width: 640px) { /* sm */
+  .container-mobile-padding {
+    padding-left: 2rem;   /* sm:px-8 */
+    padding-right: 2rem;  /* sm:px-8 */
+    padding-top: 3rem;    /* sm:py-12 */
+    padding-bottom: 3rem; /* sm:py-12 */
+  }
+}
+
+@media (min-width: 768px) { /* md */
+  .container-mobile-padding {
+    padding-left: 3rem;   /* md:px-12 */
+    padding-right: 3rem;  /* md:px-12 */
+    padding-top: 4rem;    /* md:py-16 */
+    padding-bottom: 4rem; /* md:py-16 */
+  }
+}
+
+/* ========================================
+   📱 MOBILE-FIRST OPTIMIZATIONS
+   ======================================== */
+
+/* Perfect mobile centering for landing pages */
+.mobile-center-perfect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  width: 100%;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .mobile-center-perfect {
+    min-height: 50vh;
+  }
+}
+
+/* Responsive spacing utilities */
+.space-y-responsive > * + * {
+  margin-top: 1.5rem; /* 6 on mobile */
+}
+
+@media (min-width: 640px) {
+  .space-y-responsive > * + * {
+    margin-top: 2rem; /* 8 on sm+ */
+  }
+}
+
+/* Touch-friendly interactive elements */
+@media (max-width: 767px) {
+  .interactive {
+    min-height: 44px; /* iOS touch target minimum */
+    min-width: 44px;
+  }
+}
+
 /* ========================================
    ♿ ACCESSIBILITY & PRINT
    ======================================== */

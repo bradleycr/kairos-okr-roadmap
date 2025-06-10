@@ -1,7 +1,7 @@
 /**
  * NFCStatusDisplay Component
  * 
- * Gorgeous animated status display for NFC authentication states
+ * Minimal animated status display for NFC authentication states
  * Professional crypto-themed UI with terminal aesthetics
  */
 
@@ -37,22 +37,22 @@ export function NFCStatusDisplay({ verificationState }: NFCStatusDisplayProps) {
       
       case 'success':
         return (
-          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center animate-[bounceIn_0.5s_ease-out]">
-            <CheckCircleIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-success/10 rounded-full flex items-center justify-center animate-[bounceIn_0.5s_ease-out] border border-success/20">
+            <CheckCircleIcon className="h-6 w-6 sm:h-8 sm:w-8 text-success" />
           </div>
         )
       
       case 'failure':
       case 'error':
         return (
-          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-destructive/10 rounded-full flex items-center justify-center animate-[shake_0.5s_ease-out]">
+          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-destructive/10 rounded-full flex items-center justify-center animate-[shake_0.5s_ease-out] border border-destructive/20">
             <XCircleIcon className="h-6 w-6 sm:h-8 sm:w-8 text-destructive" />
           </div>
         )
       
       default:
         return (
-          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center">
+          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center border border-muted-foreground/20">
             <NfcIcon className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
           </div>
         )
@@ -63,14 +63,27 @@ export function NFCStatusDisplay({ verificationState }: NFCStatusDisplayProps) {
     switch (verificationState.status) {
       case 'success':
         return (
-          <span className="animate-[typewriter_1s_ease-in] text-primary">
-            ◈ RITUAL COMPLETE ◈
+          <span className="animate-[fadeIn_0.5s_ease-in] text-success font-mono">
+            RITUAL COMPLETE
+          </span>
+        )
+      case 'verifying':
+        return (
+          <span className="animate-[fadeIn_0.5s_ease-in] text-primary font-mono">
+            AUTHENTICATING
+          </span>
+        )
+      case 'failure':
+      case 'error':
+        return (
+          <span className="animate-[fadeIn_0.5s_ease-in] text-destructive font-mono">
+            AUTHENTICATION FAILED
           </span>
         )
       default:
         return (
-          <span className="animate-[typewriter_1s_ease-in]">
-            ◈ AUTHENTICATING ◈
+          <span className="animate-[fadeIn_0.5s_ease-in] text-muted-foreground font-mono">
+            READY
           </span>
         )
     }
@@ -85,14 +98,14 @@ export function NFCStatusDisplay({ verificationState }: NFCStatusDisplayProps) {
       
       {/* Title */}
       <div className="text-center">
-        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground font-mono tracking-wide">
+        <h3 className="text-lg sm:text-xl md:text-2xl font-bold tracking-wide">
           {getStatusTitle()}
         </h3>
       </div>
       
       {/* Status Message */}
       <div className="text-center px-2">
-        <p className="text-xs sm:text-sm text-muted-foreground font-mono animate-pulse">
+        <p className="text-xs sm:text-sm text-muted-foreground font-mono">
           {verificationState.currentPhase}
         </p>
       </div>
@@ -117,9 +130,9 @@ export function NFCStatusDisplayWithAnimations({ verificationState }: NFCStatusD
           10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
           20%, 40%, 60%, 80% { transform: translateX(2px); }
         }
-        @keyframes typewriter {
-          from { width: 0; }
-          to { width: 100%; }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `}</style>
     </>

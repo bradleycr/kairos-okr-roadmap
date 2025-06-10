@@ -8,10 +8,10 @@ import type {
   ZKMomentProof, 
   ProofGenerationResult,
   ZKSession 
-} from '../types'
+} from '@/lib/types'
 
 // --- ZK Circuit Configuration ---
-interface ZKCircuitConfig {
+export interface ZKCircuitConfig {
   maxMoments: number        // Maximum moments the circuit can handle
   minThreshold: number      // Minimum count for meaningful proofs
   circuitName: string       // Name of the circuit
