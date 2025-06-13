@@ -12,11 +12,20 @@
  * @version 4.0.0 - Enhanced Crypto Validation
  */
 
-// --- Enhanced Base64 Encoding Functions ---
+// --- Enhanced Base64 Encoding Functions (Crypto-Safe) ---
 function safeBase64Encode(hexString: string): string {
   try {
+    // Validate input is proper hex
+    if (!/^[0-9a-fA-F]+$/.test(hexString)) {
+      throw new Error('Input must be hexadecimal')
+    }
+    
     // Convert hex to bytes
     const bytes = new Uint8Array(hexString.match(/.{2}/g)?.map(byte => parseInt(byte, 16)) || [])
+    
+    if (bytes.length === 0) {
+      throw new Error('No valid hex data to encode')
+    }
     
     // Convert to base64 using browser API
     let base64 = btoa(String.fromCharCode(...bytes))
@@ -29,8 +38,10 @@ function safeBase64Encode(hexString: string): string {
     
     return base64
   } catch (error) {
-    console.warn('Base64 encoding failed, falling back to hex truncation:', error)
-    return hexString.substring(0, 32) // Fallback to truncated hex
+    console.warn('Safe base64 encoding failed:', error)
+    // For cryptographic data, NEVER fallback to truncation
+    // Instead, return the original hex if base64 encoding fails
+    return hexString
   }
 }
 
@@ -52,12 +63,22 @@ function validateBase64Decode(base64String: string, expectedHexLength: number): 
       char.charCodeAt(0).toString(16).padStart(2, '0')
     ).join('')
     
-    // Validate length
-    if (hex.length < expectedHexLength / 2) {
+    // CRITICAL: For cryptographic integrity, we must not accept truncated data
+    const minLength = expectedHexLength
+    if (hex.length < minLength) {
       return {
         success: false,
-        hex: hex.padEnd(expectedHexLength, '0'),
-        error: `Decoded hex too short: ${hex.length} chars, expected ${expectedHexLength}`
+        hex: '', // Don't return padded data for crypto
+        error: `Decoded hex too short: ${hex.length} chars, need exactly ${expectedHexLength} (cryptographic data cannot be padded)`
+      }
+    }
+    
+    // Also reject data that's too long (may indicate corruption)
+    if (hex.length > expectedHexLength * 1.5) {
+      return {
+        success: false,
+        hex: '',
+        error: `Decoded hex too long: ${hex.length} chars, expected ${expectedHexLength} (may be corrupted)`
       }
     }
     
@@ -65,7 +86,7 @@ function validateBase64Decode(base64String: string, expectedHexLength: number): 
   } catch (error) {
     return {
       success: false,
-      hex: base64String.padEnd(expectedHexLength, '0'),
+      hex: '',
       error: `Base64 decode failed: ${error}`
     }
   }
@@ -180,34 +201,34 @@ export function generateiPhoneNFCUrl(
   let nfcUrl: string
   let compressionLevel: string
   
-  // Step 2: Generate URL with appropriate compression strategy
+  // Step 2: Generate URL with crypto-safe compression strategy
   if (limit <= 300) {
-    // Strategy: Smart compression with SAFE base64 (preserves crypto integrity)
+    // For very small chips, use parameter name compression ONLY
+    // Avoid base64 compression as it can introduce crypto integrity issues
     const shortUID = chipUID.replace(/:/g, '')
     
-    // Use safe base64 encoding with fallback
-    const compactSig = safeBase64Encode(signature)
-    const compactKey = safeBase64Encode(publicKey)
+    // Check if full crypto data will fit with minimal compression
+    const minCompressedUrl = `${baseUrl}/nfc?c=${shortUID}&s=${signature}&p=${publicKey}`
+    const minCompressedBytes = new TextEncoder().encode(minCompressedUrl).length
     
-    // Validate that encoding/decoding works correctly
-    const sigValidation = validateBase64Decode(compactSig, 128)
-    const keyValidation = validateBase64Decode(compactKey, 64)
-    
-    if (!sigValidation.success) {
-      validation.warnings.push(`Signature encoding issue: ${sigValidation.error}`)
+    if (minCompressedBytes <= limit && signature.length >= 128 && publicKey.length >= 64) {
+      // Safe minimal compression - just shorter parameter names
+      nfcUrl = minCompressedUrl
+      compressionLevel = 'minimal-safe (parameter names only)'
+    } else {
+      // Cannot safely compress - chip too small for secure crypto
+      validation.errors.push(`Chip too small for secure cryptographic authentication: need ${minCompressedBytes} bytes, have ${limit}`)
+      validation.valid = false
+      
+      // Still generate a URL but mark it as invalid
+      nfcUrl = `${baseUrl}/nfc?error=chip_too_small&type=${chipType}`
+      compressionLevel = 'error-insufficient-space'
     }
-    
-    if (!keyValidation.success) {
-      validation.warnings.push(`Public key encoding issue: ${keyValidation.error}`)
-    }
-    
-    nfcUrl = `${baseUrl}/nfc?u=${shortUID}&s=${compactSig}&k=${compactKey}`
-    compressionLevel = 'smart-base64-validated'
   }
   else {
-    // Strategy: Full format for large chips
+    // Strategy: Full format for chips with adequate space
     nfcUrl = `${baseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${signature}&publicKey=${publicKey}&uid=${chipUID}`
-    compressionLevel = 'full-parameters'
+    compressionLevel = 'full-parameters-secure'
   }
   
   // Step 3: Analyze URL efficiency and compatibility

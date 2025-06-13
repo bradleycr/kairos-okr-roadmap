@@ -477,7 +477,7 @@ export default function ZKBirthdayPage() {
         <div className="text-center mt-8 pt-6 border-t border-border">
           <p className="text-sm text-muted-foreground font-sans">
             Built with <span className="text-destructive">♥</span> using <span className="font-mono text-primary">KairOS</span> - 
-            Decentralized protocols for collective intelligence
+            Wearable protocols for a new civics
           </p>
         </div>
       </div>

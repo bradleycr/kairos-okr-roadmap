@@ -32,6 +32,9 @@ export interface LocalAccountProfile extends BaseAccount {
   // PIN status (local knowledge only)
   hasPIN: boolean
   pinSetupPrompted: boolean
+  // Setup status for ritual flow optimization
+  setupCompleted: boolean
+  ritualFlowCompleted: boolean
   preferences: {
     theme: 'light' | 'dark' | 'auto'
     language: string
@@ -73,12 +76,30 @@ export interface DatabaseAccountRecord {
   username?: string     // User's chosen username
   bio?: string         // User's bio/description
   deviceName?: string  // Primary device name
+  // Setup completion status
+  setupCompleted?: boolean      // Has the user completed initial setup
+  ritualFlowCompleted?: boolean // Has the user completed the ritual flow
 }
 
 // --- Constants ---
 const ACCOUNT_STORAGE_PREFIX = 'kairos:account:'
 const PROFILE_STORAGE_PREFIX = 'kairos:profile:'
 const CURRENT_ACCOUNT_KEY = 'kairos:current-account'
+const SESSION_STORAGE_PREFIX = 'kairos:session:'
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000 // 24 hours
+
+// Deduplication cache to prevent multiple simultaneous account operations
+const OPERATION_CACHE = new Map<string, Promise<any>>()
+const CACHE_TIMEOUT = 5000 // 5 seconds
+
+// --- Session Management ---
+interface DeviceSession {
+  chipUID: string
+  deviceFingerprint: string
+  lastAuthenticated: string
+  pinEntered: boolean
+  autoLoginUntil: string
+}
 
 // --- Core Account Manager ---
 export class NFCAccountManager {
@@ -94,6 +115,40 @@ export class NFCAccountManager {
   }> {
     console.log(`🔐 Authenticating chipUID: ${chipUID}`)
     
+    // Check for ongoing operation for this chipUID
+    const cacheKey = `auth:${chipUID}`
+    if (OPERATION_CACHE.has(cacheKey)) {
+      console.log(`⏳ Authentication already in progress for ${chipUID}, waiting...`)
+      return await OPERATION_CACHE.get(cacheKey)!
+    }
+    
+    // Create the authentication promise and cache it
+    const authPromise = this.performAuthentication(chipUID)
+    OPERATION_CACHE.set(cacheKey, authPromise)
+    
+    // Clean up the cache after completion or timeout
+    setTimeout(() => {
+      OPERATION_CACHE.delete(cacheKey)
+    }, CACHE_TIMEOUT)
+    
+    try {
+      const result = await authPromise
+      OPERATION_CACHE.delete(cacheKey) // Clean up immediately on success
+      return result
+    } catch (error) {
+      OPERATION_CACHE.delete(cacheKey) // Clean up immediately on error
+      throw error
+    }
+  }
+  
+  /**
+   * 🔐 Perform the actual authentication logic
+   */
+  private static async performAuthentication(chipUID: string): Promise<{
+    account: LocalAccountProfile
+    isNewAccount: boolean
+    isNewDevice: boolean
+  }> {
     // Step 1: Generate deterministic account data
     const deterministicData = await this.generateDeterministicAccountData(chipUID)
     
@@ -110,12 +165,12 @@ export class NFCAccountManager {
       const updatedProfile = await this.updateLocalProfile(localProfile, deterministicData)
       
       if (existingAccount) {
-        // Database account exists, just update it
-        await this.updateAccountInDatabase(chipUID, deterministicData)
+        // Database account exists, just update it (this is NOT a new authentication)
+        await this.updateAccountInDatabase(chipUID, deterministicData, false)
       } else {
-        // Local exists but database doesn't, create database entry
+        // Local exists but database doesn't, create database entry (first sync to database)
         console.log('💾 Creating database entry for existing local account')
-        await this.saveAccountToDatabase(chipUID, deterministicData)
+        await this.saveAccountToDatabase(chipUID, deterministicData, updatedProfile)
       }
       
       return {
@@ -124,10 +179,10 @@ export class NFCAccountManager {
         isNewDevice: false
       }
     } else if (existingAccount) {
-      // Account exists in database but not locally - new device
+      // Account exists in database but not locally - new device (this IS a new authentication)
       console.log('👋 Returning user on new device')
       const newProfile = await this.createLocalProfileFromExisting(chipUID, deterministicData, existingAccount)
-      await this.updateAccountInDatabase(chipUID, deterministicData)
+      await this.updateAccountInDatabase(chipUID, deterministicData, true)
       
       return {
         account: newProfile,
@@ -135,7 +190,7 @@ export class NFCAccountManager {
         isNewDevice: true
       }
     } else {
-      // Completely new account
+      // Completely new account (this IS a new authentication)
       console.log('🆕 New user - creating fresh account')
       const newProfile = await this.createNewAccount(chipUID, deterministicData)
       await this.saveAccountToDatabase(chipUID, deterministicData, newProfile)
@@ -266,16 +321,41 @@ export class NFCAccountManager {
     privateKey: string
   }> {
     try {
-      // Import your existing Ed25519 crypto functions
-      const { generateEd25519KeyPair, createDIDKey } = await import('@/lib/crypto')
+      // Import crypto functions
+      const { createDIDKey } = await import('@/lib/crypto')
+      const { sha512 } = await import('@noble/hashes/sha512')
+      const { hkdf } = await import('@noble/hashes/hkdf')
+      const { sha256 } = await import('@noble/hashes/sha256')
       
-      // Generate a fresh Ed25519 keypair using your existing system
-      const keyPair = await generateEd25519KeyPair()
+      // Generate DETERMINISTIC Ed25519 keypair from chipUID
+      // This ensures the same chip always produces the same keys on any device
+      const seedMaterial = `KairOS-NFC-v1:${chipUID}:ed25519-keypair`
+      const seedBytes = new TextEncoder().encode(seedMaterial)
+      
+      // Use HKDF to derive a proper 32-byte seed from chipUID
+      const salt = new TextEncoder().encode('KairOS-Ed25519-Salt-v1')
+      const info = new TextEncoder().encode(`chipUID:${chipUID}`)
+      const derivedSeed = hkdf(sha256, seedBytes, salt, info, 32)
+      
+             // Generate Ed25519 keypair from deterministic seed
+       const ed = await import('@noble/ed25519')
+      
+      // Clamp the seed to valid Ed25519 private key format
+      const privateKey = new Uint8Array(32)
+      privateKey.set(derivedSeed)
+      
+      // Ensure private key is valid for Ed25519 (clamping)
+      privateKey[0] &= 248  // Clear bottom 3 bits
+      privateKey[31] &= 127 // Clear top bit
+      privateKey[31] |= 64  // Set second-to-top bit
+      
+      // Derive public key from private key
+      const publicKey = await ed.getPublicKeyAsync(privateKey)
       
       // Convert keys to hex strings for storage
-      const privateKeyHex = Array.from(keyPair.privateKey)
+      const privateKeyHex = Array.from(privateKey)
         .map(b => b.toString(16).padStart(2, '0')).join('')
-      const publicKeyHex = Array.from(keyPair.publicKey)
+      const publicKeyHex = Array.from(publicKey)
         .map(b => b.toString(16).padStart(2, '0')).join('')
       
       // Generate account ID from chipUID (consistent per chip)
@@ -288,39 +368,48 @@ export class NFCAccountManager {
         .join('')}`
       
       // Create proper DID using your existing system
-      const did = createDIDKey(keyPair.publicKey)
+      const did = createDIDKey(publicKey)
+      
+      console.log(`🔑 Generated DETERMINISTIC Ed25519 keypair for chipUID: ${chipUID}`)
+      console.log(`   AccountID: ${accountId}`)
+      console.log(`   PublicKey: ${publicKeyHex.slice(0, 16)}...`)
+      console.log(`   DID: ${did}`)
       
       return {
         accountId,
         did,
-        keyPair,
+        keyPair: { privateKey, publicKey },
         publicKey: publicKeyHex,
         privateKey: privateKeyHex
       }
     } catch (error) {
-      console.warn('Ed25519 crypto failed, using fallback:', error)
+      console.warn('Deterministic Ed25519 crypto failed, using fallback:', error)
       
-      // Fallback: Generate basic account data without complex crypto
+      // Fallback: Use chipUID hash as seed (less secure but deterministic)
       const encoder = new TextEncoder()
-      const accountData = `kairos-nfc-v1:${chipUID}`
-      const accountHash = await crypto.subtle.digest('SHA-256', encoder.encode(accountData))
-      const accountId = `kairos_${Array.from(new Uint8Array(accountHash))
-        .slice(0, 8)
+      const chipData = encoder.encode(`kairos-fallback:${chipUID}`)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', chipData)
+      const hashArray = new Uint8Array(hashBuffer)
+      
+      // Create deterministic keys from hash
+      const privateKey = new Uint8Array(32)
+      privateKey.set(hashArray.slice(0, 32))
+      
+      // Simple deterministic public key derivation
+      const publicKey = new Uint8Array(32)
+      const publicKeyHash = await crypto.subtle.digest('SHA-256', privateKey)
+      publicKey.set(new Uint8Array(publicKeyHash).slice(0, 32))
+      
+      const accountId = `kairos_${Array.from(hashArray.slice(0, 8))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('')}`
-      
-      // Simple fallback keys
-      const fallbackPrivateKey = new Uint8Array(32)
-      const fallbackPublicKey = new Uint8Array(32)
-      crypto.getRandomValues(fallbackPrivateKey)
-      crypto.getRandomValues(fallbackPublicKey)
       
       return {
         accountId,
         did: `did:kairos:${accountId.replace('kairos_', '')}`,
-        keyPair: { privateKey: fallbackPrivateKey, publicKey: fallbackPublicKey },
-        publicKey: Array.from(fallbackPublicKey).map(b => b.toString(16).padStart(2, '0')).join(''),
-        privateKey: Array.from(fallbackPrivateKey).map(b => b.toString(16).padStart(2, '0')).join('')
+        keyPair: { privateKey, publicKey },
+        publicKey: Array.from(publicKey).map(b => b.toString(16).padStart(2, '0')).join(''),
+        privateKey: Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('')
       }
     }
   }
@@ -387,7 +476,7 @@ export class NFCAccountManager {
   /**
    * 🔄 Update Account in Database
    */
-  private static async updateAccountInDatabase(chipUID: string, accountData: any): Promise<void> {
+  private static async updateAccountInDatabase(chipUID: string, accountData: any, isAuthenticationEvent: boolean = true): Promise<void> {
     try {
       await fetch('/api/nfc/accounts', {
         method: 'PUT',
@@ -396,7 +485,8 @@ export class NFCAccountManager {
           'X-Chip-UID': chipUID 
         },
         body: JSON.stringify({
-          lastSeen: new Date().toISOString()
+          lastSeen: new Date().toISOString(),
+          isAuthenticationEvent: isAuthenticationEvent
         })
       })
     } catch (error) {
@@ -454,6 +544,10 @@ export class NFCAccountManager {
       hasPIN: false,
       pinSetupPrompted: false,
       
+      // Setup status
+      setupCompleted: false,
+      ritualFlowCompleted: false,
+      
       preferences: {
         theme: 'auto',
         language: 'en',
@@ -506,6 +600,10 @@ export class NFCAccountManager {
       // PIN status (inherit from database)
       hasPIN: existingAccount.hasPIN,
       pinSetupPrompted: existingAccount.hasPIN, // If PIN exists, user has been prompted
+      
+      // Setup status (inherit from database, default to completed for returning users)
+      setupCompleted: existingAccount.setupCompleted ?? true,
+      ritualFlowCompleted: existingAccount.ritualFlowCompleted ?? true,
       
       preferences: {
         theme: 'auto',
@@ -665,41 +763,33 @@ export class NFCAccountManager {
         }
       })
       
-      // Update database record first
-      const response = await fetch('/api/nfc/accounts', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Chip-UID': chipUID 
-        },
-        body: JSON.stringify(sanitizedUpdates)
-      })
-      
-      if (response.ok) {
-        // Update local profile
-        const profile = this.getLocalProfile(chipUID)
-        if (profile) {
-          Object.assign(profile, sanitizedUpdates)
-          profile.lastSeen = new Date().toISOString()
-          this.saveLocalProfile(profile)
-        }
-        
-        console.log('✅ Profile info updated successfully')
-        return true
-      } else {
-        console.warn('Failed to update database, keeping local changes only')
-        
-        // Still update locally even if database fails
-        const profile = this.getLocalProfile(chipUID)
-        if (profile) {
-          Object.assign(profile, sanitizedUpdates)
-          profile.lastSeen = new Date().toISOString()
-          this.saveLocalProfile(profile)
-        }
-        
-        return false
+      // Update database too (best effort - failures won't break local updates)
+      try {
+        await fetch('/api/nfc/accounts', {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Chip-UID': chipUID 
+          },
+          body: JSON.stringify({
+            ...sanitizedUpdates,
+            isAuthenticationEvent: false // This is a profile update, not an authentication
+          })
+        })
+        console.log('✅ Profile info synced to database')
+      } catch (error) {
+        console.warn('Failed to sync profile to database (continuing with local-only):', error)
       }
       
+      // Update local profile
+      const profile = this.getLocalProfile(chipUID)
+      if (profile) {
+        Object.assign(profile, sanitizedUpdates)
+        profile.lastSeen = new Date().toISOString()
+        this.saveLocalProfile(profile)
+      }
+      
+      return true
     } catch (error) {
       console.warn('Failed to update profile info:', error)
       return false
@@ -727,6 +817,8 @@ export class NFCAccountManager {
         if (dbAccount.deviceName) localProfile.deviceName = dbAccount.deviceName
         
         localProfile.hasPIN = dbAccount.hasPIN
+        localProfile.setupCompleted = dbAccount.setupCompleted ?? localProfile.setupCompleted
+        localProfile.ritualFlowCompleted = dbAccount.ritualFlowCompleted ?? localProfile.ritualFlowCompleted
         localProfile.lastSeen = new Date().toISOString()
         
         this.saveLocalProfile(localProfile)
@@ -739,6 +831,58 @@ export class NFCAccountManager {
       console.warn('Failed to sync profile from database:', error)
       return false
     }
+  }
+
+  /**
+   * 🎭 Mark Ritual Flow as Completed
+   * Updates both local and database records
+   */
+  static async markRitualFlowCompleted(chipUID: string): Promise<boolean> {
+    try {
+      console.log(`🎭 Marking ritual flow completed for chipUID: ${chipUID}`)
+      
+      // Update local profile
+      const profile = this.getLocalProfile(chipUID)
+      if (profile) {
+        profile.ritualFlowCompleted = true
+        profile.setupCompleted = true
+        profile.lastSeen = new Date().toISOString()
+        this.saveLocalProfile(profile)
+      }
+      
+      // Update database too (best effort)
+      try {
+        await fetch('/api/nfc/accounts', {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Chip-UID': chipUID 
+          },
+          body: JSON.stringify({
+            ritualFlowCompleted: true,
+            setupCompleted: true,
+            isAuthenticationEvent: false
+          })
+        })
+        console.log('✅ Ritual flow completion synced to database')
+      } catch (error) {
+        console.warn('Failed to sync ritual completion to database (continuing with local-only):', error)
+      }
+      
+      return true
+    } catch (error) {
+      console.warn('Failed to mark ritual flow completed:', error)
+      return false
+    }
+  }
+
+  /**
+   * 🔍 Check if user should see ritual flow
+   * Returns true if user is new and hasn't completed the ritual
+   */
+  static shouldShowRitualFlow(chipUID: string): boolean {
+    const profile = this.getLocalProfile(chipUID)
+    return !profile?.ritualFlowCompleted
   }
 
   static async verifyAccountPIN(chipUID: string, pin: string): Promise<boolean> {
@@ -797,6 +941,261 @@ export class NFCAccountManager {
           localStorage.removeItem(key)
         }
       })
+    }
+  }
+
+  /**
+   * 🔐 PIN-Gated Authentication Flow
+   * Returns account if session is valid, or requires PIN if needed
+   */
+  static async authenticateWithPINGate(chipUID: string): Promise<{
+    account?: LocalAccountProfile
+    requiresPIN: boolean
+    isNewAccount: boolean
+    isNewDevice: boolean
+    hasPIN: boolean
+    reason?: string
+  }> {
+    console.log(`🔐 PIN-Gated authentication for chipUID: ${chipUID}`)
+    
+    // Step 1: Check if account exists (database or local)
+    const [existingAccount, localProfile] = await Promise.all([
+      this.checkAccountInDatabase(chipUID),
+      Promise.resolve(this.getLocalProfile(chipUID))
+    ])
+    
+    const isNewAccount = !existingAccount && !localProfile
+    const isNewDevice = !!existingAccount && !localProfile
+    const hasPIN = existingAccount?.hasPIN || localProfile?.hasPIN || false
+    
+    // Step 2: Handle completely new accounts (no PIN required)
+    if (isNewAccount) {
+      const result = await this.authenticateOrCreateAccount(chipUID)
+      return {
+        account: result.account,
+        requiresPIN: false,
+        isNewAccount: true,
+        isNewDevice: true,
+        hasPIN: false,
+        reason: 'new_account'
+      }
+    }
+    
+    // Step 3: Check if PIN is required
+    if (hasPIN) {
+      const session = this.getDeviceSession(chipUID)
+      const now = new Date()
+      
+      // Check if user has a valid session on this device
+      if (session && session.pinEntered && new Date(session.autoLoginUntil) > now) {
+        console.log('✅ Valid session found, auto-login enabled')
+        // Update session and return account
+        const result = await this.authenticateOrCreateAccount(chipUID)
+        this.updateDeviceSession(chipUID, true)
+        return {
+          account: result.account,
+          requiresPIN: false,
+          isNewAccount: false,
+          isNewDevice: isNewDevice,
+          hasPIN: true,
+          reason: 'valid_session'
+        }
+      } else {
+        console.log('🔒 PIN required - no valid session')
+        return {
+          requiresPIN: true,
+          isNewAccount: false,
+          isNewDevice: isNewDevice,
+          hasPIN: true,
+          reason: session ? 'session_expired' : 'new_device'
+        }
+      }
+    }
+    
+    // Step 4: No PIN set up, allow access
+    console.log('⚠️ No PIN protection - direct access granted')
+    const result = await this.authenticateOrCreateAccount(chipUID)
+    return {
+      account: result.account,
+      requiresPIN: false,
+      isNewAccount: false,
+      isNewDevice: isNewDevice,
+      hasPIN: false,
+      reason: 'no_pin_protection'
+    }
+  }
+  
+  /**
+   * 🔓 Authenticate after PIN verification
+   */
+  static async authenticateAfterPIN(chipUID: string, pin: string): Promise<{
+    success: boolean
+    account?: LocalAccountProfile
+    error?: string
+  }> {
+    try {
+      // Verify PIN
+      const isValidPIN = await this.verifyAccountPIN(chipUID, pin)
+      
+      if (!isValidPIN) {
+        return {
+          success: false,
+          error: 'Invalid PIN'
+        }
+      }
+      
+      // PIN is valid, create session and return account
+      const result = await this.authenticateOrCreateAccount(chipUID)
+      this.createDeviceSession(chipUID, true)
+      
+      return {
+        success: true,
+        account: result.account
+      }
+      
+    } catch (error) {
+      console.error('PIN authentication failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Authentication failed'
+      }
+    }
+  }
+
+  /**
+   * 📱 Device Session Management
+   */
+  private static generateDeviceFingerprint(): string {
+    if (typeof window === 'undefined') return 'server'
+    
+    // Create a device fingerprint from available browser/device info
+    const components = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset().toString(),
+      window.location.hostname
+    ]
+    
+    // Simple hash of the components
+    const fingerprint = components.join('|')
+    let hash = 0
+    for (let i = 0; i < fingerprint.length; i++) {
+      const char = fingerprint.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    
+    return `device_${Math.abs(hash).toString(16)}`
+  }
+  
+  private static getDeviceSession(chipUID: string): DeviceSession | null {
+    if (typeof window === 'undefined') return null
+    
+    try {
+      const sessionKey = `${SESSION_STORAGE_PREFIX}${chipUID}`
+      const stored = localStorage.getItem(sessionKey)
+      
+      if (!stored) return null
+      
+      const session = JSON.parse(stored) as DeviceSession
+      
+      // Verify device fingerprint matches
+      const currentFingerprint = this.generateDeviceFingerprint()
+      if (session.deviceFingerprint !== currentFingerprint) {
+        console.log('🔒 Device fingerprint mismatch, clearing session')
+        localStorage.removeItem(sessionKey)
+        return null
+      }
+      
+      return session
+    } catch (error) {
+      console.warn('Failed to get device session:', error)
+      return null
+    }
+  }
+  
+  private static createDeviceSession(chipUID: string, pinEntered: boolean): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      const now = new Date()
+      const autoLoginUntil = new Date(now.getTime() + SESSION_TIMEOUT)
+      
+      const session: DeviceSession = {
+        chipUID,
+        deviceFingerprint: this.generateDeviceFingerprint(),
+        lastAuthenticated: now.toISOString(),
+        pinEntered,
+        autoLoginUntil: autoLoginUntil.toISOString()
+      }
+      
+      const sessionKey = `${SESSION_STORAGE_PREFIX}${chipUID}`
+      localStorage.setItem(sessionKey, JSON.stringify(session))
+      
+      console.log(`✅ Device session created, auto-login until: ${autoLoginUntil.toLocaleString()}`)
+    } catch (error) {
+      console.warn('Failed to create device session:', error)
+    }
+  }
+  
+  private static updateDeviceSession(chipUID: string, pinEntered?: boolean): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      const session = this.getDeviceSession(chipUID)
+      if (!session) {
+        // Create new session if none exists
+        this.createDeviceSession(chipUID, pinEntered || false)
+        return
+      }
+      
+      const now = new Date()
+      const autoLoginUntil = new Date(now.getTime() + SESSION_TIMEOUT)
+      
+      session.lastAuthenticated = now.toISOString()
+      session.autoLoginUntil = autoLoginUntil.toISOString()
+      
+      if (pinEntered !== undefined) {
+        session.pinEntered = pinEntered
+      }
+      
+      const sessionKey = `${SESSION_STORAGE_PREFIX}${chipUID}`
+      localStorage.setItem(sessionKey, JSON.stringify(session))
+      
+      console.log(`🔄 Device session updated, auto-login until: ${autoLoginUntil.toLocaleString()}`)
+    } catch (error) {
+      console.warn('Failed to update device session:', error)
+    }
+  }
+  
+  /**
+   * 🚪 Logout - Clear device session
+   */
+  static logout(chipUID?: string): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      if (chipUID) {
+        // Clear specific session
+        const sessionKey = `${SESSION_STORAGE_PREFIX}${chipUID}`
+        localStorage.removeItem(sessionKey)
+        console.log(`🚪 Logged out chipUID: ${chipUID}`)
+      } else {
+        // Clear all sessions
+        const keys = Object.keys(localStorage)
+        keys.forEach(key => {
+          if (key.startsWith(SESSION_STORAGE_PREFIX)) {
+            localStorage.removeItem(key)
+          }
+        })
+        
+        // Also clear current account
+        localStorage.removeItem(CURRENT_ACCOUNT_KEY)
+        console.log(`🚪 Logged out all sessions`)
+      }
+    } catch (error) {
+      console.warn('Failed to logout:', error)
     }
   }
 } 

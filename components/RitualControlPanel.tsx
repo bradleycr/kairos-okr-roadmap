@@ -385,12 +385,34 @@ export default function RitualControlPanel({
       loadRitualData()
       setSaveStatus('saved')
       
+      // Mark ritual flow as completed if this is a user's first custom ritual
+      await markRitualFlowCompletedIfNeeded()
+      
       // Reset save status after 2 seconds
       setTimeout(() => setSaveStatus('idle'), 2000)
     } catch (error: unknown) {
       setSaveStatus('error')
       setTimeout(() => setSaveStatus('idle'), 3000)
       console.error('Failed to save ritual:', error)
+    }
+  }
+
+  const markRitualFlowCompletedIfNeeded = async () => {
+    try {
+      // Get current user from session storage or localStorage
+      const currentChipUID = localStorage.getItem('kairos_current_user')
+      if (currentChipUID) {
+        const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+        
+        // Check if ritual flow should still be shown (meaning it's not completed)
+        const shouldShowRitual = NFCAccountManager.shouldShowRitualFlow(currentChipUID)
+        if (shouldShowRitual) {
+          console.log('🎭 Marking ritual flow as completed - user created their first custom ritual')
+          await NFCAccountManager.markRitualFlowCompleted(currentChipUID)
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to mark ritual flow completion:', error)
     }
   }
 

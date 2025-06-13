@@ -64,7 +64,7 @@ export function NFCStatusDisplay({ verificationState }: NFCStatusDisplayProps) {
       case 'success':
         return (
           <span className="animate-[fadeIn_0.5s_ease-in] text-success font-mono">
-            RITUAL COMPLETE
+            AUTHENTICATION COMPLETE
           </span>
         )
       case 'verifying':

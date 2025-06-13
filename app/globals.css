@@ -33,17 +33,17 @@
 }
 
 /* ========================================
-   🌅 LIGHT THEME (Premium Retro Mode)
+   🌅 LIGHT THEME (Premium Cream/Off-White Mode)
    ======================================== */
 :root {
   color-scheme: light;
   
-  /* Backgrounds - Warm, premium feel */
-  --background: 252 250 247;            /* Warm white background */
+  /* Backgrounds - Warm cream, premium feel */
+  --background: 251 248 243;            /* Warm cream background (not pure white) */
   --foreground: 45 42 38;               /* Warm dark text */
   
-  /* Cards and surfaces - Elegant depth */
-  --card: 255 255 255;                  /* Pure white cards */
+  /* Cards and surfaces - Elegant cream depth */
+  --card: 254 252 249;                  /* Off-white cream cards */
   --card-foreground: 45 42 38;          /* Warm dark text */
   
   /* Popover components */
@@ -184,7 +184,7 @@
 
 /* Premium Retro Cards */
 .retro-card {
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(254, 252, 249, 0.98);
   border: 1px solid rgb(234, 227, 218);
   border-radius: 0.5rem;
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -199,7 +199,7 @@
 
 /* Sophisticated Retro Buttons */
 .retro-button {
-  background: rgb(252, 250, 247);
+  background: rgb(254, 252, 249);
   border: 1px solid rgb(234, 227, 218);
   color: rgb(45, 42, 38);
   font-family: var(--font-sans);
@@ -282,6 +282,78 @@
   background-image: 
     linear-gradient(rgba(245, 181, 145, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(245, 181, 145, 0.06) 1px, transparent 1px);
+}
+
+/* ========================================
+   🌟 GLASS MORPHISM COMPONENTS
+   ======================================== */
+
+/* Glass Navigation - Theme Aware */
+.glass-nav {
+  background: rgba(251, 248, 243, 0.95);
+  border-bottom: 1px solid rgba(234, 227, 218, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(45, 42, 38, 0.1);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .glass-nav {
+  background: rgba(22, 20, 18, 0.95);
+  border-bottom: 1px solid rgba(67, 60, 53, 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 16px rgba(245, 181, 145, 0.05);
+}
+
+/* Glass Cards - Theme Aware */
+.glass-card {
+  background: rgba(254, 252, 249, 0.90);
+  border: 1px solid rgba(234, 227, 218, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(45, 42, 38, 0.1);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .glass-card {
+  background: rgba(37, 33, 29, 0.90);
+  border: 1px solid rgba(67, 60, 53, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 12px rgba(245, 181, 145, 0.08);
+}
+
+/* Glass Buttons - Theme Aware */
+.glass-button {
+  background: rgba(254, 252, 249, 0.85);
+  border: 1px solid rgba(234, 227, 218, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(45, 42, 38, 0.08);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-button:hover {
+  background: rgba(245, 181, 145, 0.15);
+  border-color: rgba(245, 181, 145, 0.4);
+  box-shadow: 0 4px 12px rgba(245, 181, 145, 0.15);
+  transform: translateY(-1px);
+}
+
+.dark .glass-button {
+  background: rgba(52, 47, 42, 0.85);
+  border: 1px solid rgba(67, 60, 53, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 8px rgba(245, 181, 145, 0.06);
+}
+
+.dark .glass-button:hover {
+  background: rgba(245, 181, 145, 0.15);
+  border-color: rgba(245, 181, 145, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 16px rgba(245, 181, 145, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Focus Ring for Glass Elements */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--background)), 0 0 0 4px rgb(var(--primary));
 }
 
 /* ========================================

@@ -116,7 +116,7 @@ async function getAccountRecord(chipUID: string): Promise<DatabaseAccountRecord 
   }
 }
 
-async function updateAccountRecord(chipUID: string, updates: Partial<DatabaseAccountRecord>): Promise<boolean> {
+async function updateAccountRecord(chipUID: string, updates: Partial<DatabaseAccountRecord>, incrementVerification: boolean = false): Promise<boolean> {
   console.log(`🔄 Updating account record for chipUID: ${chipUID}`)
   
   try {
@@ -125,12 +125,12 @@ async function updateAccountRecord(chipUID: string, updates: Partial<DatabaseAcc
       console.log('❌ Account not found for update')
       return false
     }
-    
+
     const updated: DatabaseAccountRecord = {
       ...existing,
       ...updates,
       lastSeen: new Date().toISOString(), // Always update lastSeen
-      verificationCount: existing.verificationCount + 1
+      verificationCount: incrementVerification ? existing.verificationCount + 1 : existing.verificationCount
     }
     
     return await saveAccountRecord(updated)
@@ -197,16 +197,24 @@ export async function POST(request: NextRequest) {
     // Check if account already exists
     const existing = await getAccountRecord(body.chipUID)
     if (existing) {
-      console.log('⚠️ Account already exists, updating instead')
+      console.log('⚠️ Account already exists, updating lastSeen only')
       const updated = await updateAccountRecord(body.chipUID, {
-        lastSeen: new Date().toISOString()
-      })
+        lastSeen: new Date().toISOString(),
+        // Update profile info if provided
+        displayName: body.displayName || existing.displayName,
+        username: body.username || existing.username,
+        bio: body.bio || existing.bio,
+        deviceName: body.deviceName || existing.deviceName,
+        // Update setup completion status if provided
+        setupCompleted: body.setupCompleted ?? existing.setupCompleted,
+        ritualFlowCompleted: body.ritualFlowCompleted ?? existing.ritualFlowCompleted
+      }, false) // Don't increment verification for simple profile updates
       
       return NextResponse.json({
         success: true,
         created: false,
         updated: updated,
-        message: 'Account already exists, updated lastSeen'
+        message: 'Account already exists, updated profile info'
       })
     }
     
@@ -226,7 +234,10 @@ export async function POST(request: NextRequest) {
       displayName: body.displayName,
       username: body.username,
       bio: body.bio,
-      deviceName: body.deviceName
+      deviceName: body.deviceName,
+      // Setup completion status
+      setupCompleted: body.setupCompleted ?? false,
+      ritualFlowCompleted: body.ritualFlowCompleted ?? false
     }
     
     const saved = await saveAccountRecord(newRecord)
@@ -272,9 +283,16 @@ export async function PUT(request: NextRequest) {
     
     const updates = await request.json()
     
-    console.log(`🔄 PUT request to update chipUID: ${chipUID}`)
+    // Check if this is an authentication event vs a profile update
+    const isAuthEvent = updates.isAuthenticationEvent === true
+    const shouldIncrementVerification = isAuthEvent
     
-    const updated = await updateAccountRecord(chipUID, updates)
+    // Remove the flag from updates so it doesn't get stored
+    delete updates.isAuthenticationEvent
+    
+    console.log(`🔄 PUT request to update chipUID: ${chipUID} (auth event: ${isAuthEvent})`)
+    
+    const updated = await updateAccountRecord(chipUID, updates, shouldIncrementVerification)
     
     if (updated) {
       console.log(`✅ Updated account record for chipUID: ${chipUID}`)

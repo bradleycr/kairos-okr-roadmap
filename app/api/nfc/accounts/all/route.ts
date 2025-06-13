@@ -77,14 +77,19 @@ export async function GET() {
     
     if (kv) {
       try {
-        // Get all keys that start with our account prefix
+        // Get all keys that start with our account prefix and are chipUID-based (not accountId-based)
+        // Only fetch keys like 'nfc:account:04:83:81:f0:cc:0b:26:64', not 'nfc:account:id:kairos_xxx'
         const keys = await kv.keys('nfc:account:*')
-        console.log(`📊 Found ${keys.length} account keys in Vercel KV`)
         
-        if (keys.length > 0) {
+        // Filter out the accountId keys to avoid duplicates
+        const chipUIDKeys = keys.filter(key => !key.includes(':id:'))
+        
+        console.log(`📊 Found ${keys.length} total keys, ${chipUIDKeys.length} chipUID keys in Vercel KV`)
+        
+        if (chipUIDKeys.length > 0) {
           // Fetch all accounts in parallel
           const accounts = await Promise.all(
-            keys.map(async (key) => {
+            chipUIDKeys.map(async (key) => {
               try {
                 const account = await kv.get(key)
                 return account as DatabaseAccountRecord
@@ -97,7 +102,7 @@ export async function GET() {
           
           // Filter out null results
           allAccounts = accounts.filter(account => account !== null) as DatabaseAccountRecord[]
-          console.log(`✅ Successfully fetched ${allAccounts.length} accounts from Vercel KV`)
+          console.log(`✅ Successfully fetched ${allAccounts.length} unique accounts from Vercel KV`)
           dataSource = 'vercel-kv'
         }
         

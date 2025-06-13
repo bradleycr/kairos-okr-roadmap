@@ -211,6 +211,61 @@ module.exports = {
           '0%': { 'background-position': '-200% 0' },
           '100%': { 'background-position': '200% 0' },
         },
+        // Organic breathing animations for k-hole feeling
+        'breathe': {
+          '0%, 100%': { 
+            opacity: '0.6',
+            transform: 'scale(1)',
+          },
+          '50%': { 
+            opacity: '1',
+            transform: 'scale(1.03)',
+          },
+        },
+        'breathe-glow': {
+          '0%, 100%': { 
+            opacity: '0.4',
+            transform: 'scale(0.95)',
+            boxShadow: '0 0 20px rgba(var(--primary), 0.2)',
+          },
+          '50%': { 
+            opacity: '0.9',
+            transform: 'scale(1.1)',
+            boxShadow: '0 0 40px rgba(var(--primary), 0.4)',
+          },
+        },
+        'breathe-ring': {
+          '0%, 100%': { 
+            opacity: '0.3',
+            transform: 'scale(0.98)',
+            borderWidth: '1px',
+          },
+          '50%': { 
+            opacity: '0.8',
+            transform: 'scale(1.02)',
+            borderWidth: '2px',
+          },
+        },
+        'breathe-inner': {
+          '0%, 100%': { 
+            opacity: '0.5',
+            transform: 'scale(1)',
+          },
+          '50%': { 
+            opacity: '0.9',
+            transform: 'scale(1.05)',
+          },
+        },
+        'breathe-indicator': {
+          '0%, 100%': { 
+            opacity: '0.6',
+            transform: 'scale(0.9)',
+          },
+          '50%': { 
+            opacity: '1',
+            transform: 'scale(1.1)',
+          },
+        },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

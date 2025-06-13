@@ -35,20 +35,20 @@ export function NFCWelcomeScreen() {
   }
 
   return (
-    <div className="text-center space-y-8 w-full max-w-sm mx-auto">
+    <div className="text-center w-full max-w-sm mx-auto">
       {/* Key Authentication Message */}
-      <div className="space-y-4">
-        <div className="space-y-2">
+      <div className="space-y-6 mb-12">
+        <div className="space-y-3">
           <h2 className="text-xl font-mono font-light text-foreground/80">
             Connect your key
           </h2>
-          <p className="text-sm text-muted-foreground/70 font-mono max-w-xs mx-auto">
-            Bring your cryptographic pendant near your device to authenticate
+          <p className="text-sm text-muted-foreground/70 font-mono max-w-xs mx-auto leading-relaxed">
+            Bring your MELD pendant near your phone (top for iPhone, middle for Android) to authenticate
           </p>
         </div>
 
         {/* Phone/Device Visual */}
-        <div className="flex justify-center my-8">
+        <div className="flex justify-center">
           <div className="w-20 h-28 bg-muted/20 rounded-xl border border-muted-foreground/10 flex items-center justify-center relative">
             <div className="w-12 h-12 rounded-full bg-muted-foreground/10 flex items-center justify-center">
               <div className="w-6 h-6 rounded-full bg-muted-foreground/20"></div>

@@ -878,6 +878,310 @@ export default function DeveloperDiagnosticsHub() {
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="space-y-6 animate-fade-slide-up">
+            {/* Web3 Technical Manifesto */}
+            <Card className="p-6 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">Web3 Technical Manifesto</h3>
+                  <p className="text-sm text-muted-foreground">Comprehensive breakdown for decentralization advocates</p>
+                </div>
+              </div>
+              
+              <div className="space-y-8">
+                {/* Core Architecture */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-primary" />
+                    <h4 className="text-lg font-semibold text-foreground">Decentralized Architecture</h4>
+                  </div>
+                  <div className="bg-background/50 border border-border/50 rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="font-semibold text-green-600 mb-2">✅ What We Are</div>
+                        <ul className="space-y-1 text-muted-foreground">
+                          <li>• <span className="font-mono text-primary">Ed25519</span> cryptographic authentication</li>
+                          <li>• <span className="font-mono text-primary">DID:key</span> standard compliance</li>
+                          <li>• User-controlled private keys</li>
+                          <li>• Challenge-response protocol</li>
+                          <li>• Local-first identity management</li>
+                          <li>• Offline-capable verification</li>
+                          <li>• ESP32 edge computing nodes</li>
+                          <li>• Physical world utility</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-orange-600 mb-2">⚠️ What We're Not</div>
+                        <ul className="space-y-1 text-muted-foreground">
+                          <li>• Blockchain-based (no need for consensus)</li>
+                          <li>• Token-gated (utility over speculation)</li>
+                          <li>• DAO-governed (focused on infrastructure)</li>
+                          <li>• NFT marketplace (real-world authentication)</li>
+                          <li>• DeFi protocol (not financial)</li>
+                          <li>• Fully trustless (pragmatic hybrid model)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cryptographic Implementation */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Key className="w-5 h-5 text-accent" />
+                    <h4 className="text-lg font-semibold text-foreground">Cryptographic Stack</h4>
+                  </div>
+                  <div className="bg-background/50 border border-border/50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="font-mono text-primary font-semibold mb-2">Frontend Crypto</div>
+                        <div className="space-y-1 text-muted-foreground">
+                          <div>@noble/ed25519 v2.2.3</div>
+                          <div>WebCrypto API</div>
+                          <div>Local key generation</div>
+                          <div>Browser localStorage</div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-mono text-accent font-semibold mb-2">Backend Crypto</div>
+                        <div className="space-y-1 text-muted-foreground">
+                          <div>@noble/ed25519 v2.2.3</div>
+                          <div>Server-side verification</div>
+                          <div>Challenge generation</div>
+                          <div>DID resolution</div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-mono text-secondary font-semibold mb-2">Hardware Crypto</div>
+                        <div className="space-y-1 text-muted-foreground">
+                          <div>libsodium (ESP32)</div>
+                          <div>ed25519-donna</div>
+                          <div>Hardware RNG</div>
+                          <div>Flash storage</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trust Model Explanation */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Fingerprint className="w-5 h-5 text-secondary" />
+                    <h4 className="text-lg font-semibold text-foreground">Hybrid Trust Model</h4>
+                  </div>
+                  <div className="bg-background/50 border border-border/50 rounded-lg p-4">
+                    <div className="space-y-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <div className="font-semibold text-primary mb-2">Identity Verification (Decentralized)</div>
+                          <div className="space-y-1 text-muted-foreground font-mono">
+                            <div>• Ed25519 signature verification</div>
+                            <div>• Challenge-response protocol</div>
+                            <div>• DID:key standard compliance</div>
+                            <div>• Zero-knowledge proofs</div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-accent mb-2">Trust Establishment (Pragmatic)</div>
+                          <div className="space-y-1 text-muted-foreground font-mono">
+                            <div>• PIN-based initial registration</div>
+                            <div>• Local storage + optional sync</div>
+                            <div>• Device fingerprinting</div>
+                            <div>• Session management</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="font-semibold text-blue-800 mb-1">Why This Hybrid Approach?</div>
+                        <div className="text-blue-700 text-xs">
+                          Pure cryptographic trust requires pre-shared keys or PKI infrastructure. For physical-world authentication with 
+                          dynamic user onboarding, we use crypto for <strong>identity verification</strong> and pragmatic methods for 
+                          <strong>trust establishment</strong>. This enables real-world utility while maintaining cryptographic integrity.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Code Implementation Examples */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Code className="w-5 h-5 text-primary" />
+                    <h4 className="text-lg font-semibold text-foreground">Implementation Evidence</h4>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-background/50 border border-border/50 rounded-lg p-4">
+                      <div className="font-mono text-sm font-semibold text-primary mb-2">Real Ed25519 Key Generation</div>
+                      <div className="bg-black text-green-400 p-3 rounded font-mono text-xs overflow-x-auto">
+                        {`// lib/crypto.ts - Real cryptography, not simulation
+export async function generateEd25519KeyPair(): Promise<{
+  privateKey: Uint8Array;
+  publicKey: Uint8Array;
+}> {
+  const privateKey = ed.utils.randomPrivateKey();
+  const publicKey = await ed.getPublicKeyAsync(privateKey);
+  return { privateKey, publicKey };
+}`}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-background/50 border border-border/50 rounded-lg p-4">
+                      <div className="font-mono text-sm font-semibold text-accent mb-2">Local Identity Management</div>
+                      <div className="bg-black text-green-400 p-3 rounded font-mono text-xs overflow-x-auto">
+                        {`// lib/crypto/decentralizedNFC.ts - User controls master seed
+export function initializeLocalIdentity(userId: string): LocalUserIdentity {
+  const masterSeed = Array.from(ed.utils.randomPrivateKey(), b => 
+    b.toString(16).padStart(2, '0')).join('');
+  
+  // USER CONTROLS THIS - stored locally
+  localStorage.setItem('kairOS_identity', JSON.stringify(identity));
+  return identity;
+}`}
+                      </div>
+                    </div>
+
+                    <div className="bg-background/50 border border-border/50 rounded-lg p-4">
+                      <div className="font-mono text-sm font-semibold text-secondary mb-2">ESP32 Verification (No Private Keys)</div>
+                      <div className="bg-black text-green-400 p-3 rounded font-mono text-xs overflow-x-auto">
+                        {`// Hardware verification - stateless, no user data stored
+bool verifyEd25519Signature(const char* signature_hex, 
+                           const char* message, 
+                           const char* public_key_hex) {
+    // Verify signature using only public key
+    return crypto_sign_verify_detached(signature, message, public_key) == 0;
+}`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Physical World Integration */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-5 h-5 text-accent" />
+                    <h4 className="text-lg font-semibold text-foreground">Edge Computing Architecture</h4>
+                  </div>
+                  <div className="bg-background/50 border border-border/50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="font-semibold text-primary mb-2">ESP32 MELD Nodes</div>
+                        <ul className="space-y-1 text-muted-foreground">
+                          <li>• <span className="font-mono">$5 hardware cost</span></li>
+                          <li>• WiFi + NFC + E-paper display</li>
+                          <li>• Local content serving</li>
+                          <li>• Zero user data storage</li>
+                          <li>• Stateless authentication</li>
+                          <li>• libsodium crypto verification</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-accent mb-2">NFC Authentication Flow</div>
+                        <ul className="space-y-1 text-muted-foreground">
+                          <li>• Tap NFC → Read public key</li>
+                          <li>• Generate challenge locally</li>
+                          <li>• Phone signs with private key</li>
+                          <li>• ESP32 verifies signature</li>
+                          <li>• Grant access to local content</li>
+                          <li>• No internet required</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Web3 Positioning */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Network className="w-5 h-5 text-secondary" />
+                    <h4 className="text-lg font-semibold text-foreground">Web3 Positioning</h4>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
+                    <div className="space-y-3 text-sm">
+                      <div className="font-semibold text-green-800">🎯 "Crypto for IoT" - Bridging Digital Identity to Physical Reality</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <div className="font-semibold text-blue-800 mb-1">Solving Real Problems</div>
+                          <ul className="text-blue-700 space-y-1 text-xs">
+                            <li>• Physical space authentication</li>
+                            <li>• Offline-capable verification</li>
+                            <li>• Edge device access control</li>
+                            <li>• Decentralized social graphs via proximity</li>
+                            <li>• Hardware-backed identity</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-purple-800 mb-1">Technical Innovation</div>
+                          <ul className="text-purple-700 space-y-1 text-xs">
+                            <li>• NFC + Ed25519 on $5 hardware</li>
+                            <li>• Local-first cryptographic identity</li>
+                            <li>• Challenge-response without servers</li>
+                            <li>• Physical world social bonding</li>
+                            <li>• User-controlled master seeds</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="bg-white border border-blue-200 rounded p-3">
+                        <div className="font-mono text-xs text-blue-900">
+                          <strong>Conference Pitch:</strong> "We're building the infrastructure layer for web3 to interact with physical reality. 
+                          Think of every ESP32 as a web3 endpoint that can verify cryptographic identity without internet, databases, or trusted third parties. 
+                          While others build financial instruments, we're building the 'last mile' of decentralized identity."
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Technical Specifications */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-primary" />
+                    <h4 className="text-lg font-semibold text-foreground">Technical Specifications</h4>
+                  </div>
+                  <div className="bg-background/50 border border-border/50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="font-mono text-primary font-semibold mb-2">Cryptographic</div>
+                        <div className="space-y-1 text-muted-foreground font-mono text-xs">
+                          <div>Ed25519 signatures</div>
+                          <div>SHA-512 hashing</div>
+                          <div>32-byte private keys</div>
+                          <div>64-byte signatures</div>
+                          <div>DID:key standard</div>
+                          <div>128-bit security level</div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-mono text-accent font-semibold mb-2">Hardware</div>
+                        <div className="space-y-1 text-muted-foreground font-mono text-xs">
+                          <div>ESP32-S3 MCU</div>
+                          <div>PN532 NFC module</div>
+                          <div>2.9" E-paper display</div>
+                          <div>WiFi 802.11b/g/n</div>
+                          <div>Flash storage</div>
+                          <div>Hardware RNG</div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-mono text-secondary font-semibold mb-2">Software</div>
+                        <div className="space-y-1 text-muted-foreground font-mono text-xs">
+                          <div>Next.js frontend</div>
+                          <div>TypeScript/Rust backend</div>
+                          <div>Arduino C++ firmware</div>
+                          <div>libsodium crypto</div>
+                          <div>Vercel deployment</div>
+                          <div>Local-first storage</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Developer Preferences */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-foreground mb-6">Developer Preferences</h3>
               <div className="space-y-6">
@@ -925,6 +1229,9 @@ export default function DeveloperDiagnosticsHub() {
                 <div>Build: {new Date().toISOString().split('T')[0]}</div>
                 <div>Environment: {process.env.NODE_ENV || 'development'}</div>
                 <div>Deployment: Vercel Edge Runtime</div>
+                <div>Crypto Library: @noble/ed25519 v2.2.3</div>
+                <div>Hardware Support: ESP32-S3 + PN532</div>
+                <div>Standards: DID:key, Ed25519, NDEF</div>
               </div>
             </Card>
           </div>

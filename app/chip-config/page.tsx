@@ -224,6 +224,100 @@ function generateOptimizedNFCUrl(
   )
 }
 
+// --- Enhanced URL Generation with Crypto-Safe Compression ---
+function generateCryptoSafeNFCUrl(
+  chipUID: string,
+  signature: string,
+  publicKey: string,
+  did: string,
+  baseUrl: string,
+  chipType: 'NTAG213' | 'NTAG215' | 'NTAG216' | 'NTAG424_DNA'
+): {
+  nfcUrl: string
+  urlAnalysis: { bytes: number; chars: number; compatibility: Record<string, string> }
+  compressionLevel: string
+  validation: { valid: boolean, errors: string[], warnings: string[] }
+} {
+  const validation = {
+    valid: true,
+    errors: [] as string[],
+    warnings: [] as string[]
+  }
+
+  // Chip memory constraints with conservative estimates for reliable NFC writing
+  const chipLimits = {
+    'NTAG213': 120,   // Conservative limit for ultra-small chips
+    'NTAG215': 450,   // Conservative limit for medium chips  
+    'NTAG216': 850,   // Conservative limit for large chips
+    'NTAG424_DNA': 220 // Conservative limit for secure chips
+  }
+
+  const limit = chipLimits[chipType]
+  let nfcUrl: string
+  let compressionLevel: string
+
+  // Always start with full format for maximum compatibility
+  const fullUrl = `${baseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${signature}&publicKey=${publicKey}&uid=${chipUID}`
+  const fullBytes = new TextEncoder().encode(fullUrl).length
+
+  if (fullBytes <= limit) {
+    // Full format fits - use it for maximum reliability
+    nfcUrl = fullUrl
+    compressionLevel = 'full-parameters (crypto-safe)'
+  } else if (chipType === 'NTAG213' || chipType === 'NTAG424_DNA') {
+    // For smallest chips, we need maximum compression but must preserve crypto integrity
+    // Use a crypto-safe compressed format that doesn't truncate essential data
+    const compactUID = chipUID.replace(/:/g, '')
+    
+    // Only compress if signature and key are at minimum safe lengths
+    if (signature.length >= 128 && publicKey.length >= 64) {
+      // Use shortened parameter names but keep full crypto data
+      nfcUrl = `${baseUrl}/nfc?c=${compactUID}&s=${signature}&p=${publicKey}`
+      compressionLevel = 'compressed-safe (no truncation)'
+    } else {
+      validation.errors.push('Cryptographic parameters too short for safe compression')
+      nfcUrl = fullUrl // Fallback to full format
+      compressionLevel = 'full-parameters (fallback)'
+    }
+  } else {
+    // For medium/large chips, use minimal compression
+    const compactUID = chipUID.replace(/:/g, '')
+    nfcUrl = `${baseUrl}/nfc?uid=${compactUID}&sig=${signature}&key=${publicKey}&did=${encodeURIComponent(did)}`
+    compressionLevel = 'minimal-compression (crypto-safe)'
+  }
+
+  // Final validation
+  const finalBytes = new TextEncoder().encode(nfcUrl).length
+  if (finalBytes > limit) {
+    validation.errors.push(`URL too long for ${chipType}: ${finalBytes} bytes > ${limit} limit`)
+    validation.valid = false
+  }
+
+  // Validate that we haven't compromised crypto integrity
+  if (signature.length < 128 || publicKey.length < 64) {
+    validation.errors.push('Cryptographic parameters insufficient for secure authentication')
+    validation.valid = false
+  }
+
+  const compatibility = {
+    'NTAG213': finalBytes <= 120 ? '✅ Crypto-safe fit' : '❌ Too large',
+    'NTAG215': finalBytes <= 450 ? '✅ Crypto-safe fit' : '❌ Too large',
+    'NTAG216': finalBytes <= 850 ? '✅ Crypto-safe fit' : '❌ Too large',
+    'NTAG424_DNA': finalBytes <= 220 ? '✅ Crypto-safe fit' : '❌ Too large'
+  }
+
+  return {
+    nfcUrl,
+    urlAnalysis: {
+      bytes: finalBytes,
+      chars: nfcUrl.length,
+      compatibility
+    },
+    compressionLevel,
+    validation
+  }
+}
+
 export default function ChipConfigPage() {
   const { toast } = useToast()
   
@@ -451,16 +545,16 @@ export default function ChipConfigPage() {
         throw new Error('Incomplete cryptographic parameters generated')
       }
       
-      // Step 3: Generate URLs with production safety in mind
+      // Step 3: Generate URLs with crypto-safe compression strategies
       let urlResult: {
         nfcUrl: string
         urlAnalysis: { bytes: number; chars: number; compatibility: Record<string, string> }
         compressionLevel: string
+        validation?: { valid: boolean, errors: string[], warnings: string[] }
       }
       
-      // For production safety, use full crypto format that doesn't rely on localStorage
-      // This ensures chips work on any device, anywhere
-      const urlData = generateOptimizedNFCUrl(
+      // Use new crypto-safe URL generation that preserves authentication integrity
+      const cryptoSafeUrl = generateCryptoSafeNFCUrl(
         chipUID,
         keyPair.signature,
         keyPair.publicKey,
@@ -469,16 +563,48 @@ export default function ChipConfigPage() {
         selectedChipType
       )
       
-      // If the full format fits the chip, use it for maximum reliability
-      if (urlData.urlAnalysis.bytes <= 400 || selectedChipType !== 'NTAG213') {
-        urlResult = urlData
+      // Check if crypto-safe generation succeeded
+      if (cryptoSafeUrl.validation.valid) {
+        urlResult = cryptoSafeUrl
       } else {
-        // Fallback to decentralized format only for very small chips
-        urlResult = generateDecentralizedNFCUrl(
-          keyPair.deviceId,
-          chipUID,
-          customBaseUrl
-        )
+        // Log validation errors for debugging
+        console.warn('Crypto-safe URL generation failed:', cryptoSafeUrl.validation.errors)
+        
+        // For very small chips where crypto-safe compression fails,
+        // fall back to decentralized format but warn about limitations
+        if (selectedChipType === 'NTAG213' || selectedChipType === 'NTAG424_DNA') {
+          const decentralizedUrl = generateDecentralizedNFCUrl(
+            keyPair.deviceId,
+            chipUID,
+            customBaseUrl
+          )
+          
+          urlResult = {
+            ...decentralizedUrl,
+            validation: {
+              valid: false,
+              errors: ['Using decentralized format due to space constraints'],
+              warnings: ['This URL requires device registration and may not work on all devices']
+            }
+          }
+        } else {
+          // For larger chips, should not fail - use fallback
+          urlResult = {
+            nfcUrl: `${customBaseUrl}/nfc?error=generation_failed`,
+            urlAnalysis: {
+              bytes: 0,
+              chars: 0,
+              compatibility: {
+                'NTAG213': '❌ Generation failed',
+                'NTAG215': '❌ Generation failed',
+                'NTAG216': '❌ Generation failed',
+                'NTAG424_DNA': '❌ Generation failed'
+              }
+            },
+            compressionLevel: 'error',
+            validation: cryptoSafeUrl.validation
+          }
+        }
       }
       
       // Step 4: Create test URL for legacy compatibility

@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon } from "lucide-react";
+import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon, HeartIcon } from "lucide-react";
 import Link from 'next/link';
 import { PINSetup } from '@/components/ui/pin-setup';
 import { ProfileEditor } from '@/components/ui/profile-editor';
@@ -139,7 +139,7 @@ const generateUserStats = (chipUID: string, isNewUser: boolean = false) => {
       verificationsGiven: 1,
       memoriesContributed: 0,
       momentsWitnessed: 0,
-      collectiveWisdom: 0
+      totalBonds: 0
     };
   }
   
@@ -158,7 +158,7 @@ const generateUserStats = (chipUID: string, isNewUser: boolean = false) => {
     verificationsGiven: Math.floor(rng() * 50) + 15,
     memoriesContributed: Math.floor(rng() * 30) + 8,
     momentsWitnessed: Math.floor(rng() * 100) + 25,
-    collectiveWisdom: Math.floor(rng() * 1000) + 200
+    totalBonds: Math.floor(rng() * 10) + 1 // Random bond count for fallback/demo use
   };
 };
 
@@ -247,157 +247,209 @@ const ProfilePage = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showPINSetup, setShowPINSetup] = useState(false);
   const [hasPIN, setHasPIN] = useState(false);
+  const [userBonds, setUserBonds] = useState<any[]>([]);
 
   // Check for chipUID in URL parameters
   useEffect(() => {
     const loadProfileData = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const verified = urlParams.get('verified');
-      const source = urlParams.get('source');
-      const chipUID = urlParams.get('chipUID');
-      const sessionToken = urlParams.get('session');
-      const momentId = urlParams.get('momentId');
+      console.log('🔐 Starting secure profile authentication...');
       
-      console.log('Profile loading with params:', { verified, source, chipUID, sessionToken, momentId });
-      
-      // Only allow access if properly authenticated via NFC flow
-      if (!verified || !source || !chipUID || !sessionToken) {
-        console.warn('Missing required authentication parameters:', { verified, source, chipUID, sessionToken });
-        // Redirect to NFC authentication - no mock access allowed
-        window.location.href = '/nfc';
-        return;
-      }
-      
-      // Verify this is a real authentication session, not a mock
-      if (source !== 'api') {
-        console.warn('Invalid authentication source:', source);
-        window.location.href = '/nfc';
-        return;
-      }
-      
-      // Load real user identity from localStorage (from decentralized crypto flow)
       try {
-        // Use dynamic import for better Next.js compatibility
-        const { loadLocalIdentity } = await import('@/lib/crypto/decentralizedNFC');
-        const identity = loadLocalIdentity();
+        // Import session manager for secure authentication
+        const { SessionManager } = await import('@/lib/nfc/sessionManager');
         
-        console.log('Loaded local identity:', identity ? 'found' : 'not found');
+        // Check for valid active session (not URL parameters!)
+        const session = await SessionManager.getCurrentSession();
         
-        if (!identity) {
-          console.warn('No local identity found - this might be a legacy authentication');
-          
-          // For legacy authentication or first-time users, create a minimal identity
-          const { initializeLocalIdentity } = await import('@/lib/crypto/decentralizedNFC');
-          const newIdentity = initializeLocalIdentity(`User_${chipUID}`);
-          console.log('Created new identity for legacy auth');
+        if (!session.isActive || !session.currentUser) {
+          console.warn('🚫 No active cryptographic session found - redirecting to NFC auth');
+          window.location.href = '/nfc';
+          return;
         }
         
-        // Try to find the device that matches this chipUID
-        const updatedIdentity = loadLocalIdentity();
-        let matchingDevice = null;
+        // Additional security: Check if session is recent (within last 10 minutes for profile access)
+        const sessionAge = Date.now() - new Date(session.currentUser.lastAuthenticated).getTime();
+        const MAX_SESSION_AGE = 10 * 60 * 1000; // 10 minutes
         
-        if (updatedIdentity) {
-          matchingDevice = Object.values(updatedIdentity.devices).find(
-            (device: any) => device.chipUID === chipUID
-          ) as any;
+        if (sessionAge > MAX_SESSION_AGE) {
+          console.warn('🚫 Session too old for profile access - requiring fresh authentication');
+          await SessionManager.clearSession();
+          window.location.href = '/nfc';
+          return;
         }
         
-        console.log('Matching device found:', matchingDevice ? 'yes' : 'no');
-        
-        if (!matchingDevice) {
-          console.warn('Device not found in local identity registry - creating temporary device entry');
-          // For authenticated sessions without registered devices, create a temporary entry
-          matchingDevice = {
-            deviceId: `temp_${Date.now()}`,
-            deviceName: `Authenticated Device ${chipUID.slice(-4)}`,
-            publicKey: 'temp_public_key', // Placeholder for authenticated session
-            chipUID: chipUID,
-            createdAt: Date.now()
-          };
+        // Verify the session token cryptographically
+        const isValidSession = await SessionManager.verifySessionToken(session.currentUser.sessionId);
+        if (!isValidSession) {
+          console.warn('🚫 Invalid session token detected - clearing session');
+          await SessionManager.clearSession();
+          window.location.href = '/nfc';
+          return;
         }
         
-        // Check if this is first visit for welcome ritual
-        const hasVisited = localStorage.getItem(`kairos_visited_${chipUID}`);
-        if (!hasVisited) {
-          setShowWelcomeRitual(true);
-          localStorage.setItem(`kairos_visited_${chipUID}`, 'true');
+        const chipUID = session.currentUser.chipUID;
+        console.log('✅ Valid cryptographic session found for chipUID:', chipUID);
+        
+        // Optional: Check URL parameters for additional context, but don't rely on them for security
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlChipUID = urlParams.get('chipUID');
+        
+        // If URL has chipUID, it should match the session (but this is not required for security)
+        if (urlChipUID && urlChipUID !== chipUID) {
+          console.warn('⚠️ URL chipUID doesn\'t match session - possible tampering or stale URL');
+          // Clean up the URL but continue with the valid session
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.search = '';
+          window.history.replaceState({}, '', cleanUrl.toString());
         }
         
-        // Use privacy-first account manager to get or create profile
+        // Load real user identity from localStorage (from decentralized crypto flow)
         try {
-          const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+          // Use dynamic import for better Next.js compatibility
+          const { loadLocalIdentity } = await import('@/lib/crypto/decentralizedNFC');
+          const identity = loadLocalIdentity();
           
-          // First ensure account exists (this will create or update database entry)
-          const accountResult = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
-          const currentAccount = accountResult.account
+          console.log('Loaded local identity:', identity ? 'found' : 'not found');
           
-          console.log(`Account status: ${accountResult.isNewAccount ? 'New' : 'Existing'}, Device: ${accountResult.isNewDevice ? 'New' : 'Familiar'}`)
+          if (!identity) {
+            console.warn('No local identity found - this might be a legacy authentication');
+            
+            // For legacy authentication or first-time users, create a minimal identity
+            const { initializeLocalIdentity } = await import('@/lib/crypto/decentralizedNFC');
+            const newIdentity = initializeLocalIdentity(`User_${chipUID}`);
+            console.log('Created new identity for legacy auth');
+          }
           
-          // Use REAL account data instead of mock stats
-          const profile = {
-            chipUID,
-            deviceId: matchingDevice?.deviceId || currentAccount.accountId,
-            deviceName: currentAccount.deviceName,
-            username: currentAccount.username,
-            displayName: currentAccount.displayName,
-            publicKey: currentAccount.publicKey,
-            bio: currentAccount.bio,
-            // 🆕 Use REAL stats from account instead of generateUserStats mock
-            verificationsGiven: currentAccount.stats.totalSessions || 1,
-            memoriesContributed: currentAccount.stats.totalMoments || 0,
-            momentsWitnessed: currentAccount.moments?.length || 0,
-            collectiveWisdom: Math.floor((currentAccount.stats.totalSessions * 10) + (currentAccount.stats.totalMoments * 25)),
-            joinDate: currentAccount.createdAt,
-            lastSession: {
-              sessionToken,
-              momentId,
-              timestamp: new Date().toISOString()
-            },
-            cryptographicIdentity: {
-              verified: true,
-              deviceRegistered: !!updatedIdentity,
-              authenticationMethod: updatedIdentity ? 'decentralized-nfc' : 'legacy-nfc',
-              accountId: currentAccount.accountId,
-              totalSessions: currentAccount.stats.totalSessions,
-              totalMoments: currentAccount.stats.totalMoments,
-              isNewAccount: accountResult.isNewAccount,
-              isNewDevice: accountResult.isNewDevice
+          // Try to find the device that matches this chipUID
+          const updatedIdentity = loadLocalIdentity();
+          let matchingDevice = null;
+          
+          if (updatedIdentity) {
+            matchingDevice = Object.values(updatedIdentity.devices).find(
+              (device: any) => device.chipUID === chipUID
+            ) as any;
+          }
+          
+          console.log('Matching device found:', matchingDevice ? 'yes' : 'no');
+          
+          if (!matchingDevice) {
+            console.warn('Device not found in local identity registry - creating temporary device entry');
+            // For authenticated sessions without registered devices, create a temporary entry
+            matchingDevice = {
+              deviceId: `temp_${Date.now()}`,
+              deviceName: `Authenticated Device ${chipUID.slice(-4)}`,
+              publicKey: 'temp_public_key', // Placeholder for authenticated session
+              chipUID: chipUID,
+              createdAt: Date.now()
+            };
+          }
+          
+          // Use privacy-first account manager to get or create profile
+          try {
+            const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+            
+            // Get account data for the authenticated user
+            const accountResult = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
+            const currentAccount = accountResult.account
+            
+            console.log(`Account status: ${accountResult.isNewAccount ? 'New' : 'Existing'}, Device: ${accountResult.isNewDevice ? 'New' : 'Familiar'}`)
+            
+            // Show welcome ritual ONLY for truly new accounts, not returning users on new devices
+            if (accountResult.isNewAccount) {
+              console.log('🎉 New account detected - showing welcome ritual')
+              setShowWelcomeRitual(true)
+            } else {
+              console.log('✅ Returning user - skipping welcome ritual')
             }
+            
+            // Use REAL account data instead of mock stats
+            const profile = {
+              chipUID,
+              deviceId: matchingDevice?.deviceId || currentAccount.accountId,
+              deviceName: currentAccount.deviceName,
+              username: currentAccount.username,
+              displayName: currentAccount.displayName,
+              publicKey: currentAccount.publicKey,
+              bio: currentAccount.bio,
+              // Use REAL stats from account instead of mock data
+              verificationsGiven: currentAccount.stats.totalSessions || 1,
+              memoriesContributed: currentAccount.stats.totalMoments || 0,
+              momentsWitnessed: currentAccount.moments?.length || 0,
+              totalBonds: 0, // Will be loaded from bond manager
+              joinDate: currentAccount.createdAt,
+              lastSession: {
+                sessionToken: session.currentUser.sessionId,
+                momentId: `moment_${Date.now()}`,
+                timestamp: new Date().toISOString()
+              },
+              cryptographicIdentity: {
+                verified: true,
+                deviceRegistered: !!updatedIdentity,
+                authenticationMethod: updatedIdentity ? 'decentralized-nfc' : 'legacy-nfc',
+                accountId: currentAccount.accountId,
+                totalSessions: currentAccount.stats.totalSessions,
+                totalMoments: currentAccount.stats.totalMoments,
+                isNewAccount: accountResult.isNewAccount,
+                isNewDevice: accountResult.isNewDevice,
+                sessionCreated: session.currentUser.lastAuthenticated,
+                sessionExpires: new Date(Date.now() + MAX_SESSION_AGE).toISOString()
+              }
+            }
+            
+            setUserProfile(profile)
+            setHasPIN(currentAccount.hasPIN)
+            
+            // Load user bonds
+            await loadUserBonds(chipUID)
+            
+            // Show PIN setup prompt for new accounts without PIN
+            if (!currentAccount.hasPIN && !currentAccount.pinSetupPrompted) {
+              setShowPINSetup(true)
+            }
+            
+            console.log('✅ Loaded REAL profile data from cryptographically verified session')
+            
+          } catch (error) {
+            console.error('❌ Failed to load account via NFCAccountManager:', error)
+            
+            // Show error and redirect - no fallback to mock data
+            setUserProfile(null)
+            
+            setTimeout(() => {
+              window.location.href = '/nfc'
+            }, 3000)
+            return
           }
           
-          setUserProfile(profile)
-          setHasPIN(currentAccount.hasPIN)
+          console.log('Profile loaded successfully with cryptographic verification');
           
-          // Show PIN setup prompt for new accounts without PIN
-          if (!currentAccount.hasPIN && !currentAccount.pinSetupPrompted) {
-            setShowPINSetup(true)
-          }
+        } catch (error) {
+          console.error('Failed to load cryptographic identity:', error);
+          setUserProfile(null);
           
-          console.log('✅ Loaded REAL profile data from account manager (no more mock data!)')
-          
-                     
-         } catch (error) {
-           console.error('❌ Failed to load account via NFCAccountManager:', error)
-           
-           // Show error and redirect - no fallback to mock data
-           setUserProfile(null)
-           
-           setTimeout(() => {
-             window.location.href = '/nfc'
-           }, 3000)
-           return
-         }
-        console.log('Profile loaded successfully');
+          // Only redirect after a delay to allow user to see any error messages
+          setTimeout(() => {
+            window.location.href = '/nfc';
+          }, 3000);
+          return;
+        }
         
       } catch (error) {
-        console.error('Failed to load cryptographic identity:', error);
-        // Instead of redirecting immediately, try to show a more helpful error
+        console.error('❌ Session verification failed:', error);
         setUserProfile(null);
         
-        // Only redirect after a delay to allow user to see any error messages
+        // Clear any potentially compromised session
+        try {
+          const { SessionManager } = await import('@/lib/nfc/sessionManager');
+          await SessionManager.clearSession();
+        } catch (e) {
+          console.error('Failed to clear session:', e);
+        }
+        
+        // Redirect to NFC authentication
         setTimeout(() => {
           window.location.href = '/nfc';
-        }, 3000);
+        }, 2000);
         return;
       }
     };
@@ -406,8 +458,27 @@ const ProfilePage = () => {
   }, []);
 
   const handleWelcomeComplete = () => {
-    setShowWelcomeRitual(false);
-  };
+    setShowWelcomeRitual(false)
+    
+    // Mark ritual flow as completed for this user
+    if (userProfile?.chipUID) {
+      markRitualFlowCompleted(userProfile.chipUID)
+    }
+  }
+  
+  const markRitualFlowCompleted = async (chipUID: string) => {
+    try {
+      const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+      const success = await NFCAccountManager.markRitualFlowCompleted(chipUID)
+      if (success) {
+        console.log('🎭 Ritual flow marked as completed for user')
+      } else {
+        console.warn('Failed to mark ritual flow as completed')
+      }
+    } catch (error) {
+      console.error('Error marking ritual flow completion:', error)
+    }
+  }
 
   const handleExport = async () => {
     if (userProfile) {
@@ -489,50 +560,111 @@ const ProfilePage = () => {
     }
   }
 
-  const handleLogout = () => {
-    if (userProfile) {
-      // Clear all user data from localStorage
-      localStorage.removeItem(`kairos_profile_${userProfile.chipUID}`);
-      localStorage.removeItem(`kairos_visited_${userProfile.chipUID}`);
+  const loadUserBonds = async (chipUID: string) => {
+    try {
+      const { BondManager } = await import('@/lib/nfc/bondManager')
+      const bonds = await BondManager.getUserBonds(chipUID)
+      const formattedBonds = BondManager.formatBondsForProfile(bonds, chipUID)
+      setUserBonds(formattedBonds)
       
-      // Redirect to home page
-      window.location.href = '/';
+      // Also update the profile with the total bonds count
+      setUserProfile(prev => prev ? {
+        ...prev,
+        totalBonds: bonds.length
+      } : null)
+      
+      console.log(`✅ Loaded ${bonds.length} bonds for user`)
+    } catch (error) {
+      console.error('Failed to load user bonds:', error)
+      setUserBonds([])
     }
-  };
+  }
 
-  if (!userProfile) {
+  const handleLogout = async () => {
+    if (userProfile) {
+      try {
+        // Clear session first
+        const { SessionManager } = await import('@/lib/nfc/sessionManager')
+        await SessionManager.clearSession()
+        
+        // Import and use the NFCAccountManager logout method
+        const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+        
+        // Clear session for this specific chipUID
+        NFCAccountManager.logout(userProfile.chipUID)
+        
+        // Also clear legacy profile data
+        localStorage.removeItem(`kairos_profile_${userProfile.chipUID}`)
+        localStorage.removeItem(`kairos_visited_${userProfile.chipUID}`)
+        
+        console.log(`🚪 Logged out chipUID: ${userProfile.chipUID}`)
+        
+        // Redirect to home page
+        window.location.href = '/'
+      } catch (error) {
+        console.error('Logout failed:', error)
+        // Fallback to basic localStorage clearing
+        localStorage.removeItem(`kairos_profile_${userProfile.chipUID}`)
+        localStorage.removeItem(`kairos_visited_${userProfile.chipUID}`)
+        window.location.href = '/'
+      }
+    }
+  }
+
+  // If profile loading failed, show authentication required message
+  if (userProfile === null) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <div className="space-y-2">
-            <h2 className="text-lg font-mono text-primary">Authentication Required</h2>
-            <p className="text-sm text-muted-foreground">
-              Verifying your cryptographic identity...
-            </p>
-            <p className="text-xs text-muted-foreground">
-              If you're not redirected automatically, you need to authenticate via NFC first.
-            </p>
-            <div className="mt-4 p-3 bg-muted/20 rounded-lg border border-border">
-              <p className="text-xs text-muted-foreground mb-2 font-medium">Debug Information:</p>
-              <div className="text-xs font-mono text-left space-y-1">
-                <p>URL: {typeof window !== 'undefined' ? window.location.href : 'Loading...'}</p>
-                <p>Time: {new Date().toLocaleTimeString()}</p>
-                <p>Status: Loading profile data...</p>
-              </div>
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden">
+        {/* Holographic Background Effect */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/25 to-secondary/15 animate-pulse"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 py-8 max-w-md relative z-10">
+          <div className="text-center space-y-6 mt-32">
+            <div className="relative p-4 rounded-full bg-destructive/10 border border-destructive/20 mx-auto w-fit">
+              <Shield className="h-12 w-12 text-destructive animate-pulse" />
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            
+            <div className="space-y-4">
+              <h1 className="text-2xl font-mono font-light text-foreground/90">
+                Authentication Required
+              </h1>
+              <p className="text-muted-foreground font-mono text-sm leading-relaxed">
+                Verifying your cryptographic identity...
+              </p>
+              <div className="bg-card/50 backdrop-blur-sm border border-destructive/20 rounded-lg p-4 text-left">
+                <p className="text-xs text-muted-foreground font-mono mb-2">
+                  <strong>Security Notice:</strong>
+                </p>
+                <p className="text-xs text-muted-foreground font-mono leading-relaxed">
+                  Your KairOS profile requires physical NFC chip authentication. 
+                  URL-based access has been disabled for your security.
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground font-mono">
+                If you're not redirected automatically, you need to authenticate via NFC first.
+              </p>
+            </div>
+            
+            <div className="space-y-2 text-xs text-muted-foreground font-mono">
+              <p><strong>Debug Information:</strong></p>
+              <p>URL: {typeof window !== 'undefined' ? window.location.href : 'Loading...'}</p>
+              <p>Time: {new Date().toLocaleTimeString()}</p>
+              <p>Status: Loading profile data...</p>
+            </div>
+            
+            <Button
               onClick={() => window.location.href = '/nfc'}
-              className="mt-4"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-mono"
             >
+              <Shield className="h-4 w-4 mr-2" />
               Go to NFC Authentication
             </Button>
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -597,8 +729,8 @@ const ProfilePage = () => {
                 <div className="text-xs text-muted-foreground font-mono">MOMENTS</div>
               </div>
               <div className="text-center p-3 bg-warning/5 rounded-lg border border-warning/10">
-                <div className="text-lg sm:text-2xl font-bold text-warning font-mono">{userProfile.collectiveWisdom}</div>
-                <div className="text-xs text-muted-foreground font-mono">WISDOM</div>
+                <div className="text-lg sm:text-2xl font-bold text-warning font-mono">{userProfile.totalBonds || 0}</div>
+                <div className="text-xs text-muted-foreground font-mono">BONDS</div>
               </div>
             </div>
             
@@ -649,6 +781,11 @@ const ProfilePage = () => {
               <span className="hidden xs:inline sm:inline font-mono text-xs">Transcriptions</span>
               <span className="xs:hidden sm:hidden font-mono text-xs">Text</span>
             </ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="bonds">
+              <HeartIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline sm:inline font-mono text-xs">Bonds</span>
+              <span className="xs:hidden sm:hidden font-mono text-xs">Bonds</span>
+            </ResponsiveTabsTrigger>
             <ResponsiveTabsTrigger value="community">
               <Users className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline sm:inline font-mono text-xs">Community</span>
@@ -685,16 +822,16 @@ const ProfilePage = () => {
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
                 <p className="text-foreground text-sm sm:text-base leading-relaxed">
-                  Your personal AI companion learns from your interactions and helps you make sense of collective memories and experiences. 
-                  It's designed to amplify human wisdom rather than replace it.
+                  Your personal AI companion enhances civic participation by connecting individual experiences to collective wisdom. 
+                  It's designed to amplify community knowledge and strengthen social bonds.
                 </p>
                 <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg">
                   <h4 className="font-semibold text-primary mb-2 font-mono text-sm sm:text-base">What your companion remembers:</h4>
                   <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    <li>• Patterns in your ritual participation</li>
-                    <li>• Connections between your memories and others</li>
-                    <li>• Insights that emerge from collective experiences</li>
-                    <li>• Questions that help deepen understanding</li>
+                    <li>• Your civic participation and community engagement</li>
+                    <li>• Connections between personal and shared stories</li>
+                    <li>• Patterns of collective action and coordination</li>
+                    <li>• Questions that strengthen community resilience</li>
                   </ul>
                 </div>
                 <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-sm sm:text-base py-2 sm:py-3" disabled>
@@ -716,8 +853,8 @@ const ProfilePage = () => {
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
                 <p className="text-foreground text-sm sm:text-base leading-relaxed">
-                  Transform spoken conversations into searchable collective memory. Perfect for community gatherings, 
-                  ritual debriefs, and capturing the wisdom that emerges in groups.
+                  Transform civic discourse into shared knowledge resources. Perfect for town halls, 
+                  community forums, and preserving the civic wisdom that emerges through dialogue.
                 </p>
                 <div className="bg-accent/10 border border-accent/20 p-3 sm:p-4 rounded-lg">
                   <h4 className="font-semibold text-accent mb-2 font-mono text-sm sm:text-base">Collective Sense-Making Features:</h4>
@@ -732,6 +869,71 @@ const ProfilePage = () => {
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Start Transcription Session (Coming Soon)
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="bonds" className="mt-4 sm:mt-6">
+            <Card className="bg-card/50 backdrop-blur-sm border border-primary/20 shadow-minimal">
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="flex items-center gap-2 text-primary font-mono text-base sm:text-lg">
+                  <HeartIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Your Bonds
+                  {userBonds.length > 0 && (
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded font-mono">
+                      {userBonds.length}
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
+                {userBonds.length > 0 ? (
+                  <>
+                    <p className="text-foreground text-sm sm:text-base leading-relaxed">
+                      Your meaningful connections with other memory keepers. These bonds represent shared moments and mutual recognition.
+                    </p>
+                    <div className="space-y-2 sm:space-y-3">
+                      {userBonds.map((bond, index) => (
+                        <motion.div
+                          key={bond.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="bg-primary/5 border border-primary/10 p-3 rounded-lg"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">{bond.emoji}</span>
+                              <div>
+                                <h4 className="font-semibold text-primary font-mono text-sm sm:text-base">
+                                  {bond.name}
+                                </h4>
+                                <p className="text-xs text-muted-foreground">
+                                  {bond.type} • Connected {bond.duration}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground text-right">
+                              Last interaction<br />
+                              {bond.lastInteraction}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <HeartIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <p className="text-foreground text-sm sm:text-base mb-2">
+                      No bonds yet
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Bonds are created when you tap your NFC chip to a device where someone else is already logged in. 
+                      They represent meaningful connections in the physical world.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

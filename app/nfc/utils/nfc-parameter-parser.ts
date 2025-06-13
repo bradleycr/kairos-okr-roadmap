@@ -69,16 +69,17 @@ export class NFCParameterParser {
       }
     }
 
-    // Strategy 3: Legacy compressed format (c, s, p/k)
+    // Strategy 3: Safe compressed format (c, s, p) - minimal compression preserving crypto integrity
     const compressedUID = searchParams.get('c')
     const compressedSig = searchParams.get('s')
-    const compressedKey = searchParams.get('p') || searchParams.get('k') // Support both p and k
+    const compressedKey = searchParams.get('p')
     
     if (compressedUID && compressedSig && compressedKey) {
-      debugInfo.push('✅ Legacy compressed format detected')
+      debugInfo.push('✅ Safe compressed format detected (minimal compression)')
       
       try {
-        const reconstructed = this.reconstructCompressedParams(
+        // For the new safe compression, data is not base64 encoded - it's full hex
+        const reconstructed = this.reconstructSafeCompressedParams(
           compressedUID, 
           compressedSig, 
           compressedKey
@@ -94,7 +95,35 @@ export class NFCParameterParser {
           debugInfo
         }
       } catch (error) {
-        debugInfo.push(`❌ Failed to reconstruct compressed params: ${error}`)
+        debugInfo.push(`❌ Failed to reconstruct safe compressed params: ${error}`)
+      }
+    }
+
+    // Strategy 3b: Legacy compressed format (c, s, k) - for backward compatibility
+    const legacyCompressedKey = searchParams.get('k')
+    
+    if (compressedUID && compressedSig && legacyCompressedKey) {
+      debugInfo.push('⚠️ Legacy compressed format detected (may have crypto issues)')
+      
+      try {
+        const reconstructed = this.reconstructCompressedParams(
+          compressedUID, 
+          compressedSig, 
+          legacyCompressedKey
+        )
+        
+        debugInfo.push(`Legacy reconstructed: chipUID=${reconstructed.chipUID}`)
+        debugInfo.push(`Signature length: ${reconstructed.signature?.length || 0}`)
+        debugInfo.push(`Public key length: ${reconstructed.publicKey?.length || 0}`)
+        debugInfo.push(`⚠️ Warning: This format may fail authentication due to crypto truncation`)
+        
+        return {
+          params: reconstructed,
+          format: 'legacy-compressed',
+          debugInfo
+        }
+      } catch (error) {
+        debugInfo.push(`❌ Failed to reconstruct legacy compressed params: ${error}`)
       }
     }
 
@@ -136,7 +165,51 @@ export class NFCParameterParser {
   }
 
   /**
-   * Reconstruct parameters from compressed format
+   * Reconstruct parameters from safe compressed format (new approach)
+   * This method preserves full cryptographic data integrity
+   */
+  private static reconstructSafeCompressedParams(
+    compressedUID: string,
+    signature: string,
+    publicKey: string
+  ): NFCParameters {
+    // Reconstruct chip UID with proper formatting
+    const chipUID = compressedUID.includes(':') 
+      ? compressedUID 
+      : `04:${compressedUID.match(/.{2}/g)?.join(':') || compressedUID}`
+    
+    // Validate crypto parameters - NO PADDING for safety
+    if (signature.length < 128) {
+      throw new Error(`Signature too short: ${signature.length} chars, need 128+ for Ed25519`)
+    }
+    
+    if (publicKey.length < 64) {
+      throw new Error(`Public key too short: ${publicKey.length} chars, need 64+ for Ed25519`)
+    }
+    
+    if (!/^[0-9a-fA-F]+$/.test(signature)) {
+      throw new Error('Signature must be hex format')
+    }
+    
+    if (!/^[0-9a-fA-F]+$/.test(publicKey)) {
+      throw new Error('Public key must be hex format')
+    }
+    
+    // Generate DID from public key
+    const did = `did:key:z${publicKey.substring(0, 32)}`
+    
+    return {
+      chipUID,
+      signature,
+      publicKey,
+      did,
+      challenge: `KairOS_NFC_Challenge_${chipUID}`
+    }
+  }
+
+  /**
+   * Reconstruct parameters from legacy compressed format (backward compatibility)
+   * This method may introduce padding which can break authentication
    */
   private static reconstructCompressedParams(
     compressedUID: string,
@@ -148,7 +221,7 @@ export class NFCParameterParser {
       ? compressedUID 
       : `04:${compressedUID.match(/.{2}/g)?.join(':') || compressedUID}`
     
-    // Ensure minimum lengths and proper padding
+    // Legacy behavior - pad if needed (WARNING: this may break authentication)
     const signature = compressedSig.length >= 64 
       ? compressedSig 
       : compressedSig.padEnd(128, '0')
