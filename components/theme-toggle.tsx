@@ -8,16 +8,10 @@ import * as React from "react"
 import { useTheme } from "next-themes"
 import { SunIcon, MoonIcon, MonitorIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 interface ThemeToggleProps {
-  variant?: "icon" | "full"
+  variant?: "icon" | "full" | "simple"
   size?: "sm" | "md" | "lg"
   className?: string
 }
@@ -42,7 +36,7 @@ export function ThemeToggle({
         size={size === "sm" ? "icon" : "default"}
         className={cn(
           "glass-button border-0 backdrop-blur-md",
-          "h-9 w-9 rounded-xl transition-all duration-300",
+          "h-10 w-10 rounded-xl transition-all duration-300",
           "bg-background/60 hover:bg-background/80",
           className
         )}
@@ -54,171 +48,141 @@ export function ThemeToggle({
   }
 
   const isDark = resolvedTheme === "dark"
-  const isSystem = theme === "system"
 
-  const handleThemeChange = (newTheme: string) => {
+  const handleThemeToggle = () => {
     // Add haptic feedback for mobile devices
     if (typeof window !== "undefined" && "vibrate" in navigator) {
       navigator.vibrate(50)
     }
-    setTheme(newTheme)
+    
+    // Simple toggle between light and dark
+    setTheme(isDark ? "light" : "dark")
   }
 
-  if (variant === "full") {
+  // Simple variant for mobile navigation
+  if (variant === "simple") {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
+      <button
+        onClick={handleThemeToggle}
+        className={cn(
+          "relative p-3 rounded-xl transition-all duration-300 ease-out",
+          "bg-muted/30 hover:bg-muted/50 active:bg-muted/60",
+          "border border-muted/30 hover:border-primary/30",
+          "focus:outline-none focus:ring-2 focus:ring-primary/30",
+          "hover:scale-105 active:scale-95",
+          "touch-manipulation select-none", // Better mobile interaction
+          className
+        )}
+        aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      >
+        <div className="relative w-5 h-5 flex items-center justify-center">
+          <SunIcon 
             className={cn(
-              "glass-button justify-start gap-3 px-4 py-2.5 h-auto",
-              "bg-background/60 hover:bg-background/80 border-0",
-              "backdrop-blur-md rounded-xl transition-all duration-300",
-              "focus-ring shadow-sm hover:shadow-md",
-              className
-            )}
-          >
-            <div className="relative">
-              {isDark && (
-                <MoonIcon className="h-4 w-4 text-foreground animate-in fade-in-0 duration-300" />
-              )}
-              {!isDark && (
-                <SunIcon className="h-4 w-4 text-foreground animate-in fade-in-0 duration-300" />
-              )}
-              {isSystem && (
-                <MonitorIcon className="h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
-            <div className="flex flex-col items-start">
-              <span className="text-sm font-medium">
-                {isDark ? "Dark Mode" : "Light Mode"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {isSystem ? "System preference" : "Manual selection"}
-              </span>
-            </div>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          align="end" 
-          className="glass-card border-0 backdrop-blur-md min-w-48"
-        >
-          <DropdownMenuItem
-            onClick={() => handleThemeChange("light")}
+              "absolute w-5 h-5 transition-all duration-500 ease-out",
+              isDark 
+                ? "rotate-90 scale-0 opacity-0" 
+                : "rotate-0 scale-100 opacity-100"
+            )} 
+          />
+          <MoonIcon 
             className={cn(
-              "gap-3 py-2.5 px-3 rounded-lg cursor-pointer",
-              "focus:bg-background/80 transition-colors",
-              theme === "light" && "bg-accent/20 text-accent-foreground"
-            )}
-          >
-            <SunIcon className="h-4 w-4" />
-            <div className="flex-1">
-              <div className="text-sm font-medium">Light</div>
-              <div className="text-xs text-muted-foreground">Clean & minimal</div>
-            </div>
-            {theme === "light" && (
-              <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-            )}
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem
-            onClick={() => handleThemeChange("dark")}
-            className={cn(
-              "gap-3 py-2.5 px-3 rounded-lg cursor-pointer",
-              "focus:bg-background/80 transition-colors",
-              theme === "dark" && "bg-accent/20 text-accent-foreground"
-            )}
-          >
-            <MoonIcon className="h-4 w-4" />
-            <div className="flex-1">
-              <div className="text-sm font-medium">Dark</div>
-              <div className="text-xs text-muted-foreground">Easy on the eyes</div>
-            </div>
-            {theme === "dark" && (
-              <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-            )}
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            onClick={() => handleThemeChange("system")}
-            className={cn(
-              "gap-3 py-2.5 px-3 rounded-lg cursor-pointer",
-              "focus:bg-background/80 transition-colors",
-              theme === "system" && "bg-accent/20 text-accent-foreground"
-            )}
-          >
-            <MonitorIcon className="h-4 w-4" />
-            <div className="flex-1">
-              <div className="text-sm font-medium">System</div>
-              <div className="text-xs text-muted-foreground">Matches device</div>
-            </div>
-            {theme === "system" && (
-              <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-            )}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+              "absolute w-5 h-5 transition-all duration-500 ease-out",
+              isDark 
+                ? "rotate-0 scale-100 opacity-100" 
+                : "-rotate-90 scale-0 opacity-0"
+            )} 
+          />
+        </div>
+        
+        {/* Subtle background animation */}
+        <div className={cn(
+          "absolute inset-0 rounded-xl transition-all duration-500",
+          "bg-gradient-to-br opacity-0 group-hover:opacity-100",
+          isDark 
+            ? "from-blue-500/10 to-purple-500/10" 
+            : "from-yellow-400/10 to-orange-500/10"
+        )} />
+      </button>
     )
   }
 
+  // Full variant with more detailed options
+  if (variant === "full") {
+    const options = [
+      { value: "light", icon: SunIcon, label: "Light", desc: "Clean & minimal" },
+      { value: "dark", icon: MoonIcon, label: "Dark", desc: "Easy on the eyes" },
+      { value: "system", icon: MonitorIcon, label: "System", desc: "Matches device" }
+    ]
+
+    return (
+      <div className={cn("flex flex-col space-y-2", className)}>
+        <span className="text-sm font-medium text-muted-foreground px-1">Theme</span>
+        <div className="grid grid-cols-3 gap-2">
+          {options.map(({ value, icon: Icon, label, desc }) => (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              className={cn(
+                "relative flex flex-col items-center gap-2 p-4 rounded-xl",
+                "transition-all duration-300 ease-out touch-manipulation",
+                "border border-muted/30 hover:border-primary/30",
+                "bg-muted/20 hover:bg-muted/40 active:bg-muted/50",
+                "focus:outline-none focus:ring-2 focus:ring-primary/30",
+                theme === value && "border-primary/50 bg-primary/10 text-primary"
+              )}
+              aria-label={`Set ${label.toLowerCase()} theme`}
+            >
+              <Icon className="w-5 h-5" />
+              <div className="text-center">
+                <div className="text-xs font-medium">{label}</div>
+                <div className="text-[10px] text-muted-foreground">{desc}</div>
+              </div>
+              
+              {/* Selection indicator */}
+              {theme === value && (
+                <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-pulse" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // Default icon variant
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
+    <button
+      onClick={handleThemeToggle}
+      className={cn(
+        "relative p-2.5 rounded-xl transition-all duration-300 ease-out",
+        "bg-background/60 hover:bg-background/80 active:bg-background/90",
+        "border border-muted/20 hover:border-primary/30",
+        "backdrop-blur-md shadow-sm hover:shadow-md",
+        "focus:outline-none focus:ring-2 focus:ring-primary/30",
+        "hover:scale-105 active:scale-95",
+        "touch-manipulation select-none", // Better mobile interaction
+        className
+      )}
+      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+    >
+      <div className="relative w-4 h-4 flex items-center justify-center">
+        <SunIcon 
           className={cn(
-            "glass-button border-0 backdrop-blur-md",
-            "h-9 w-9 rounded-xl transition-all duration-300",
-            "bg-background/60 hover:bg-background/80",
-            "shadow-sm hover:shadow-md focus-ring",
-            "hover:scale-105 active:scale-95",
-            className
-          )}
-        >
-          <div className="relative">
-            <SunIcon 
-              className={cn(
-                "h-4 w-4 transition-all duration-300",
-                isDark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
-              )} 
-            />
-            <MoonIcon 
-              className={cn(
-                "absolute inset-0 h-4 w-4 transition-all duration-300",
-                isDark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"
-              )} 
-            />
-          </div>
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
-        className="glass-card border-0 backdrop-blur-md"
-      >
-        <DropdownMenuItem
-          onClick={() => handleThemeChange("light")}
-          className="gap-2 cursor-pointer focus:bg-background/80"
-        >
-          <SunIcon className="h-4 w-4" />
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => handleThemeChange("dark")}
-          className="gap-2 cursor-pointer focus:bg-background/80"
-        >
-          <MoonIcon className="h-4 w-4" />
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => handleThemeChange("system")}
-          className="gap-2 cursor-pointer focus:bg-background/80"
-        >
-          <MonitorIcon className="h-4 w-4" />
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+            "absolute w-4 h-4 transition-all duration-500 ease-out",
+            isDark 
+              ? "rotate-90 scale-0 opacity-0" 
+              : "rotate-0 scale-100 opacity-100"
+          )} 
+        />
+        <MoonIcon 
+          className={cn(
+            "absolute w-4 h-4 transition-all duration-500 ease-out",
+            isDark 
+              ? "rotate-0 scale-100 opacity-100" 
+              : "-rotate-90 scale-0 opacity-0"
+          )} 
+        />
+      </div>
+    </button>
   )
 } 

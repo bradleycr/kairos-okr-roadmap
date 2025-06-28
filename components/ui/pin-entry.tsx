@@ -65,7 +65,25 @@ export default function PINEntry({
       
       if (result.success && result.account) {
         console.log('✅ PIN authentication successful')
-        onSuccess(result.account)
+        
+        // Smart routing logic for better UX
+        if (isNewDevice) {
+          // Returning user on NEW device: Show success screen for security awareness
+          onSuccess(result.account)
+        } else {
+          // Returning user on familiar device (expired session): Go directly to profile
+          const profileUrl = new URL('/profile', window.location.origin)
+          profileUrl.searchParams.set('verified', 'true')
+          profileUrl.searchParams.set('source', 'pin')
+          profileUrl.searchParams.set('chipUID', chipUID)
+          profileUrl.searchParams.set('session', `pin_session_${Date.now()}`)
+          
+          // Brief success feedback before redirect
+          setIsVerifying(false)
+          setTimeout(() => {
+            window.location.href = profileUrl.toString()
+          }, 300)
+        }
       } else {
         setAttempts(prev => prev + 1)
         setError(result.error || 'Incorrect PIN')
@@ -84,7 +102,10 @@ export default function PINEntry({
       setError(error instanceof Error ? error.message : 'Authentication failed')
       setPIN('')
     } finally {
-      setIsVerifying(false)
+      if (isNewDevice) {
+        setIsVerifying(false)
+      }
+      // For returning users, keep loading state during redirect
     }
   }
 
@@ -95,69 +116,79 @@ export default function PINEntry({
   }
 
   return (
-    <div className={`flex items-center justify-center min-h-[60vh] p-4 ${className}`}>
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-            <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+    <div className={`h-screen w-screen flex items-center justify-center p-4 ${className}`} style={{ 
+      position: 'fixed', 
+      top: 0, 
+      left: 0,
+      paddingTop: 'env(safe-area-inset-top)',
+      paddingBottom: 'env(safe-area-inset-bottom)'
+    }}>
+      <Card className="w-full max-w-sm border border-primary/20 shadow-lg bg-card/95 backdrop-blur-sm">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
+            <Shield className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-xl">
-            {isNewDevice ? 'Welcome Back' : 'Enter PIN'}
+          <CardTitle className="text-lg font-mono tracking-wide">
+            {isNewDevice ? 'New Device Detected' : 'Enter PIN'}
           </CardTitle>
-          <CardDescription>
-            {isNewDevice 
-              ? `Welcome back${displayName ? `, ${displayName}` : ''}! Please enter your PIN to access your account on this device.`
-              : 'Please enter your PIN to continue'
+          <CardDescription className="text-sm leading-relaxed">
+            {isVerifying && !isNewDevice 
+              ? 'Taking you to your profile...'
+              : isNewDevice 
+                ? `Welcome back${displayName ? `, ${displayName}` : ''}! Please verify it's you on this new device.`
+                : 'Please enter your PIN to continue'
             }
           </CardDescription>
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* PIN Input */}
+          {/* PIN Input Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="relative">
                 <Input
                   ref={inputRef}
                   type={showPIN ? "text" : "password"}
-                  placeholder="Enter your PIN"
+                  placeholder="Enter PIN"
                   value={pin}
                   onChange={(e) => handlePINChange(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="pr-10 text-center text-lg tracking-widest"
+                  className="text-center text-xl tracking-[0.5em] pr-12 py-6 bg-muted/30 border-muted-foreground/20 focus:border-primary/50 transition-colors"
                   disabled={isVerifying}
                   maxLength={8}
                   autoComplete="off"
                   inputMode="numeric"
+                  style={{ letterSpacing: '0.5em' }}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/50"
                   onClick={() => setShowPIN(!showPIN)}
                   disabled={isVerifying}
+                  tabIndex={-1}
                 >
                   {showPIN ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4 text-muted-foreground" />
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Enter your 4-8 digit PIN
+              <p className="text-xs text-muted-foreground text-center font-mono">
+                4-8 digits required
               </p>
             </div>
 
             {/* Error Display */}
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
+                <AlertDescription className="text-sm">
                   {error}
-                  {attempts > 0 && (
-                    <span className="block mt-1 text-xs">
+                  {attempts > 0 && attempts < 3 && (
+                    <span className="block mt-1 text-xs font-mono">
                       Attempt {attempts}/3
                     </span>
                   )}
@@ -166,14 +197,14 @@ export default function PINEntry({
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-3 pt-2">
               {onCancel && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={onCancel}
                   disabled={isVerifying}
-                  className="flex-1"
+                  className="flex-1 font-mono"
                 >
                   Cancel
                 </Button>
@@ -181,12 +212,12 @@ export default function PINEntry({
               <Button
                 type="submit"
                 disabled={!pin || pin.length < 4 || isVerifying}
-                className="flex-1"
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-mono"
               >
                 {isVerifying ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Verifying...
+                    {isNewDevice ? 'Verifying' : 'Opening Profile'}
                   </>
                 ) : (
                   <>
@@ -198,17 +229,12 @@ export default function PINEntry({
             </div>
           </form>
 
-          {/* Additional Info */}
-          <div className="pt-4 border-t">
-            <div className="flex items-center justify-center space-x-2 text-xs text-muted-foreground">
+          {/* Minimal footer info */}
+          <div className="pt-4 border-t border-muted/30">
+            <div className="flex items-center justify-center space-x-2 text-xs text-muted-foreground font-mono">
               <Lock className="h-3 w-3" />
-              <span>Chip ID: {chipUID.slice(-8).toUpperCase()}</span>
+              <span>Chip: {chipUID.slice(-6).toUpperCase()}</span>
             </div>
-            {isNewDevice && (
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                Your account is secured with end-to-end encryption
-              </p>
-            )}
           </div>
         </CardContent>
       </Card>

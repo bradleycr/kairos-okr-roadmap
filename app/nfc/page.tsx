@@ -62,21 +62,24 @@ function NFCPageContent() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(144,193,196,0.12)_0%,transparent_50%)]"></div>
       </div>
       
-      <div className="h-full w-full flex flex-col px-4 relative z-10" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="h-full w-full flex flex-col px-4 relative z-10" style={{ 
+        paddingTop: 'env(safe-area-inset-top)', 
+        paddingBottom: 'max(env(safe-area-inset-bottom), 32px)' 
+      }}>
         {/* Header */}
-        <div className="text-center pt-24 sm:pt-28 md:pt-32 pb-8 sm:pb-10 flex-shrink-0">
-          <div className="flex flex-col items-center space-y-4">
+        <div className="text-center pt-16 sm:pt-20 md:pt-24 pb-6 sm:pb-8 flex-shrink-0">
+          <div className="flex flex-col items-center space-y-3 sm:space-y-4">
             <div className="relative p-3 rounded-full bg-primary/10 border border-primary/20">
-              <NfcIcon className="h-8 w-8 text-primary relative z-10 animate-pulse" />
+              <NfcIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary relative z-10 animate-pulse" />
             </div>
-            <h1 className="text-3xl font-mono font-light tracking-wider text-foreground/90">
+            <h1 className="text-2xl sm:text-3xl font-mono font-light tracking-wider text-foreground/90">
               KairOS
             </h1>
           </div>
         </div>
 
-        {/* Main Content - Conditional Rendering */}
-        <div className="flex-1 flex items-center justify-center">
+        {/* Main Content - Conditional Rendering with improved mobile centering */}
+        <div className="flex-1 flex items-center justify-center min-h-0 pb-8">
           {hasValidParameters() ? (
             /* PROGRAMMED NFC CHIP - Check PIN requirements */
             <>

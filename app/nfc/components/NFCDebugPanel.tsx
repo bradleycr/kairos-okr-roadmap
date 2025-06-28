@@ -9,7 +9,6 @@
 
 import React, { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/components/ui/use-toast'
 import { 
   BugIcon,
@@ -105,8 +104,8 @@ export function NFCDebugPanel({ verificationState, nfcParams, format }: NFCDebug
           </div>
         </div>
         
-        {/* Debug Logs */}
-        <ScrollArea className="h-40 w-full rounded border p-4">
+        {/* Debug Logs - Simple scrollable div instead of ScrollArea */}
+        <div className="h-40 w-full rounded border p-4 overflow-y-auto bg-background">
           {verificationState.debugLogs.length === 0 ? (
             <p className="text-gray-500 italic text-xs">No debug logs yet.</p>
           ) : (
@@ -118,7 +117,7 @@ export function NFCDebugPanel({ verificationState, nfcParams, format }: NFCDebug
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </div>
     </div>
   )
