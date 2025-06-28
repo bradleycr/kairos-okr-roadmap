@@ -178,6 +178,14 @@ User taps NFC pendant → ESP32 authenticates → Access local AI transcriptions
 📱 Tap → 🔐 Sign → ✅ Verify → 🎵 http://192.168.1.100:8080/audio
 ```
 
+### **🔒 Authentication Flow Example**
+```bash
+# User approaches MELD node
+curl -X POST http://192.168.1.100:8080/auth/challenge
+# Tap NFC pendant with challenge response
+# Access granted to local services
+```
+
 ### **💾 Private File Server**
 User taps NFC pendant → Raspberry Pi authenticates → Access personal files
 ```
