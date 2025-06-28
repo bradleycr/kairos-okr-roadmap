@@ -100,8 +100,8 @@ export default function RootLayout({
               {/* Navigation */}
               <Navigation />
               
-              {/* Main Content with smoother transitions */}
-              <main className="pt-16 relative transition-opacity duration-200 ease-in-out">
+              {/* Main Content with smoother transitions and proper mobile padding */}
+              <main className="md:pt-16 relative transition-opacity duration-200 ease-in-out">
                 {children}
               </main>
               

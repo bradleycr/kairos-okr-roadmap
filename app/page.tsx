@@ -81,7 +81,10 @@ export default function HomePage() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 h-full w-full flex flex-col justify-between px-4 text-center" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="relative z-10 h-full w-full flex flex-col justify-between px-4 text-center" style={{ 
+        paddingTop: 'env(safe-area-inset-top)', 
+        paddingBottom: 'max(env(safe-area-inset-bottom), 120px)' 
+      }}>
         {/* Top Section - Logo */}
         <div className="pt-24 sm:pt-28 md:pt-32 pb-8 sm:pb-10 md:pb-12 flex-shrink-0">
           <div className="flex flex-col items-center space-y-3 sm:space-y-4">
@@ -98,7 +101,7 @@ export default function HomePage() {
         </div>
 
         {/* Central Section - Main Interface */}
-        <div className="flex-1 flex items-center justify-center relative">
+        <div className="flex-1 flex items-center justify-center relative min-h-0">
           {/* Outer holographic rings - Deep breathing rhythm with phase delays */}
           <div className="absolute inset-0 rounded-full border-2 border-primary/50 dark:border-primary/20 animate-[breathe-ring_8s_ease-in-out_infinite] shadow-lg shadow-primary/20 dark:shadow-none" />
           <div className="absolute inset-2 rounded-full border border-secondary/40 dark:border-secondary/15 animate-[breathe-ring_10s_ease-in-out_infinite_1.5s] shadow-md shadow-secondary/15 dark:shadow-none" />
@@ -138,7 +141,7 @@ export default function HomePage() {
           </button>
 
           {/* Device visualization - Black hole entrance indicator */}
-          <div className="absolute -bottom-16 sm:-bottom-20 left-1/2 transform -translate-x-1/2">
+          <div className="absolute -bottom-12 sm:-bottom-16 left-1/2 transform -translate-x-1/2">
             <div className="w-12 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 bg-stone-100/90 dark:bg-muted/10 rounded-lg border-2 border-stone-300/60 dark:border-border flex items-center justify-center relative backdrop-blur-sm shadow-lg shadow-stone-200/30 dark:shadow-none">
               <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full bg-stone-300/70 dark:bg-muted-foreground/20 flex items-center justify-center">
                 <div className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 rounded-full bg-stone-500/70 dark:bg-muted-foreground/30" />
@@ -151,8 +154,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom Section - Action Button */}
-        <div className="pb-16 sm:pb-20 md:pb-24 flex-shrink-0">
+        {/* Bottom Section - Action Button with mobile-safe spacing */}
+        <div className="pb-8 sm:pb-12 md:pb-16 flex-shrink-0" style={{ 
+          paddingBottom: 'max(32px, env(keyboard-inset-height, 0px))',
+          marginBottom: 'max(16px, env(safe-area-inset-bottom, 0px))'
+        }}>
           <div className="w-full max-w-xs sm:max-w-sm mx-auto">
             <Button
               onClick={handleMainAction}
