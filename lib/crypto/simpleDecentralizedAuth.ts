@@ -10,6 +10,9 @@
  * - Performance optimized
  */
 
+// Ensure crypto is properly configured for browser environments
+import './browserSetup'
+
 import { sign, verify, getPublicKey } from '@noble/ed25519'
 import { sha256 } from '@noble/hashes/sha256'
 import { DIDKeyRegistry, DIDKeyIdentity, NFCDIDKeyFormatter } from './didKeyRegistry'

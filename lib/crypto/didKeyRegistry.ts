@@ -5,6 +5,9 @@
  * Trade-off: No service endpoints, no easy revocation (addressed separately)
  */
 
+// Ensure crypto is properly configured for browser environments
+import './browserSetup'
+
 import { sign, verify, getPublicKey } from '@noble/ed25519'
 import { sha256 } from '@noble/hashes/sha256'
 
