@@ -4,12 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:fast": "NODE_ENV=development next dev --turbo",
+    "dev:profile": "NODE_ENV=development next dev --profile",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
     "build:wasm": "cd src/wasm && ./build.sh",
     "build:esp32": "cd src/fw && idf.py build",
-    "sim:start": "pnpm dev"
+    "build:zk": "./scripts/build-bonding-circuit.sh",
+    "sim:start": "pnpm dev",
+    "perf:check": "node -e \"console.log('Node.js version:', process.version); console.log('Memory usage:', process.memoryUsage()); console.log('Platform:', process.platform);\"",
+    "clean": "rm -rf .next node_modules/.cache",
+    "clean:all": "rm -rf .next node_modules/.cache node_modules && pnpm install"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

@@ -100,7 +100,7 @@ interface DatabaseStats {
 }
 
 interface RecentActivity {
-  type: 'account_created' | 'pin_setup' | 'verification' | 'bond_created' | 'profile_updated'
+  type: 'account_created' | 'pin_setup' | 'verification' | 'bond_created' | 'profile_updated' | 'zk_proof_generated'
   accountId: string
   chipUID: string
   timestamp: string
@@ -109,10 +109,39 @@ interface RecentActivity {
   relatedDisplayName?: string
 }
 
+interface ZKProofEntry {
+  proofId: string
+  proofType: 'bonding' | 'moment_count' | 'presence'
+  timestamp: number
+  verificationStatus: 'verified' | 'pending' | 'failed'
+  publicSignals: {
+    bondHash?: string
+    participantCount?: number
+    locationHash?: string
+    timeWindow?: string
+  }
+  analytics: {
+    geographicRegion?: string
+    eventType?: string
+    networkSize?: number
+    isFirstTimeUser?: boolean
+    deviceType?: string
+  }
+}
+
+interface ZKStats {
+  totalProofs: number
+  proofsLast24h: number
+  verifiedProofs: number
+  privacyPreservationRate: number
+  averageNetworkSize: number
+}
+
 export default function EnhancedNFCDatabaseDashboard() {
   const { toast } = useToast()
   const [accounts, setAccounts] = useState<DatabaseAccount[]>([])
   const [bonds, setBonds] = useState<Bond[]>([])
+  const [zkProofs, setZkProofs] = useState<ZKProofEntry[]>([])
   const [filteredAccounts, setFilteredAccounts] = useState<DatabaseAccount[]>([])
   const [stats, setStats] = useState<DatabaseStats>({
     totalAccounts: 0,
@@ -124,10 +153,18 @@ export default function EnhancedNFCDatabaseDashboard() {
     totalVerifications: 0,
     avgVerificationsPerAccount: 0
   })
+  const [zkStats, setZkStats] = useState<ZKStats>({
+    totalProofs: 0,
+    proofsLast24h: 0,
+    verifiedProofs: 0,
+    privacyPreservationRate: 1.0,
+    averageNetworkSize: 0
+  })
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(false)
+  const [activeTab, setActiveTab] = useState<'accounts' | 'bonds' | 'zkproofs'>('accounts')
   
   // Enhanced admin features
   const [searchTerm, setSearchTerm] = useState('')
@@ -159,6 +196,12 @@ export default function EnhancedNFCDatabaseDashboard() {
       const bondsData = await bondsResponse.json()
       console.log('💕 Bonds response:', bondsData)
       
+      console.log('🔐 Fetching ZK proofs...')
+      // Fetch ZK proofs
+      const zkResponse = await fetch('/api/zkproofs/archive?timeRange=30d&limit=100')
+      const zkData = await zkResponse.json()
+      console.log('⚡ ZK proofs response:', zkData)
+      
       if (accountsData.success) {
         console.log('✅ Processing data...')
         const accountsWithBonds = await enrichAccountsWithBonds(accountsData.accounts, bondsData.bonds || [])
@@ -167,14 +210,16 @@ export default function EnhancedNFCDatabaseDashboard() {
         setAccounts(accountsWithBonds)
         setFilteredAccounts(accountsWithBonds)
         setBonds(bondsData.bonds || [])
+        setZkProofs(zkData.proofs || [])
         calculateEnhancedStats(accountsWithBonds, bondsData.bonds || [])
-        generateEnhancedActivity(accountsWithBonds, bondsData.bonds || [])
+        calculateZKStats(zkData.proofs || [])
+        generateEnhancedActivity(accountsWithBonds, bondsData.bonds || [], zkData.proofs || [])
         setLastRefresh(new Date())
         
         console.log('🎉 Data loaded successfully!')
         toast({
           title: "📊 Database Refreshed",
-          description: `Found ${accountsData.accounts.length} accounts, ${bondsData.bonds?.length || 0} bonds`,
+          description: `Found ${accountsData.accounts.length} accounts, ${bondsData.bonds?.length || 0} bonds, ${zkData.proofs?.length || 0} ZK proofs`,
         })
       } else {
         console.error('❌ Failed to fetch data:', accountsData.error)
@@ -341,7 +386,7 @@ export default function EnhancedNFCDatabaseDashboard() {
         setBonds(updatedBonds)
         
         calculateEnhancedStats(updatedAccounts, updatedBonds)
-        generateEnhancedActivity(updatedAccounts, updatedBonds)
+        generateEnhancedActivity(updatedAccounts, updatedBonds, zkProofs)
         
         toast({
           title: "🗑️ Account Deleted",
@@ -411,8 +456,30 @@ export default function EnhancedNFCDatabaseDashboard() {
     })
   }
   
+  // Calculate ZK proof statistics
+  const calculateZKStats = (proofs: ZKProofEntry[]) => {
+    const now = Date.now()
+    const oneDayAgo = now - (24 * 60 * 60 * 1000)
+    
+    const totalProofs = proofs.length
+    const proofsLast24h = proofs.filter(p => p.timestamp >= oneDayAgo).length
+    const verifiedProofs = proofs.filter(p => p.verificationStatus === 'verified').length
+    const privacyPreservationRate = totalProofs > 0 ? verifiedProofs / totalProofs : 1.0
+    
+    const networkSizes = proofs.map(p => p.analytics.networkSize || 1)
+    const averageNetworkSize = networkSizes.length > 0 ? networkSizes.reduce((a, b) => a + b, 0) / networkSizes.length : 0
+    
+    setZkStats({
+      totalProofs,
+      proofsLast24h,
+      verifiedProofs,
+      privacyPreservationRate,
+      averageNetworkSize
+    })
+  }
+  
   // Generate recent activity log
-  const generateEnhancedActivity = (accounts: DatabaseAccount[], bonds: Bond[]) => {
+  const generateEnhancedActivity = (accounts: DatabaseAccount[], bonds: Bond[], zkProofs: ZKProofEntry[] = []) => {
     const activities: RecentActivity[] = []
     
     accounts.forEach(account => {
@@ -446,6 +513,16 @@ export default function EnhancedNFCDatabaseDashboard() {
         details: `New bond created with ${bond.toDisplayName}`,
         relatedChipUID: bond.toChipUID,
         relatedDisplayName: bond.toDisplayName
+      })
+    })
+    
+    zkProofs.forEach(proof => {
+      activities.push({
+        type: 'zk_proof_generated',
+        accountId: proof.proofId,
+        chipUID: 'system',
+        timestamp: new Date(proof.timestamp).toISOString(),
+        details: `ZK proof generated (${proof.proofType}) - ${proof.verificationStatus}`
       })
     })
     
@@ -528,6 +605,7 @@ export default function EnhancedNFCDatabaseDashboard() {
       case 'bond_created': return <HeartIcon className="h-4 w-4 text-red-500" />
       case 'profile_updated': return <EditIcon className="h-4 w-4 text-purple-500" />
       case 'verification': return <CheckCircleIcon className="h-4 w-4 text-orange-500" />
+      case 'zk_proof_generated': return <SparklesIcon className="h-4 w-4 text-purple-600" />
       default: return <ActivityIcon className="h-4 w-4 text-muted-foreground" />
     }
   }
@@ -697,7 +775,48 @@ export default function EnhancedNFCDatabaseDashboard() {
           </Card>
         </div>
         
-        {/* Enhanced Account Cards */}
+        {/* Tab Navigation */}
+        <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab('accounts')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'accounts'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <UsersIcon className="h-4 w-4 inline mr-2" />
+            Accounts ({accounts.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('bonds')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'bonds'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <HeartIcon className="h-4 w-4 inline mr-2" />
+            Bonds ({bonds.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('zkproofs')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'zkproofs'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <SparklesIcon className="h-4 w-4 inline mr-2" />
+            ZK Proofs ({zkProofs.length})
+          </button>
+        </div>
+        
+        {/* Tab Content */}
+        {activeTab === 'accounts' && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Account Management</h2>
+            {/* Enhanced Account Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAccounts.length === 0 ? (
             <div className="col-span-full text-center text-muted-foreground py-12">
@@ -974,6 +1093,196 @@ export default function EnhancedNFCDatabaseDashboard() {
             </CardContent>
           </Card>
         </div>
+          </div>
+        )}
+        
+        {/* Bonds Tab */}
+        {activeTab === 'bonds' && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Bond Network</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bonds.length === 0 ? (
+                <div className="col-span-full text-center text-muted-foreground py-12">
+                  <HeartIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No bonds found</p>
+                  <p className="text-sm">Bonds will appear here as people connect</p>
+                </div>
+              ) : (
+                bonds.map((bond) => (
+                  <Card key={bond.id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <HeartIcon className="h-5 w-5 text-red-500" />
+                        <Badge variant="secondary">{bond.bondType}</Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <UsersIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{bond.fromDisplayName}</span>
+                          <span className="text-muted-foreground">↔</span>
+                          <span className="font-medium">{bond.toDisplayName}</span>
+                        </div>
+                        {bond.metadata?.location && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPinIcon className="h-3 w-3" />
+                            {bond.metadata.location}
+                          </div>
+                        )}
+                        {bond.metadata?.event && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <CalendarIcon className="h-3 w-3" />
+                            {bond.metadata.event}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          Created: {formatTimestamp(bond.createdAt)}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* ZK Proofs Tab */}
+        {activeTab === 'zkproofs' && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Zero-Knowledge Proofs</h2>
+            
+            {/* ZK Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <SparklesIcon className="h-4 w-4 text-purple-600" />
+                    Total Proofs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{zkStats.totalProofs}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {zkStats.proofsLast24h} in last 24h
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <CheckCircleIcon className="h-4 w-4 text-green-600" />
+                    Verified
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{zkStats.verifiedProofs}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {(zkStats.privacyPreservationRate * 100).toFixed(1)}% success rate
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <NetworkIcon className="h-4 w-4 text-blue-600" />
+                    Avg Network
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">{zkStats.averageNetworkSize.toFixed(1)}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    participants per proof
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <ShieldIcon className="h-4 w-4 text-indigo-600" />
+                    Privacy Rate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-indigo-600">{(zkStats.privacyPreservationRate * 100).toFixed(1)}%</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    data kept private
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* ZK Proofs List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {zkProofs.length === 0 ? (
+                <div className="col-span-full text-center text-muted-foreground py-12">
+                  <SparklesIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No ZK proofs yet</p>
+                  <p className="text-sm">Run the NFC test to generate your first zero-knowledge proofs</p>
+                  <Button 
+                    className="mt-4"
+                    onClick={() => window.open('/nfc-test', '_blank')}
+                  >
+                    Run ZK Test
+                  </Button>
+                </div>
+              ) : (
+                zkProofs.map((proof) => (
+                  <Card key={proof.proofId} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <SparklesIcon className="h-5 w-5 text-purple-600" />
+                        <Badge 
+                          variant={proof.verificationStatus === 'verified' ? 'default' : 'secondary'}
+                          className={proof.verificationStatus === 'verified' ? 'bg-green-100 text-green-800' : ''}
+                        >
+                          {proof.verificationStatus}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="font-medium capitalize">{proof.proofType.replace('_', ' ')} Proof</div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <div>ID: {proof.proofId.substring(0, 16)}...</div>
+                          {proof.publicSignals.participantCount && (
+                            <div>Participants: {proof.publicSignals.participantCount}</div>
+                          )}
+                          {proof.analytics.geographicRegion && (
+                            <div>Region: {proof.analytics.geographicRegion}</div>
+                          )}
+                          {proof.analytics.deviceType && (
+                            <div>Device: {proof.analytics.deviceType}</div>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Generated: {new Date(proof.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+            
+            {/* Privacy Notice */}
+            <Card className="mt-6 border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <ShieldIcon className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100">Privacy-First Analytics</h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-200 mt-1">
+                      This dashboard shows only public proof metadata and aggregate statistics. 
+                      No private information (chip IDs, signatures, precise locations) is stored or displayed.
+                      All data respects zero-knowledge privacy principles.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
         
         {/* Production Status */}
         <Card className="border-green-200 bg-green-50/50">
