@@ -141,62 +141,60 @@ src/                       # 🔩 Hardware & firmware
 
 ## 🧪 **Testing & Development**
 
-### **Real Crypto Testing**
+### **Development Commands**
 ```bash
-# Test real Ed25519 operations
-pnpm test:crypto
+# Start development server
+pnpm dev
 
-# Test NFC simulation
-pnpm test:nfc
+# Linting
+pnpm lint
 
-# Test full authentication flow
-pnpm test:auth
+# Build for production
+pnpm build
+
+# Build ZK circuits (when ready)
+pnpm build:zk
 ```
 
-### **Hardware Simulation**
-```bash
-# Start MELD node simulator
-pnpm dev:meld-sim
-
-# Test ESP32 communication
-pnpm test:esp32
-```
-
-### **Performance Benchmarks**
-- **Key Generation**: ~0.1ms (M1 MacBook)
-- **Signing**: ~0.05ms per signature
-- **Verification**: ~0.1ms per verification
-- **ESP32**: ~5-10ms per operation
+### **Performance Characteristics**
+- **Ed25519 Operations**: Optimized for modern devices
+- **Web NFC**: Browser-native integration
+- **Client-Side Crypto**: No server dependencies
+- **Cross-Platform**: Desktop and mobile support
 
 ---
 
-## 🚀 **Use Cases**
+## 🚀 **Current Implementation**
 
-### **🎵 Local Audio Transcription**
-User taps NFC pendant → ESP32 authenticates → Access local AI transcriptions
-```
-📱 Tap → 🔐 Sign → ✅ Verify → 🎵 http://192.168.1.100:8080/audio
+### **🔑 Ed25519 Cryptographic Authentication**
+Real cryptographic operations using industry-standard libraries
+```typescript
+// Generate keypair
+const { privateKey, publicKey } = await generateEd25519KeyPair()
+
+// Sign message
+const signature = await signMessage("challenge-data", privateKey)
+
+// Verify signature
+const isValid = await verifySignature(signature, "challenge-data", publicKey)
 ```
 
-### **🔒 Authentication Flow Example**
+### **📱 NFC Authentication Flow**
+Web-based NFC reading and cryptographic verification
 ```bash
-# User approaches MELD node
-curl -X POST http://192.168.1.100:8080/auth/challenge
-# Tap NFC pendant with challenge response
-# Access granted to local services
+# Browser reads NFC chip
+navigator.nfc.scan() → read device ID and public key
+
+# Generate challenge-response authentication
+authenticate(deviceId, publicKey) → verify Ed25519 signature
 ```
 
-### **💾 Private File Server**
-User taps NFC pendant → Raspberry Pi authenticates → Access personal files
-```
-📱 Tap → 🔐 Sign → ✅ Verify → 📁 http://192.168.1.101:3000/files
-```
+### **⚡ Planned Use Cases**
 
-### **🤖 Edge AI Services**
-User taps NFC pendant → Local GPU server → Access AI inference endpoints
-```
-📱 Tap → 🔐 Sign → ✅ Verify → 🧠 http://192.168.1.102:8080/inference
-```
+Future implementations will enable:
+- **Local Audio Transcription** - ESP32 nodes serving AI transcriptions
+- **Private File Servers** - Raspberry Pi file access via NFC authentication  
+- **Edge AI Services** - Local GPU inference with cryptographic access control
 
 ---
 
@@ -269,11 +267,11 @@ pnpm install
 # Start development server
 pnpm dev
 
-# Run tests
-pnpm test
+# Linting
+pnpm lint
 
-# Type checking
-pnpm type-check
+# Build for production
+pnpm build
 ```
 
 ---
@@ -290,4 +288,4 @@ KairOS is crafted with love for the decentralized future. Built for users who de
 
 > *"The future is decentralized, and it's beautiful."*
 
-**[🌐 Live Demo](https://kair-os.vercel.app)** • **[📧 Contact](mailto:hello@kairos.dev)** • **[🐦 Twitter](https://twitter.com/kairos_dev)** 
+**[📧 Contact](mailto:contact@kairos.dev)** • **[🐙 GitHub](https://github.com/BradleyRoyes/KairOS)** 
