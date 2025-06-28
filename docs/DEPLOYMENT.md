@@ -1,32 +1,32 @@
 # 🚀 KairOS Deployment Guide
 
-> **Production deployment for enterprise-grade decentralized authentication**  
-> Vercel Edge Functions • Local ESP32 nodes • Professional monitoring
+> **Production deployment for decentralized authentication**  
+> Vercel Edge Functions • ESP32 nodes (planned) • Monitoring
 
 ---
 
 ## 🎯 **Deployment Overview**
 
-KairOS uses a **hybrid deployment strategy** where the web application runs on Vercel's edge network for global accessibility, while ESP32 MELD nodes operate on users' local networks for true decentralization and privacy.
+KairOS currently deploys as a **web application** on Vercel's edge network for global accessibility. ESP32 MELD nodes are **in development** and will operate on users' local networks for true decentralization and privacy.
 
-### **Deployment Architecture**
+### **Current Deployment Architecture**
 ```
-┌─ Global Edge (Vercel) ─────────────────────────┐
-│  Web App: https://kair-os.vercel.app           │
-│  ├─ Authentication UI                          │
-│  ├─ Chip Configuration Tools                   │
-│  ├─ Documentation & Demos                      │
-│  └─ Edge API Routes (health, crypto generation)│
-└─────────────────────────────────────────────────┘
+┌─ Global Edge (Vercel) - ✅ DEPLOYED ─────────────┐
+│  Web App: https://kair-os.vercel.app              │
+│  ├─ Authentication UI                             │
+│  ├─ Chip Configuration Tools                      │
+│  ├─ Documentation & Demos                         │
+│  └─ Edge API Routes (health, crypto generation)   │
+└──────────────────────────────────────────────────┘
                            │
                            ▼
-┌─ Local Networks (User's Home/Office) ─────────┐
-│  ESP32 MELD Nodes: 192.168.1.XXX:8080        │
-│  ├─ Audio Transcription Devices               │
-│  ├─ Local File Servers                        │
-│  ├─ AI Inference Nodes                        │
-│  └─ Custom Edge Computing Applications        │
-└─────────────────────────────────────────────────┘
+┌─ Local Networks - 🚧 IN DEVELOPMENT ─────────────┐
+│  ESP32 MELD Nodes: 192.168.1.XXX:8080           │
+│  ├─ Audio Transcription Devices (planned)        │
+│  ├─ Local File Servers (planned)                 │
+│  ├─ AI Inference Nodes (planned)                 │
+│  └─ Custom Edge Computing Applications (planned) │
+└──────────────────────────────────────────────────┘
 ```
 
 ---
@@ -34,9 +34,9 @@ KairOS uses a **hybrid deployment strategy** where the web application runs on V
 ## 🌐 **Web Application Deployment (Vercel)**
 
 ### **Prerequisites**
-- Vercel account (free tier sufficient for most use cases)
+- Vercel account (free tier sufficient)
 - GitHub repository with KairOS code
-- Custom domain (optional but recommended)
+- Custom domain (optional)
 
 ### **Environment Variables**
 ```bash
@@ -169,7 +169,9 @@ export default nextConfig
 
 ---
 
-## 🤖 **ESP32 MELD Node Deployment**
+## 🤖 **ESP32 MELD Node Deployment (In Development)**
+
+> **⚠️ STATUS**: ESP32 firmware is currently in development. The simulation works in browser, but physical hardware deployment is **planned future work** for open source contributors.
 
 ### **Production Firmware**
 ```c

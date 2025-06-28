@@ -1,19 +1,19 @@
 # 🏗️ KairOS Architecture Guide
 
-> **Professional-grade DID:Key authentication system architecture**  
+> **DID:Key authentication system architecture**  
 > Zero-infrastructure • W3C Standards • Quantum-resistant cryptography
 
 ---
 
 ## 🎯 **System Overview**
 
-KairOS implements a **standards-based DID:Key authentication architecture** where users maintain complete control over their cryptographic identity while seamlessly accessing edge computing devices through beautiful NFC pendants.
+KairOS implements a **standards-based DID:Key authentication architecture** where users maintain control over their cryptographic identity while accessing edge computing devices through NFC pendants.
 
 ### **Core Principles**
 - 🔒 **Privacy First**: Private keys never leave user's device
 - 🌐 **Standards-Based**: W3C DID Core compliance with DID:Key method
 - ⚡ **Zero Infrastructure**: No servers, databases, or dependencies
-- 🎨 **Beautiful UX**: Professional-grade user experience
+- 🎨 **User Experience**: Clean authentication flows
 
 ---
 

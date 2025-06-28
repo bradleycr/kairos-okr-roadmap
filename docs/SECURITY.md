@@ -1,13 +1,13 @@
 # 🔐 KairOS Security Model
 
-> **Enterprise-grade security for DID:Key NFC authentication**  
+> **Security for DID:Key NFC authentication**  
 > W3C Standards • Quantum-resistant • Zero-infrastructure architecture
 
 ---
 
 ## 🎯 **Security Philosophy**
 
-KairOS implements a **standards-based, privacy-first security model** using W3C DID:Key methods where users maintain complete cryptographic sovereignty. No private keys ever leave the user's device, and all authentication happens through local DID resolution and Ed25519 signatures.
+KairOS implements a **standards-based, privacy-first security model** using W3C DID:Key methods where users maintain cryptographic sovereignty. No private keys ever leave the user's device, and all authentication happens through local DID resolution and Ed25519 signatures.
 
 ### **Core Security Principles**
 - 🔒 **Cryptographic Sovereignty**: Users own and control all private keys
