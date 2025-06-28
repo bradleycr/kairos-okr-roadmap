@@ -264,7 +264,7 @@ export default function GlobalError({
                 </div>
               </button>
 
-              <button 
+            <button
                 onClick={initiateRecovery}
                 disabled={isRecovering}
                 className="group relative overflow-hidden border-2 border-orange-500/50 hover:border-orange-500/70 hover:bg-orange-500/10 text-orange-300 px-8 py-4 text-lg rounded-lg transition-all disabled:opacity-50"

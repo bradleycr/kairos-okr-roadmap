@@ -260,7 +260,7 @@ export default function Error({
             <span className="font-mono">Return Home</span>
           </Link>
           
-          <button 
+        <button
             onClick={() => setShowDetails(!showDetails)}
             className="group flex items-center gap-2 text-muted-foreground hover:text-orange-500 transition-colors p-3 rounded-lg hover:bg-orange-500/5"
           >

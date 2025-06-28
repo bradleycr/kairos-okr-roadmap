@@ -183,7 +183,9 @@ export class NFCAuthenticationEngine {
    * 📝 Legacy signature authentication (fallback support)
    */
   private static async authenticateLegacySignature(params: NFCParameters): Promise<AuthenticationResult> {
-    const { chipUID, signature, publicKey } = params
+    // 🔧 LEGACY FIX: Extract chipUID from either chipUID or uid parameter
+    const chipUID = params.chipUID || params.uid || params.id
+    const { signature, publicKey } = params
     
     if (!chipUID || !signature || !publicKey) {
       return {
@@ -192,7 +194,7 @@ export class NFCAuthenticationEngine {
       }
     }
 
-    console.log('📝 Using legacy signature authentication')
+    console.log('📝 Using legacy signature authentication for chipUID:', chipUID)
 
     // For legacy signature format, verify basic structure and create account
     try {
@@ -204,10 +206,13 @@ export class NFCAuthenticationEngine {
         }
       }
 
+      // 🔧 LEGACY COMPATIBILITY: Normalize chipUID format
+      const normalizedChipUID = this.normalizeChipUID(chipUID)
+
       // Create or update legacy account
-      await this.ensureAccountExists(chipUID, {
+      await this.ensureAccountExists(normalizedChipUID, {
         publicKey: publicKey,
-        did: `did:key:legacy-sig-${chipUID}`
+        did: params.did || `did:key:legacy-sig-${normalizedChipUID}`
       })
 
       const sessionToken = `legacy_sig_session_${Date.now()}_${Math.random().toString(36).slice(2)}`
@@ -216,8 +221,8 @@ export class NFCAuthenticationEngine {
 
       return {
         verified: true,
-        chipUID,
-        did: `did:key:legacy-sig-${chipUID}`,
+        chipUID: normalizedChipUID,
+        did: params.did || `did:key:legacy-sig-${normalizedChipUID}`,
         sessionToken,
         momentId: `moment_${Date.now()}`,
         performance: {
@@ -234,6 +239,27 @@ export class NFCAuthenticationEngine {
         error: 'Legacy signature authentication failed'
       }
     }
+  }
+
+  /**
+   * 🔧 Normalize chipUID format for consistency
+   */
+  private static normalizeChipUID(chipUID: string): string {
+    if (!chipUID) return chipUID
+    
+    // Remove any whitespace
+    const cleaned = chipUID.trim()
+    
+    // If already in colon format, return as-is
+    if (cleaned.includes(':')) return cleaned
+    
+    // If raw hex, add colons every 2 characters
+    if (/^[0-9A-Fa-f]{14}$/.test(cleaned)) {
+      return cleaned.match(/.{2}/g)?.join(':') || cleaned
+    }
+    
+    // Return as-is for other formats
+    return cleaned
   }
 
   /**
@@ -372,7 +398,21 @@ export class NFCAuthenticationEngine {
   } {
     const errors: string[] = []
 
-    // Check for DID:Key format (preferred)
+    // 🔧 PRIORITY FIX: Check legacy signature format FIRST
+    // Legacy cards might have both DID and signature parameters
+    // Accept either chipUID or uid parameter
+    const chipUID = params.chipUID || params.uid || params.id
+    if (chipUID && params.signature && params.publicKey) {
+      console.warn('⚠️ Legacy signature format detected (with DID) - using signature authentication')
+      
+      return {
+        valid: true, // Allow legacy format
+        errors: [], // Clear any errors
+        format: 'legacy'
+      }
+    }
+
+    // Check for DID:Key format (only if not legacy signature)
     if (params.did && params.did.startsWith('did:key:')) {
       if (!params.pin) {
         errors.push('PIN required for DID:Key authentication')
@@ -410,17 +450,6 @@ export class NFCAuthenticationEngine {
         valid: true,
         errors,
         format: 'decentralized'
-      }
-    }
-
-    // 🔧 LEGACY FIX: Support old signature format with fallback
-    if (params.chipUID && params.signature && params.publicKey) {
-      console.warn('⚠️ Legacy signature format detected - using fallback authentication')
-      
-      return {
-        valid: true, // Allow legacy format
-        errors: [], // Clear the deprecation error
-        format: 'legacy'
       }
     }
 

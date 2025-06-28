@@ -231,13 +231,13 @@ export default function NotFound() {
             <span className="font-mono">NFC Gateway</span>
           </Link>
           
-          <Link 
+      <Link 
             href="/profile" 
             className="group flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors p-3 rounded-lg hover:bg-primary/5"
-          >
+      >
             <ZapIcon className="h-4 w-4 group-hover:animate-pulse" />
             <span className="font-mono">Your Profile</span>
-          </Link>
+      </Link>
           
           <button 
             onClick={() => window.history.back()}
