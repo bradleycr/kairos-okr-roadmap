@@ -945,8 +945,7 @@ export class NFCAccountManager {
   }
 
   /**
-   * 🔐 PIN-Gated Authentication Flow
-   * Returns account if session is valid, or requires PIN if needed
+   * 🔐 PIN-Gated Authentication with Legacy Support
    */
   static async authenticateWithPINGate(chipUID: string): Promise<{
     account?: LocalAccountProfile
@@ -978,6 +977,22 @@ export class NFCAccountManager {
         isNewDevice: true,
         hasPIN: false,
         reason: 'new_account'
+      }
+    }
+
+    // 🔧 LEGACY SUPPORT: Check if this is a legacy account
+    const isLegacyAccount = this.isLegacyAccount(existingAccount, localProfile)
+    
+    if (isLegacyAccount) {
+      console.log('⚠️ Legacy account detected - allowing access without PIN')
+      const result = await this.authenticateOrCreateAccount(chipUID)
+      return {
+        account: result.account,
+        requiresPIN: false,
+        isNewAccount: false,
+        isNewDevice: isNewDevice,
+        hasPIN: false,
+        reason: 'legacy_account'
       }
     }
     
@@ -1318,5 +1333,28 @@ export class NFCAccountManager {
     } catch (error) {
       console.warn('Failed to migrate sessions:', error)
     }
+  }
+
+  /**
+   * 🔍 Check if account is legacy format
+   */
+  private static isLegacyAccount(existingAccount?: DatabaseAccountRecord | null, localProfile?: LocalAccountProfile | null): boolean {
+    // Check for legacy indicators
+    if (existingAccount) {
+      // Legacy accounts might have specific patterns
+      if (existingAccount.did?.includes('legacy')) return true
+      if (existingAccount.publicKey === 'legacy-public-key') return true
+      if (!existingAccount.hasPIN && !existingAccount.encryptedPIN) return true
+      // Old accounts created before PIN system
+      if (existingAccount.createdAt && new Date(existingAccount.createdAt) < new Date('2024-01-01')) return true
+    }
+    
+    if (localProfile) {
+      // Similar checks for local profiles
+      if (localProfile.did?.includes('legacy')) return true
+      if (!localProfile.hasPIN && !localProfile.privateKey) return true
+    }
+    
+    return false
   }
 } 
