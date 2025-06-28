@@ -329,10 +329,100 @@ export function useNFCParameterParser() {
     }
   }, [searchParams, accountInitialized, checkSessionAndAuthRequirements])
 
+  const handlePINSuccess = useCallback(async (account: any, pin: string) => {
+    console.log(`🔐 PIN authentication successful, switching to DID:Key system...`)
+    
+    if (!parsedParams.chipUID || !pin) {
+      console.error('Missing chipUID or PIN for DID:Key authentication')
+      return
+    }
+    
+    try {
+      // 🔑 USE DID:KEY AUTHENTICATION (chipUID + PIN)
+      // This ensures consistent identity across all devices
+      console.log('🔑 Performing DID:Key authentication...')
+      const { NFCAuthenticationEngine } = await import('@/app/nfc/utils/nfc-authentication')
+      
+      const authResult = await NFCAuthenticationEngine.authenticate({
+        chipUID: parsedParams.chipUID,
+        pin: pin,
+        did: parsedParams.did
+      })
+      
+      if (!authResult.verified) {
+        console.error('DID:Key authentication failed:', authResult.error)
+        toast({
+          title: "❌ Authentication Failed",
+          description: authResult.error || "Failed to verify DID:Key identity",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      console.log('✅ DID:Key authentication successful!')
+      console.log(`   DID: ${authResult.did}`)
+      console.log(`   Session: ${authResult.sessionToken}`)
+      
+      // Create session with DID:Key identity
+      await SessionManager.createSession(parsedParams.chipUID)
+      
+      // Check if this was a different chip scenario (bonding)
+      if (currentSession?.isActive && newUserInfo && currentSession.currentUser.chipUID !== parsedParams.chipUID) {
+        // This is a BONDING scenario - DO NOT replace current session
+        console.log('🤝 DID:Key verified for different chip - KEEPING original session, showing bond dialog')
+        console.log(`   Original user: ${currentSession.currentUser.chipUID}`)
+        console.log(`   Bonding with: ${parsedParams.chipUID}`)
+        
+        setRequiresPIN(false)
+        setShowBondDialog(true)
+        
+        toast({
+          title: "🔓 DID:Key Verified",
+          description: `Create a connection with ${newUserInfo.displayName}?`,
+        })
+      } else {
+        // Normal DID:Key authentication - update session
+        console.log('🔐 Normal DID:Key authentication - updating session')
+        
+        toast({
+          title: "🔑 DID:Key Authentication",
+          description: `Welcome back! Identity verified across devices.`,
+        })
+        
+        setRequiresPIN(false)
+        setAccountInitialized(true)
+        
+        // Redirect to profile with DID:Key verification
+        const profileUrl = new URL('/profile', window.location.origin)
+        profileUrl.searchParams.set('verified', 'true')
+        profileUrl.searchParams.set('source', 'didkey-auth')
+        profileUrl.searchParams.set('chipUID', parsedParams.chipUID)
+        profileUrl.searchParams.set('did', authResult.did || '')
+        profileUrl.searchParams.set('sessionToken', authResult.sessionToken || '')
+        profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+        
+        router.push(profileUrl.toString())
+      }
+      
+      setDebugInfo(prev => [...prev, `✅ DID:Key auth complete: ${authResult.did?.slice(0, 20)}...`])
+      
+    } catch (error) {
+      console.error('DID:Key authentication failed:', error)
+      toast({
+        title: "❌ DID:Key Authentication Failed",
+        description: "Failed to authenticate with DID:Key system",
+        variant: "destructive"
+      })
+      
+      // Fallback to legacy AccountManager system
+      console.log('⚠️ Falling back to legacy AccountManager system...')
+      handleLegacyPINSuccess(account)
+    }
+  }, [parsedParams, toast, currentSession, newUserInfo, router])
 
-
-  const handlePINSuccess = useCallback(async (account: any) => {
-    console.log(`✅ PIN authentication successful: ${account.accountId}`)
+  // Legacy PIN success handler (fallback only)
+  const handleLegacyPINSuccess = useCallback(async (account: any) => {
+    console.log(`⚠️ LEGACY: PIN authentication successful: ${account.accountId}`)
     
     // Check if this was a different chip scenario (bonding)
     if (currentSession?.isActive && newUserInfo && currentSession.currentUser.chipUID !== account.chipUID) {
@@ -351,7 +441,6 @@ export function useNFCParameterParser() {
       })
     } else {
       // Normal PIN authentication - session was already created in PIN entry
-      // Just need to update local state and potentially redirect
       console.log('🔐 Normal PIN authentication - session already created, updating state')
       
       // Verify session exists (it should have been created in PIN entry)
@@ -368,12 +457,9 @@ export function useNFCParameterParser() {
       
       setRequiresPIN(false)
       setAccountInitialized(true)
-      
-      // For PIN success, the redirect should have already happened in PIN entry
-      // This is mainly for bonding scenarios or error recovery
     }
     
-    setDebugInfo(prev => [...prev, `✅ PIN auth complete: ${account.accountId}`])
+    setDebugInfo(prev => [...prev, `✅ Legacy PIN auth complete: ${account.accountId}`])
   }, [toast, currentSession, newUserInfo, router])
 
   const handleBondCreate = useCallback(async (bondType: string, note?: string): Promise<boolean> => {

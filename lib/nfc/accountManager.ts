@@ -310,8 +310,9 @@ export class NFCAccountManager {
   }
 
   /**
-   * 🔢 Generate Account Data
-   * Create account with your existing Ed25519 system, but make it consistent per chipUID
+   * 🔢 Generate Account Data (DEPRECATED - Use DID:Key System)
+   * This method is kept for legacy compatibility but should not be used for new accounts
+   * New accounts should use the DID:Key system with chipUID + PIN
    */
   private static async generateDeterministicAccountData(chipUID: string): Promise<{
     accountId: string
@@ -320,6 +321,8 @@ export class NFCAccountManager {
     publicKey: string
     privateKey: string
   }> {
+    console.warn('⚠️ DEPRECATED: generateDeterministicAccountData should not be used for new accounts. Use DID:Key system instead.')
+    
     try {
       // Import crypto functions
       const { createDIDKey } = await import('@/lib/crypto')

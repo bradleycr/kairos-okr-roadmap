@@ -169,7 +169,35 @@ async function generateDecentralizedNFCConfig(chipUID: string): Promise<{
   }
 }
 
-// --- DID:Key NFC Generation (Simplified) ---
+// --- Simple ChipUID-Only NFC Generation (First-Time Setup) ---
+async function generateFirstTimeNFCConfig(chipUID: string): Promise<{
+  chipUID: string
+  nfcUrl: string
+  deviceId: string
+  setupType: string
+}> {
+  try {
+    // Generate device ID for tracking
+    const deviceId = `kairos-pendant-${chipUID.replace(/:/g, '')}`
+    
+    // Create simple URL with just chipUID - PIN will be set up on first tap
+    const baseUrl = window.location.origin
+    const nfcUrl = `${baseUrl}/nfc?chipUID=${encodeURIComponent(chipUID)}`
+    
+    return {
+      chipUID,
+      nfcUrl,
+      deviceId,
+      setupType: 'first-time-setup'
+    }
+    
+  } catch (error) {
+    console.error('Failed to generate first-time NFC config:', error)
+    throw new Error(`First-time NFC generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
+}
+
+// --- Legacy: DID:Key NFC Generation (For Testing Only) ---
 async function generateDIDKeyNFCConfig(chipUID: string, pin: string = '1234'): Promise<{
   privateKey: string
   publicKey: string
@@ -638,47 +666,110 @@ export default function ChipConfigPage() {
     }
   }, [])
 
-  // --- Generate New NTAG424 DNA Configuration ---
-  const generateNTAG424Config = useCallback(async (format: 'didkey' | 'decentralized' = 'didkey') => {
+  // --- Generate New NTAG424 Configuration ---
+  const generateNTAG424Config = useCallback(async (format: 'first-time' | 'didkey' | 'decentralized' = 'first-time') => {
     setIsGenerating(true)
     
     try {
       const chipId = chipName || `KAIROS_${generateRandomHex(4).toUpperCase()}`
       const chipUID = generateChipUID()
       
-      let keyPair: any
-      
-      if (format === 'didkey') {
-        // Step 1: Generate DID:Key configuration (recommended)
-        keyPair = await generateDIDKeyNFCConfig(chipUID, '1234') // Default PIN for demo
-      } else {
-        // Step 1: Generate legacy decentralized configuration
-        keyPair = await generateDecentralizedNFCConfig(chipUID)
-      }
-      const did = keyPair.did
-      
-      // Step 2: Validate cryptographic parameters
-      if (!keyPair.signature || !keyPair.publicKey || !keyPair.challengeMessage || !keyPair.deviceId) {
-        throw new Error('Incomplete cryptographic parameters generated')
-      }
-      
-      // Step 3: Generate URLs with crypto-safe compression strategies
       let urlResult: {
         nfcUrl: string
         urlAnalysis: { bytes: number; chars: number; compatibility: Record<string, string> }
         compressionLevel: string
         validation?: { valid: boolean, errors: string[], warnings: string[] }
       }
+
+      let config: NTAG424Config
       
-      if (format === 'didkey') {
-        // Use simplified DID:Key URL generation
+      if (format === 'first-time') {
+        // Step 1: Generate first-time setup configuration (recommended for production)
+        const firstTimeConfig = await generateFirstTimeNFCConfig(chipUID)
+        
+        // Calculate URL analysis
+        const bytes = new TextEncoder().encode(firstTimeConfig.nfcUrl).length
+        const chars = firstTimeConfig.nfcUrl.length
+        
+        urlResult = {
+          nfcUrl: firstTimeConfig.nfcUrl,
+          urlAnalysis: {
+            bytes,
+            chars,
+            compatibility: {
+              'NTAG213': bytes <= 137 ? 'Perfect' : 'Too Large',
+              'NTAG215': bytes <= 504 ? 'Perfect' : 'Too Large', 
+              'NTAG216': bytes <= 904 ? 'Perfect' : 'Too Large',
+              'NTAG424_DNA': bytes <= 416 ? 'Perfect' : 'Too Large'
+            }
+          },
+          compressionLevel: 'First-Time Setup (PIN set on first tap)'
+        }
+        
+        config = {
+          chipId,
+          chipUID,
+          did: 'WILL_BE_GENERATED_ON_FIRST_TAP',
+          signature: 'WILL_BE_GENERATED_ON_FIRST_TAP',
+          publicKey: 'WILL_BE_GENERATED_ON_FIRST_TAP',
+          privateKey: 'WILL_BE_DERIVED_ON_FIRST_TAP',
+          nfcUrl: urlResult.nfcUrl,
+          testUrl: urlResult.nfcUrl,
+          createdAt: new Date().toISOString(),
+          challengeMessage: 'WILL_BE_GENERATED_ON_FIRST_TAP',
+          urlAnalysis: {
+            ...urlResult.urlAnalysis,
+            urlType: 'First-Time Setup',
+            isIntent: false
+          }
+        }
+        
+      } else if (format === 'didkey') {
+        // Step 1: Generate DID:Key configuration (for testing only)
+        const keyPair = await generateDIDKeyNFCConfig(chipUID, '1234') // Test PIN
+        const did = keyPair.did
+        
+        // Step 2: Validate cryptographic parameters
+        if (!keyPair.signature || !keyPair.publicKey || !keyPair.challengeMessage || !keyPair.deviceId) {
+          throw new Error('Incomplete cryptographic parameters generated')
+        }
+        
+        // Step 3: Generate DID:Key URL
         urlResult = generateDIDKeyNFCUrl(
           keyPair.did,
           chipUID,
           customBaseUrl
         )
+        
+        config = {
+          chipId,
+          chipUID,
+          did,
+          signature: keyPair.signature,
+          publicKey: keyPair.publicKey,
+          privateKey: keyPair.privateKey,
+          nfcUrl: urlResult.nfcUrl,
+          testUrl: urlResult.nfcUrl,
+          createdAt: new Date().toISOString(),
+          challengeMessage: keyPair.challengeMessage,
+          urlAnalysis: {
+            ...urlResult.urlAnalysis,
+            urlType: 'DID:Key (Testing)',
+            isIntent: false
+          }
+        }
+        
       } else {
-        // Use new crypto-safe URL generation that preserves authentication integrity
+        // Step 1: Generate legacy decentralized configuration
+        const keyPair = await generateDecentralizedNFCConfig(chipUID)
+        const did = keyPair.did
+        
+        // Step 2: Validate cryptographic parameters
+        if (!keyPair.signature || !keyPair.publicKey || !keyPair.challengeMessage || !keyPair.deviceId) {
+          throw new Error('Incomplete cryptographic parameters generated')
+        }
+        
+        // Step 3: Generate URLs with crypto-safe compression strategies
         const cryptoSafeUrl = generateCryptoSafeNFCUrl(
           chipUID,
           keyPair.signature,
@@ -688,89 +779,67 @@ export default function ChipConfigPage() {
           selectedChipType
         )
         urlResult = cryptoSafeUrl
-      }
-      
-      // For legacy format, check if crypto-safe generation succeeded
-      if (format !== 'didkey' && urlResult.validation && !urlResult.validation.valid) {
-        // Log validation errors for debugging
-        console.warn('Crypto-safe URL generation failed:', cryptoSafeUrl.validation.errors)
         
-        // For very small chips where crypto-safe compression fails,
-        // fall back to decentralized format but warn about limitations
-        if (selectedChipType === 'NTAG213' || selectedChipType === 'NTAG424_DNA') {
-          const decentralizedUrl = generateDecentralizedNFCUrl(
-            keyPair.deviceId,
-            chipUID,
-            customBaseUrl
-          )
+        // For legacy format, check if crypto-safe generation succeeded
+        if (urlResult.validation && !urlResult.validation.valid) {
+          // Log validation errors for debugging
+          console.warn('Crypto-safe URL generation failed:', urlResult.validation.errors)
           
-          urlResult = {
-            ...decentralizedUrl,
-            validation: {
-              valid: false,
-              errors: ['Using decentralized format due to space constraints'],
-              warnings: ['This URL requires device registration and may not work on all devices']
+          // For very small chips where crypto-safe compression fails,
+          // fall back to decentralized format but warn about limitations
+          if (selectedChipType === 'NTAG213' || selectedChipType === 'NTAG424_DNA') {
+            const decentralizedUrl = generateDecentralizedNFCUrl(
+              keyPair.deviceId,
+              chipUID,
+              customBaseUrl
+            )
+            
+            urlResult = {
+              ...decentralizedUrl,
+              validation: {
+                valid: false,
+                errors: ['Using decentralized format due to space constraints'],
+                warnings: ['This URL requires device registration and may not work on all devices']
+              }
+            }
+          } else {
+            // For larger chips, should not fail - use fallback
+            urlResult = {
+              nfcUrl: `${customBaseUrl}/nfc?error=generation_failed`,
+              urlAnalysis: {
+                bytes: 0,
+                chars: 0,
+                compatibility: {
+                  'NTAG213': '❌ Generation failed',
+                  'NTAG215': '❌ Generation failed',
+                  'NTAG216': '❌ Generation failed',
+                  'NTAG424_DNA': '❌ Generation failed'
+                }
+              },
+              compressionLevel: 'error',
+              validation: cryptoSafeUrl.validation
             }
           }
-        } else {
-          // For larger chips, should not fail - use fallback
-          urlResult = {
-            nfcUrl: `${customBaseUrl}/nfc?error=generation_failed`,
-            urlAnalysis: {
-              bytes: 0,
-              chars: 0,
-              compatibility: {
-                'NTAG213': '❌ Generation failed',
-                'NTAG215': '❌ Generation failed',
-                'NTAG216': '❌ Generation failed',
-                'NTAG424_DNA': '❌ Generation failed'
-              }
-            },
-            compressionLevel: 'error',
-            validation: cryptoSafeUrl.validation
-          }
-        }
-      }
-      
-      // Step 4: Create test URL for legacy compatibility
-      const fullTestUrl = `${customBaseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${keyPair.signature}&publicKey=${keyPair.publicKey}&uid=${chipUID}&challenge=${encodeURIComponent(keyPair.challengeMessage)}`
-      
-      // Step 5: Validate using local decentralized verification
-      try {
-        const { DecentralizedNFCAuth } = await import('@/lib/crypto/decentralizedNFC')
-        
-        // Test local verification
-        const verified = await DecentralizedNFCAuth.verifyLocally(
-          keyPair.signature,
-          keyPair.challengeMessage,
-          keyPair.publicKey
-        )
-        
-        if (!verified) {
-          throw new Error('Generated configuration failed local verification')
         }
         
-      } catch (verifyError) {
-        throw new Error(`Local verification failed: ${verifyError instanceof Error ? verifyError.message : 'Unknown error'}`)
-      }
-      
-      const config: NTAG424Config = {
-        chipId,
-        chipUID,
-        did,
-        signature: keyPair.signature,
-        publicKey: keyPair.publicKey,
-        privateKey: keyPair.privateKey,
-        nfcUrl: urlResult.nfcUrl,
-        testUrl: fullTestUrl,
-        createdAt: new Date().toISOString(),
-        challengeMessage: keyPair.challengeMessage,
-        urlAnalysis: {
-          ...urlResult.urlAnalysis,
-          urlType: 'Decentralized HTTPS',
-          isIntent: false
-        },
-        validated: true // Mark as pre-validated with local crypto
+        config = {
+          chipId,
+          chipUID,
+          did,
+          signature: keyPair.signature,
+          publicKey: keyPair.publicKey,
+          privateKey: keyPair.privateKey,
+          nfcUrl: urlResult.nfcUrl,
+          testUrl: urlResult.nfcUrl,
+          createdAt: new Date().toISOString(),
+          challengeMessage: keyPair.challengeMessage,
+          urlAnalysis: {
+            ...urlResult.urlAnalysis,
+            urlType: 'Decentralized HTTPS',
+            isIntent: false
+          },
+          validated: true // Mark as pre-validated with local crypto
+        }
       }
       
       setConfigs(prev => [config, ...prev])
@@ -1112,7 +1181,7 @@ export default function ChipConfigPage() {
                 
                 <div className="space-y-2">
                   <Button 
-                    onClick={() => generateNTAG424Config('didkey')}
+                    onClick={() => generateNTAG424Config('first-time')}
                     disabled={isGenerating}
                     className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                   >
@@ -1124,7 +1193,26 @@ export default function ChipConfigPage() {
                     ) : (
                       <>
                         <RocketIcon className="h-4 w-4 mr-2" />
-                        🎯 Generate DID:Key (Recommended)
+                        🌟 Generate First-Time Setup (Cross-Device Ready)
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => generateNTAG424Config('didkey')}
+                    disabled={isGenerating}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <SmartphoneIcon className="h-4 w-4 mr-2" />
+                        Generate DID:Key (Testing)
                       </>
                     )}
                   </Button>

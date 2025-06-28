@@ -11,7 +11,7 @@ interface PINEntryProps {
   chipUID: string
   isNewDevice?: boolean
   displayName?: string
-  onSuccess: (account: any) => void
+  onSuccess: (account: any, pin: string) => void
   onCancel?: () => void
   className?: string
 }
@@ -57,127 +57,42 @@ export default function PINEntry({
     setError('')
 
     try {
-      // 🔐 CRYPTO: Use proper DID:Key authentication instead of password-like PIN
-      console.log('🔐 Starting cryptographic DID:Key authentication...')
+      // 🔐 Simplified PIN validation - let parent handle DID:Key authentication
+      console.log('🔐 Validating PIN format and passing to parent for DID:Key authentication...')
       
-      const { SimpleDecentralizedAuth } = await import('@/lib/crypto/simpleDecentralizedAuth')
-      const { SessionManager } = await import('@/lib/nfc/sessionManager')
       const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
       
-      // Step 1: Try NEW cryptographic DID:Key authentication first
-      const auth = new SimpleDecentralizedAuth()
-      const authResult = await auth.authenticate(chipUID, pin)
+      // Basic PIN validation - check if PIN is known to the system
+      const isValidPIN = await NFCAccountManager.verifyAccountPIN(chipUID, pin)
       
-      if (!authResult.success || !authResult.identity) {
-        console.log('🔄 DID:Key auth failed, trying legacy PIN verification...')
-        
-        // Step 1b: FALLBACK - Try legacy encrypted PIN verification
-        const legacyResult = await NFCAccountManager.authenticateAfterPIN(chipUID, pin)
-        
-        if (!legacyResult.success) {
-          setAttempts(prev => prev + 1)
-          setError('Incorrect PIN - both cryptographic and legacy authentication failed')
-          setPIN('')
-          
-          // Focus input for retry
-          setTimeout(() => {
-            if (inputRef.current) {
-              inputRef.current.focus()
-            }
-          }, 100)
-          return
-        }
-        
-        console.log('✅ Legacy PIN authentication successful - creating session...')
-        
-        // Step 5: Create secure sessions for legacy users
-        const apiSession = await SessionManager.createSession(chipUID)
-        
-        if (!apiSession) {
-          throw new Error('Failed to create secure session')
-        }
-
-        console.log('🔐 Legacy session created:', {
-          sessionId: apiSession.sessionId,
-          chipUID: chipUID.slice(-4),
-          deviceFingerprint: apiSession.deviceFingerprint?.slice(-8) || 'unknown',
-          authType: 'legacy-pin'
-        })
-        
-        // Success with legacy system
-        onSuccess({
-          ...legacyResult.account,
-          sessionToken: apiSession.sessionId,
-          apiSession,
-          authType: 'legacy-pin',
-          isNewDevice
-        })
-        return
-      }
-      
-      console.log('✅ DID:Key authentication successful:', {
-        did: authResult.did,
-        performance: authResult.performance,
-        chipUID: chipUID.slice(-4),
-        authType: 'new-did-key'
-      })
-      
-      // Step 2: Generate and sign challenge for cryptographic proof
-      const challenge = auth.generateChallenge(chipUID)
-      const signature = await auth.signChallenge(chipUID, pin, challenge.challenge)
-      
-      console.log('🔐 Challenge signed - verifying cryptographic proof...')
-      
-      // Step 3: Verify the signature (proves they know PIN + have chip)
-      const isValidSignature = await auth.verifyChallenge(
-        authResult.did!, 
-        challenge.challenge, 
-        signature
-      )
-      
-      if (!isValidSignature) {
+      if (!isValidPIN) {
         setAttempts(prev => prev + 1)
-        setError('Cryptographic signature verification failed')
+        setError('Incorrect PIN')
         setPIN('')
+        
+        // Focus input for retry
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus()
+          }
+        }, 100)
         return
       }
       
-      console.log('✅ Cryptographic proof verified successfully')
+      console.log('✅ PIN validated - passing to parent for DID:Key authentication')
       
-      // Step 4: Create or get account using cryptographic identity
-      const accountResult = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
-      
-      // Step 5: Create secure sessions
-      const apiSession = await SessionManager.createSession(chipUID)
-      
-      if (!apiSession) {
-        throw new Error('Failed to create secure session')
-      }
-
-      console.log('🔐 Secure session created:', {
-        sessionId: apiSession.sessionId,
-        chipUID: chipUID.slice(-4),
-        deviceFingerprint: apiSession.deviceFingerprint?.slice(-8) || 'unknown',
-        cryptographicDID: authResult.did
-      })
-      
-      // Success - call onSuccess with cryptographic account
+      // Pass PIN and basic account info to parent for proper DID:Key auth
       onSuccess({
-        ...accountResult.account,
-        sessionToken: apiSession.sessionId,
-        apiSession,
-        cryptographicIdentity: authResult.identity,
-        did: authResult.did,
-        publicKey: authResult.publicKey,
-        authType: 'did-key',
+        chipUID,
+        displayName: displayName || `User ${chipUID.slice(-4)}`,
         isNewDevice,
-        authPerformance: authResult.performance
-      })
+        authType: 'pin-validated'
+      }, pin)
       
     } catch (error) {
-      console.error('Cryptographic PIN authentication failed:', error)
+      console.error('PIN validation failed:', error)
       setAttempts(prev => prev + 1)
-      setError(error instanceof Error ? error.message : 'Cryptographic authentication failed')
+      setError(error instanceof Error ? error.message : 'PIN validation failed')
       setPIN('')
     } finally {
       if (isNewDevice) {
