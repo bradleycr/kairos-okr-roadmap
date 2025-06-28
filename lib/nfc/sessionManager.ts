@@ -22,21 +22,21 @@ export interface SessionInfo {
  * Generate a device fingerprint for session tracking
  */
 export function generateDeviceFingerprint(): string {
-  // Create a simple but relatively unique device fingerprint
-  const canvas = document.createElement('canvas')
-  const ctx = canvas.getContext('2d')
-  ctx?.fillText('fingerprint', 2, 2)
+  // Create a more stable device fingerprint that's less sensitive to minor changes
+  // Prioritize stable identifiers over volatile ones
+  const stableComponents = [
+    // Core browser info (most stable)
+    navigator.platform || 'unknown',
+    navigator.language || 'en',
+    // Screen info - use orientation-independent values to avoid rotation issues
+    Math.max(screen.width, screen.height) + 'x' + Math.min(screen.width, screen.height),
+    // Hardware concurrency is fairly stable
+    navigator.hardwareConcurrency?.toString() || '4'
+  ]
   
-  const fingerprint = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width + 'x' + screen.height,
-    new Date().getTimezoneOffset(),
-    canvas.toDataURL()
-  ].join('|')
-  
-  // Create a hash of the fingerprint
+  // Create a hash of the stable components
   let hash = 0
+  const fingerprint = stableComponents.join('|')
   for (let i = 0; i < fingerprint.length; i++) {
     const char = fingerprint.charCodeAt(i)
     hash = ((hash << 5) - hash) + char
@@ -266,5 +266,81 @@ export class SessionManager {
       console.error('Failed to get display name:', error)
       return `User ${chipUID.slice(-4).toUpperCase()}`
     }
+  }
+
+  /**
+   * 🔍 Comprehensive Session Diagnostics
+   * Use this to debug authentication flow issues
+   */
+  static async runSessionDiagnostics(chipUID?: string): Promise<{
+    localStorage: {
+      sessionId: string | null
+      currentUser: string | null
+      deviceSession: any
+    }
+    apiSession: {
+      isActive: boolean
+      sessionData: any
+      error?: string
+    }
+    deviceFingerprint: string
+    recommendations: string[]
+  }> {
+    const diagnostics = {
+      localStorage: {
+        sessionId: localStorage.getItem('kairos_session_id'),
+        currentUser: localStorage.getItem('kairos_current_user'),
+        deviceSession: null as any
+      },
+      apiSession: {
+        isActive: false,
+        sessionData: null as any,
+        error: undefined as string | undefined
+      },
+      deviceFingerprint: this.getDeviceFingerprint(),
+      recommendations: [] as string[]
+    }
+
+    // Check device session if chipUID provided
+    if (chipUID) {
+      try {
+        const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+        // Use reflection to access private method (for diagnostics only)
+        const deviceSession = (NFCAccountManager as any).getDeviceSession?.(chipUID)
+        diagnostics.localStorage.deviceSession = deviceSession
+      } catch (error) {
+        diagnostics.recommendations.push('Device session check failed')
+      }
+    }
+
+    // Check API session
+    try {
+      const session = await this.getCurrentSession()
+      diagnostics.apiSession.isActive = session.isActive
+      diagnostics.apiSession.sessionData = session
+    } catch (error) {
+      diagnostics.apiSession.error = error instanceof Error ? error.message : 'Unknown error'
+      diagnostics.recommendations.push('API session verification failed')
+    }
+
+    // Generate recommendations
+    if (!diagnostics.localStorage.sessionId) {
+      diagnostics.recommendations.push('No session ID in localStorage - user needs to authenticate')
+    }
+
+    if (!diagnostics.apiSession.isActive) {
+      diagnostics.recommendations.push('No active API session - user needs to authenticate')
+    }
+
+    if (diagnostics.localStorage.sessionId && !diagnostics.apiSession.isActive) {
+      diagnostics.recommendations.push('Session ID exists but API session inactive - possible session corruption')
+    }
+
+    if (chipUID && diagnostics.localStorage.currentUser !== chipUID) {
+      diagnostics.recommendations.push('ChipUID mismatch - different user may be authenticated')
+    }
+
+    console.log('🔍 Session Diagnostics:', diagnostics)
+    return diagnostics
   }
 } 

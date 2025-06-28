@@ -14,7 +14,7 @@ export class NFCParameterParser {
    */
   public static parseParameters(searchParams: URLSearchParams): {
     params: NFCParameters
-    format: 'decentralized' | 'legacy-full' | 'legacy-compressed' | 'legacy-ultra' | 'none'
+    format: 'didkey' | 'optimal' | 'decentralized' | 'legacy-full' | 'legacy-compressed' | 'legacy-ultra' | 'none'
     debugInfo: string[]
   } {
     const debugInfo: string[] = []
@@ -26,7 +26,55 @@ export class NFCParameterParser {
     })
     debugInfo.push(`Raw URL params: ${JSON.stringify(allParams)}`)
 
-    // Strategy 1: Decentralized NFC format (d=deviceId, c=chipUID)
+    // Strategy 1: DID:Key format (did + optional chipUID) - RECOMMENDED
+    const didParam = searchParams.get('did')
+    const didChipUID = searchParams.get('chipUID') || searchParams.get('chip') || searchParams.get('c')
+    
+    if (didParam && didParam.startsWith('did:key:')) {
+      debugInfo.push('🎯 DID:Key format detected (RECOMMENDED)')
+      debugInfo.push(`DID: ${didParam}`)
+      debugInfo.push(`Chip UID: ${didChipUID || 'not provided'}`)
+      debugInfo.push(`Authentication: 100% offline, PIN required`)
+      
+      return {
+        params: {
+          did: didParam,
+          chipUID: didChipUID ? decodeURIComponent(didChipUID) : undefined,
+          // PIN will be collected via UI
+          challenge: `KairOS_DIDKey_${Date.now()}`
+        },
+        format: 'didkey' as any,
+        debugInfo
+      }
+    }
+
+    // Strategy 2: Optimal P2P IPFS format (chipUID only) - LEGACY
+    const onlyChipUID = searchParams.get('chipUID') || searchParams.get('chip') || searchParams.get('c')
+    const hasOnlyChipUID = onlyChipUID && 
+      !searchParams.get('d') && // No deviceId (decentralized format)
+      !searchParams.get('signature') && // No signature (legacy format)
+      !searchParams.get('publicKey') && // No publicKey (legacy format)
+      !searchParams.get('s') && // No compressed signature
+      !searchParams.get('p') && // No compressed public key
+      !searchParams.get('k') // No legacy compressed key
+    
+    if (hasOnlyChipUID) {
+      debugInfo.push('🌐 Optimal P2P IPFS format detected (chipUID only)')
+      debugInfo.push(`Chip UID: ${onlyChipUID}`)
+      debugInfo.push(`Will require PIN authentication`)
+      
+      return {
+        params: {
+          chipUID: decodeURIComponent(onlyChipUID),
+          // PIN will be collected via UI
+          challenge: `KairOS_Optimal_${onlyChipUID}_${Date.now()}`
+        },
+        format: 'optimal',
+        debugInfo
+      }
+    }
+
+    // Strategy 3: Decentralized NFC format (d=deviceId, c=chipUID)
     const deviceId = searchParams.get('d')
     const chipUID = searchParams.get('c')
     
@@ -46,7 +94,7 @@ export class NFCParameterParser {
       }
     }
 
-    // Strategy 2: Legacy full format (did, signature, publicKey, uid/chipUID)
+    // Strategy 4: Legacy full format (did, signature, publicKey, uid/chipUID)
     const fullDID = searchParams.get('did')
     const fullSig = searchParams.get('signature') 
     const fullKey = searchParams.get('publicKey')
@@ -69,7 +117,7 @@ export class NFCParameterParser {
       }
     }
 
-    // Strategy 3: Safe compressed format (c, s, p) - minimal compression preserving crypto integrity
+    // Strategy 5: Safe compressed format (c, s, p) - minimal compression preserving crypto integrity
     const compressedUID = searchParams.get('c')
     const compressedSig = searchParams.get('s')
     const compressedKey = searchParams.get('p')
@@ -99,7 +147,7 @@ export class NFCParameterParser {
       }
     }
 
-    // Strategy 3b: Legacy compressed format (c, s, k) - for backward compatibility
+    // Strategy 5b: Legacy compressed format (c, s, k) - for backward compatibility
     const legacyCompressedKey = searchParams.get('k')
     
     if (compressedUID && compressedSig && legacyCompressedKey) {
@@ -127,7 +175,7 @@ export class NFCParameterParser {
       }
     }
 
-    // Strategy 4: Ultra-compressed format (u, s, k) with base64 decoding
+    // Strategy 6: Ultra-compressed format (u, s, k) with base64 decoding
     const ultraUID = searchParams.get('u')
     const ultraSig = searchParams.get('s')
     const ultraKey = searchParams.get('k')

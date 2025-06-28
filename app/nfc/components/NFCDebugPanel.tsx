@@ -7,14 +7,15 @@
 
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { 
   BugIcon,
   CopyIcon,
   EyeIcon,
-  EyeOffIcon
+  EyeOffIcon,
+  SmartphoneIcon
 } from 'lucide-react'
 import type { NFCVerificationState, NFCParameters } from '../types/nfc.types'
 
@@ -27,6 +28,75 @@ interface NFCDebugPanelProps {
 export function NFCDebugPanel({ verificationState, nfcParams, format }: NFCDebugPanelProps) {
   const { toast } = useToast()
   const [isVisible, setIsVisible] = useState(false)
+  const [deviceInfo, setDeviceInfo] = useState<{
+    fingerprint: string
+    platform: string
+    language: string
+    screenSize: string
+    concurrency: string
+    hasLocalProfile: boolean
+    sessionExists: boolean
+    apiSessionExists: boolean
+    apiSessionId: string
+    currentUser: string
+  } | null>(null)
+
+  useEffect(() => {
+    // Gather device information for debugging
+    const gatherDeviceInfo = async () => {
+      try {
+        // Generate device fingerprint using the same logic as the session manager
+        const stableComponents = [
+          navigator.platform || 'unknown',
+          navigator.language || 'en',
+          Math.max(screen.width, screen.height) + 'x' + Math.min(screen.width, screen.height),
+          navigator.hardwareConcurrency?.toString() || '4'
+        ]
+        
+        let hash = 0
+        const fingerprint = stableComponents.join('|')
+        for (let i = 0; i < fingerprint.length; i++) {
+          const char = fingerprint.charCodeAt(i)
+          hash = ((hash << 5) - hash) + char
+          hash = hash & hash
+        }
+        const deviceFingerprint = `device_${Math.abs(hash).toString(16)}`
+
+        // Check for local profile and session
+        const hasLocalProfile = nfcParams.chipUID ? 
+          localStorage.getItem(`kairos:profile:${nfcParams.chipUID}`) !== null : false
+        
+        const sessionExists = nfcParams.chipUID ? 
+          localStorage.getItem(`kairos:session:${nfcParams.chipUID}`) !== null : false
+
+        // Check API session
+        const apiSessionId = localStorage.getItem('kairos_session_id')
+        const currentUser = localStorage.getItem('kairos_current_user')
+
+        setDeviceInfo({
+          fingerprint: deviceFingerprint,
+          platform: navigator.platform || 'unknown',
+          language: navigator.language || 'en',
+          screenSize: Math.max(screen.width, screen.height) + 'x' + Math.min(screen.width, screen.height),
+          concurrency: navigator.hardwareConcurrency?.toString() || '4',
+          hasLocalProfile,
+          sessionExists,
+          apiSessionExists: !!apiSessionId,
+          apiSessionId: apiSessionId?.slice(-8) || 'none',
+          currentUser: currentUser?.slice(-4) || 'none'
+        })
+      } catch (error) {
+        console.warn('Failed to gather device info for debug panel:', error)
+      }
+    }
+
+    if (isVisible) {
+      gatherDeviceInfo()
+      // Refresh every 2 seconds when visible
+      const interval = setInterval(gatherDeviceInfo, 2000)
+      return () => clearInterval(interval)
+    }
+  }, [isVisible, nfcParams.chipUID])
 
   const copyDebugInfo = useCallback(() => {
     const debugInfo = {
@@ -35,6 +105,7 @@ export function NFCDebugPanel({ verificationState, nfcParams, format }: NFCDebug
       userAgent: navigator.userAgent,
       format,
       nfcParams,
+      deviceInfo,
       verificationState: {
         ...verificationState,
         // Don't include debug logs in the copy to avoid recursion
@@ -47,7 +118,7 @@ export function NFCDebugPanel({ verificationState, nfcParams, format }: NFCDebug
       title: "📋 Debug Info Copied",
       description: "Full debug information copied to clipboard",
     })
-  }, [verificationState, nfcParams, format, toast])
+  }, [verificationState, nfcParams, format, toast, deviceInfo])
 
   if (!isVisible) {
     return (
@@ -92,6 +163,28 @@ export function NFCDebugPanel({ verificationState, nfcParams, format }: NFCDebug
             </Button>
           </div>
         </div>
+        
+        {/* Device Fingerprint Info */}
+        {deviceInfo && (
+          <div className="mb-4 p-3 bg-background rounded border">
+            <div className="text-xs font-mono space-y-1">
+              <div className="flex items-center gap-2 mb-2">
+                <SmartphoneIcon className="h-3 w-3" />
+                <strong>Device Information</strong>
+              </div>
+              <div><strong>Fingerprint:</strong> {deviceInfo.fingerprint}</div>
+              <div><strong>Platform:</strong> {deviceInfo.platform}</div>
+              <div><strong>Language:</strong> {deviceInfo.language}</div>
+              <div><strong>Screen:</strong> {deviceInfo.screenSize}</div>
+              <div><strong>CPU Cores:</strong> {deviceInfo.concurrency}</div>
+              <div><strong>Local Profile:</strong> {deviceInfo.hasLocalProfile ? '✅ Yes' : '❌ No'}</div>
+              <div><strong>Device Session:</strong> {deviceInfo.sessionExists ? '✅ Yes' : '❌ No'}</div>
+              <div><strong>API Session:</strong> {deviceInfo.apiSessionExists ? '✅ Yes' : '❌ No'}</div>
+              <div><strong>Session ID:</strong> {deviceInfo.apiSessionId}</div>
+              <div><strong>Current User:</strong> {deviceInfo.currentUser}</div>
+            </div>
+          </div>
+        )}
         
         {/* Parameters Info */}
         <div className="mb-4 p-3 bg-background rounded border">

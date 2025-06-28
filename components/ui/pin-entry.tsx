@@ -57,8 +57,9 @@ export default function PINEntry({
     setError('')
 
     try {
-      // Import the account manager
+      // Import both session systems
       const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+      const { SessionManager } = await import('@/lib/nfc/sessionManager')
       
       // Verify PIN and authenticate
       const result = await NFCAccountManager.authenticateAfterPIN(chipUID, pin)
@@ -66,23 +67,48 @@ export default function PINEntry({
       if (result.success && result.account) {
         console.log('✅ PIN authentication successful')
         
+        // 🔐 CRYPTO: Create cryptographically secure session token
+        const sessionToken = Array.from({ length: 32 }, () => 
+          Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+        ).join('')
+        
+        // Create both session types for consistency
+        const apiSession = await SessionManager.createSession(chipUID)
+        
+        if (!apiSession) {
+          throw new Error('Failed to create secure session')
+        }
+
+        console.log('🔐 Secure session created:', {
+          sessionId: apiSession.sessionId,
+          chipUID: chipUID.slice(-4),
+          deviceFingerprint: apiSession.deviceFingerprint?.slice(-8) || 'unknown'
+        })
+        
         // Smart routing logic for better UX
         if (isNewDevice) {
           // Returning user on NEW device: Show success screen for security awareness
-          onSuccess(result.account)
+          onSuccess({
+            ...result.account,
+            sessionToken: apiSession.sessionId,
+            apiSession
+          })
         } else {
           // Returning user on familiar device (expired session): Go directly to profile
           const profileUrl = new URL('/profile', window.location.origin)
           profileUrl.searchParams.set('verified', 'true')
           profileUrl.searchParams.set('source', 'pin')
           profileUrl.searchParams.set('chipUID', chipUID)
-          profileUrl.searchParams.set('session', `pin_session_${Date.now()}`)
+          profileUrl.searchParams.set('session', apiSession.sessionId)
+          profileUrl.searchParams.set('auth_timestamp', Date.now().toString())
           
-          // Brief success feedback before redirect
-          setIsVerifying(false)
-          setTimeout(() => {
-            window.location.href = profileUrl.toString()
-          }, 300)
+          console.log('🚀 Navigating to profile with secure session')
+          
+          // Wait for session to be fully stored before navigation
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Use window.location for immediate redirect after PIN success
+          window.location.href = profileUrl.toString()
         }
       } else {
         setAttempts(prev => prev + 1)

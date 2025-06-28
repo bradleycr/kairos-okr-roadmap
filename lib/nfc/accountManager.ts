@@ -1034,7 +1034,7 @@ export class NFCAccountManager {
     error?: string
   }> {
     try {
-      // Verify PIN
+      // Verify PIN cryptographically
       const isValidPIN = await this.verifyAccountPIN(chipUID, pin)
       
       if (!isValidPIN) {
@@ -1044,9 +1044,29 @@ export class NFCAccountManager {
         }
       }
       
-      // PIN is valid, create session and return account
+      // PIN is valid, create account and both session types
       const result = await this.authenticateOrCreateAccount(chipUID)
+      
+      // 🔐 CRYPTO: Create both session systems for consistency
+      console.log('🔐 Creating dual session systems for maximum security')
+      
+      // 1. Create local device session (for device-specific storage)
       this.createDeviceSession(chipUID, true)
+      
+      // 2. Create API session (for server validation)
+      try {
+        const { SessionManager } = await import('@/lib/nfc/sessionManager')
+        const apiSession = await SessionManager.createSession(chipUID)
+        
+        if (!apiSession) {
+          console.warn('⚠️ Failed to create API session, but proceeding with device session')
+        } else {
+          console.log('✅ Dual session systems created successfully')
+        }
+      } catch (sessionError) {
+        console.warn('⚠️ API session creation failed:', sessionError)
+        // Don't fail the authentication for session creation issues
+      }
       
       return {
         success: true,
@@ -1068,17 +1088,22 @@ export class NFCAccountManager {
   private static generateDeviceFingerprint(): string {
     if (typeof window === 'undefined') return 'server'
     
-    // Create a device fingerprint from available browser/device info
-    const components = [
-      navigator.userAgent,
-      navigator.language,
-      screen.width + 'x' + screen.height,
-      new Date().getTimezoneOffset().toString(),
+    // Create a more stable device fingerprint that's less sensitive to minor changes
+    // Prioritize stable identifiers over volatile ones
+    const stableComponents = [
+      // Core browser info (most stable)
+      navigator.platform || 'unknown',
+      navigator.language || 'en',
+      // Screen info - use orientation-independent values
+      Math.max(screen.width, screen.height) + 'x' + Math.min(screen.width, screen.height),
+      // Hardware concurrency is fairly stable
+      navigator.hardwareConcurrency?.toString() || '4',
+      // Domain should be stable
       window.location.hostname
     ]
     
-    // Simple hash of the components
-    const fingerprint = components.join('|')
+    // Simple hash of the stable components
+    const fingerprint = stableComponents.join('|')
     let hash = 0
     for (let i = 0; i < fingerprint.length; i++) {
       const char = fingerprint.charCodeAt(i)
@@ -1087,6 +1112,22 @@ export class NFCAccountManager {
     }
     
     return `device_${Math.abs(hash).toString(16)}`
+  }
+  
+  /**
+   * Check if two fingerprints are "similar enough" (for graceful degradation)
+   */
+  private static fingerprintsAreSimilar(fp1: string, fp2: string): boolean {
+    // If exact match, definitely similar
+    if (fp1 === fp2) return true
+    
+    // Extract the hash part and check if they're close
+    const hash1 = fp1.replace('device_', '')
+    const hash2 = fp2.replace('device_', '')
+    
+    // For now, consider fingerprints similar if they're exactly the same
+    // In the future, we could implement fuzzy matching here
+    return hash1 === hash2
   }
   
   private static getDeviceSession(chipUID: string): DeviceSession | null {
@@ -1100,12 +1141,36 @@ export class NFCAccountManager {
       
       const session = JSON.parse(stored) as DeviceSession
       
-      // Verify device fingerprint matches
-      const currentFingerprint = this.generateDeviceFingerprint()
-      if (session.deviceFingerprint !== currentFingerprint) {
-        console.log('🔒 Device fingerprint mismatch, clearing session')
+      // Check if session is expired first
+      const now = new Date()
+      if (new Date(session.autoLoginUntil) < now) {
+        console.log('🕐 Device session expired, clearing')
         localStorage.removeItem(sessionKey)
         return null
+      }
+      
+      // Verify device fingerprint matches (with graceful degradation)
+      const currentFingerprint = this.generateDeviceFingerprint()
+      if (!this.fingerprintsAreSimilar(session.deviceFingerprint, currentFingerprint)) {
+        console.log('🔒 Device fingerprint mismatch detected')
+        console.log(`   Previous: ${session.deviceFingerprint}`)
+        console.log(`   Current:  ${currentFingerprint}`)
+        
+        // Instead of immediately clearing, check session age
+        const sessionAge = now.getTime() - new Date(session.lastAuthenticated).getTime()
+        const maxGracePeriod = 2 * 60 * 60 * 1000 // 2 hours in milliseconds
+        
+        if (sessionAge < maxGracePeriod) {
+          console.log('🤝 Session recent enough, updating fingerprint and continuing')
+          // Update the fingerprint to current value
+          session.deviceFingerprint = currentFingerprint
+          localStorage.setItem(sessionKey, JSON.stringify(session))
+          return session
+        } else {
+          console.log('🔒 Session too old with fingerprint mismatch, clearing')
+          localStorage.removeItem(sessionKey)
+          return null
+        }
       }
       
       return session
@@ -1196,6 +1261,62 @@ export class NFCAccountManager {
       }
     } catch (error) {
       console.warn('Failed to logout:', error)
+    }
+  }
+  
+  /**
+   * 🔧 Migrate old sessions to new fingerprinting system
+   * Call this to upgrade users from the old unstable fingerprinting
+   */
+  static migrateSessionsToNewFingerprinting(): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      console.log('🔄 Migrating sessions to new fingerprinting system...')
+      const migrationKey = 'kairos:fingerprint-migration-v2'
+      
+      // Check if migration has already been done
+      if (localStorage.getItem(migrationKey)) {
+        console.log('✅ Migration already completed')
+        return
+      }
+      
+      // Get all session keys
+      const sessionKeys = Object.keys(localStorage).filter(key => 
+        key.startsWith(SESSION_STORAGE_PREFIX)
+      )
+      
+      const currentFingerprint = this.generateDeviceFingerprint()
+      
+      sessionKeys.forEach(sessionKey => {
+        try {
+          const sessionData = localStorage.getItem(sessionKey)
+          if (sessionData) {
+            const session = JSON.parse(sessionData)
+            
+            // Update to new fingerprint
+            session.deviceFingerprint = currentFingerprint
+            
+            // Mark as migrated
+            session.migrated = true
+            session.migrationDate = new Date().toISOString()
+            
+            localStorage.setItem(sessionKey, JSON.stringify(session))
+            console.log(`✅ Migrated session: ${sessionKey}`)
+          }
+        } catch (error) {
+          console.warn(`Failed to migrate session ${sessionKey}:`, error)
+          // If we can't migrate it, remove it to prevent issues
+          localStorage.removeItem(sessionKey)
+        }
+      })
+      
+      // Mark migration as complete
+      localStorage.setItem(migrationKey, new Date().toISOString())
+      console.log(`🎉 Session migration complete! Updated ${sessionKeys.length} sessions`)
+      
+    } catch (error) {
+      console.warn('Failed to migrate sessions:', error)
     }
   }
 } 

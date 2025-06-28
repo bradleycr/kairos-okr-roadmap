@@ -267,15 +267,24 @@ const ProfilePage = () => {
           return;
         }
         
-        // Additional security: Check if session is recent (within last 10 minutes for profile access)
+        // Check for fresh authentication (from URL params) to allow immediate access
+        const urlSearchParams = new URLSearchParams(window.location.search);
+        const authTimestamp = urlSearchParams.get('auth_timestamp');
+        const isRecentAuth = authTimestamp && (Date.now() - parseInt(authTimestamp)) < 60000; // 1 minute
+        
+        // Additional security: Check if session is recent (but allow fresh auth to bypass)
         const sessionAge = Date.now() - new Date(session.currentUser.lastAuthenticated).getTime();
-        const MAX_SESSION_AGE = 10 * 60 * 1000; // 10 minutes
+        const MAX_SESSION_AGE = isRecentAuth ? 60000 : 30 * 60 * 1000; // 1 min for fresh auth, 30 min for normal
         
         if (sessionAge > MAX_SESSION_AGE) {
-          console.warn('🚫 Session too old for profile access - requiring fresh authentication');
+          console.warn(`🚫 Session too old for profile access (${Math.round(sessionAge/60000)}min) - requiring fresh authentication`);
           await SessionManager.clearSession();
           window.location.href = '/nfc';
           return;
+        }
+        
+        if (isRecentAuth) {
+          console.log('✅ Fresh authentication detected - allowing immediate profile access');
         }
         
         // Verify the session token cryptographically
@@ -291,8 +300,8 @@ const ProfilePage = () => {
         console.log('✅ Valid cryptographic session found for chipUID:', chipUID);
         
         // Optional: Check URL parameters for additional context, but don't rely on them for security
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlChipUID = urlParams.get('chipUID');
+        const urlSearchParams = new URLSearchParams(window.location.search);
+        const urlChipUID = urlSearchParams.get('chipUID');
         
         // If URL has chipUID, it should match the session (but this is not required for security)
         if (urlChipUID && urlChipUID !== chipUID) {

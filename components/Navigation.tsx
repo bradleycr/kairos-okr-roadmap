@@ -20,6 +20,7 @@ import {
   NetworkIcon,
   XIcon,
   LayersIcon,
+  GlobeIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -78,6 +79,12 @@ const navItems: NavItemWithChildren[] = [
     label: 'ZK Moments (demo)',
     icon: <SparklesIcon className="h-4 w-4" />,
     description: 'Zero-knowledge moment viewer'
+  },
+  {
+    href: '/didkey-demo',
+    label: 'DID:Key Demo',
+    icon: <KeyIcon className="h-4 w-4" />,
+    description: 'Simplified DID:Key authentication demo'
   },
   {
     href: '/profile',

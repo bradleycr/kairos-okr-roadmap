@@ -138,16 +138,47 @@ export function NFCAuthFlow({ verificationState, nfcParams, format }: NFCAuthFlo
           {verificationState.status === 'success' && (
             <div className="pt-2">
               <Button
-                onClick={() => {
-                  // Construct profile URL with authentication parameters
-                  const profileUrl = new URL('/profile', window.location.origin)
-                  profileUrl.searchParams.set('verified', 'true')
-                  profileUrl.searchParams.set('source', 'api')
-                  profileUrl.searchParams.set('chipUID', nfcParams.chipUID || '')
-                  profileUrl.searchParams.set('session', verificationState.sessionToken || `session_${Date.now()}`)
-                  profileUrl.searchParams.set('momentId', verificationState.momentId || `moment_${Date.now()}`)
-                  
-                  router.push(profileUrl.toString())
+                onClick={async () => {
+                  try {
+                    // 🔐 CRYPTO: Ensure secure session exists before navigation
+                    const { SessionManager } = await import('@/lib/nfc/sessionManager')
+                    
+                    let currentSession = await SessionManager.getCurrentSession()
+                    
+                    // Create session if it doesn't exist
+                    if (!currentSession.isActive && nfcParams.chipUID) {
+                      console.log('🔐 Creating secure session for profile access')
+                      const newSession = await SessionManager.createSession(nfcParams.chipUID)
+                      if (!newSession) {
+                        throw new Error('Failed to create secure session')
+                      }
+                      currentSession = await SessionManager.getCurrentSession()
+                    }
+                    
+                    if (!currentSession.isActive) {
+                      throw new Error('Unable to establish secure session')
+                    }
+                    
+                    // Construct profile URL with secure authentication parameters
+                    const profileUrl = new URL('/profile', window.location.origin)
+                    profileUrl.searchParams.set('verified', 'true')
+                    profileUrl.searchParams.set('source', 'nfc-auth')
+                    profileUrl.searchParams.set('chipUID', nfcParams.chipUID || '')
+                    profileUrl.searchParams.set('session', currentSession.currentUser?.sessionId || '')
+                    profileUrl.searchParams.set('momentId', verificationState.momentId || `moment_${Date.now()}`)
+                    profileUrl.searchParams.set('auth_timestamp', Date.now().toString())
+                    
+                    console.log('🚀 Navigating to profile with verified session:', {
+                      sessionId: currentSession.currentUser?.sessionId?.slice(-8) || 'unknown',
+                      chipUID: nfcParams.chipUID?.slice(-4) || 'unknown'
+                    })
+                    
+                    router.push(profileUrl.toString())
+                  } catch (error) {
+                    console.error('❌ Failed to create session for profile access:', error)
+                    // Show error and provide fallback
+                    alert('Failed to create secure session. Please try tapping your NFC chip again.')
+                  }
                 }}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-sm"
               >

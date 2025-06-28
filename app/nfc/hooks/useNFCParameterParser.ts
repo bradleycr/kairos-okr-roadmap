@@ -18,7 +18,7 @@ export function useNFCParameterParser() {
   const router = useRouter()
   const { toast } = useToast()
   const [parsedParams, setParsedParams] = useState<NFCParameters>({})
-  const [format, setFormat] = useState<'decentralized' | 'legacy-full' | 'legacy-compressed' | 'legacy-ultra' | 'none'>('none')
+  const [format, setFormat] = useState<'optimal' | 'decentralized' | 'legacy-full' | 'legacy-compressed' | 'legacy-ultra' | 'none'>('none')
   const [debugInfo, setDebugInfo] = useState<string[]>([])
   const [isParsing, setIsParsing] = useState(true)
   const [accountInitialized, setAccountInitialized] = useState(false)
@@ -296,9 +296,16 @@ export function useNFCParameterParser() {
         description: `Would you like to create a bond with ${account.displayName}?`,
       })
     } else {
-      // Normal PIN authentication - create session for the user
-      console.log('🔐 Normal PIN authentication - creating new session')
-      await SessionManager.createSession(account.chipUID)
+      // Normal PIN authentication - session was already created in PIN entry
+      // Just need to update local state and potentially redirect
+      console.log('🔐 Normal PIN authentication - session already created, updating state')
+      
+      // Verify session exists (it should have been created in PIN entry)
+      const session = await SessionManager.getCurrentSession()
+      if (!session.isActive) {
+        console.warn('⚠️ Expected session not found, creating new one')
+        await SessionManager.createSession(account.chipUID)
+      }
       
       toast({
         title: "🔓 Welcome back",
@@ -307,6 +314,9 @@ export function useNFCParameterParser() {
       
       setRequiresPIN(false)
       setAccountInitialized(true)
+      
+      // For PIN success, the redirect should have already happened in PIN entry
+      // This is mainly for bonding scenarios or error recovery
     }
     
     setDebugInfo(prev => [...prev, `✅ PIN auth complete: ${account.accountId}`])

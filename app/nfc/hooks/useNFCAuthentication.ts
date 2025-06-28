@@ -5,7 +5,7 @@
  * Provides clean separation of concerns and reusable authentication logic
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import type { NFCVerificationState, NFCParameters, AuthenticationResult } from '../types/nfc.types'
@@ -21,6 +21,20 @@ export function useNFCAuthentication() {
     currentPhase: 'Initializing secure authentication...',
     debugLogs: []
   })
+
+  // Migrate existing sessions to new fingerprinting system on first load
+  useEffect(() => {
+    const migrateSessionsIfNeeded = async () => {
+      try {
+        const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+        NFCAccountManager.migrateSessionsToNewFingerprinting()
+      } catch (error) {
+        console.warn('Failed to migrate sessions:', error)
+      }
+    }
+    
+    migrateSessionsIfNeeded()
+  }, [])
 
   const addDebugLog = useCallback((message: string) => {
     setVerificationState(prev => ({
