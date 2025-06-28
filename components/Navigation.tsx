@@ -1,6 +1,4 @@
-// --- KairOS Navigation: Elegant Minimal Glass Design ---
-// Beautiful Apple-inspired navigation with earth tones and glass morphism
-// Responsive and accessible with subtle animations + Dark Mode Support
+// KairOS navigation with earth tones and glass morphism
 
 "use client"
 
@@ -148,7 +146,7 @@ export default function Navigation() {
           {/* Subtle holographic background effect */}
           <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/8 via-accent/4 to-primary/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           
-          {/* Network Icon - Clean and professional */}
+          {/* Network Icon */}
           <div className="relative z-10">
             <NetworkIcon className="h-4 w-4 text-primary/70 transition-all duration-300" />
             
@@ -204,7 +202,7 @@ export default function Navigation() {
             </button>
           </div>
           
-          {/* Navigation Items - Professional spacing and animations */}
+          {/* Navigation Items */}
           <div className="flex flex-col p-6 space-y-3 h-[calc(100vh-120px)] overflow-y-auto overscroll-behavior-contain">
             {/* Home */}
             <CustomLink

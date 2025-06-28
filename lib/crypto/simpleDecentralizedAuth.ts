@@ -1,13 +1,13 @@
 /**
- * 🎯 Simple Decentralized Authentication - DID:Key Only
+ * DID:Key Decentralized Authentication - Simplified Implementation
  * 
- * MASSIVE SIMPLIFICATION:
- * ✅ Zero infrastructure dependencies
- * ✅ 100% offline operation
- * ✅ 10x faster authentication
- * ✅ 75% less code
- * ✅ W3C compliant
- * ✅ Same security guarantees
+ * Features:
+ * - Zero infrastructure dependencies  
+ * - Complete offline operation
+ * - Ed25519 signatures 
+ * - W3C DID:Key standards compliance
+ * - Deterministic private key generation
+ * - Performance optimized
  */
 
 import { sign, verify, getPublicKey } from '@noble/ed25519'
@@ -125,7 +125,7 @@ export class SimpleDecentralizedAuth {
       this.localCache.set(chipUID, identity)
 
       const totalTime = performance.now() - startTime
-      console.log(`🚀 DID:Key authentication completed in ${totalTime}ms`)
+      console.log(`DID:Key authentication completed in ${totalTime}ms`)
 
       return {
         success: true,

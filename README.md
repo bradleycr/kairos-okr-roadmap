@@ -10,30 +10,33 @@
 
 ## 🎯 **What is KairOS?**
 
-KairOS is a **professional-grade decentralized authentication system** that uses NFC cryptographic pendants to provide seamless access to edge computing devices. Built for the **MELD ecosystem**, it enables users to authenticate to local AI transcription devices, file servers, and other edge nodes using beautiful metal pocket watches as cryptographic keys.
+KairOS is a **decentralized NFC authentication system** that demonstrates cryptographic authentication using NFC devices. Built with modern web technologies, it showcases **Ed25519 cryptography**, **DID:Key standards**, and **Web NFC integration**.
 
-**Zero cloud infrastructure. Zero databases. Zero surveillance.**
+**Currently implemented as a web application with ESP32 simulation.**
 
 ---
 
-## 🚀 **Core Architecture**
+## 🚀 **Current Implementation Status**
 
-### **Decentralized Identity Flow**
-```mermaid
-graph TD
-    A[👤 User] -->|Taps NFC Pendant| B[📱 Phone/Browser]
-    B -->|Reads Device ID + Public Key| C[🔐 Local Private Key]
-    C -->|Signs Challenge| D[📡 ESP32 MELD Node]
-    D -->|Verifies Ed25519 Signature| E[✅ Access Granted]
-    E -->|Serves Local Content| F[🎵 Audio Transcriptions]
-```
+### **✅ Working Features**
+- **🔐 DID:Key Authentication** - W3C standards-compliant cryptographic authentication
+- **📱 Web NFC Integration** - Browser-based NFC card reading and authentication  
+- **🎨 UI** - Interface with holographic design system
+- **⚡ Multi-format Support** - Legacy card compatibility with modern crypto
+- **💾 Account Management** - Local storage with PIN-based encryption
+- **🔄 Session Management** - Secure session handling with device fingerprinting
+- **🎯 ESP32 Simulation** - Hardware simulation in browser
 
-### **What's Stored Where**
-| Component | Data Stored | Security Level |
-|-----------|-------------|----------------|
-| **🏠 User's Phone** | Master seed, private keys | 🔒 Never leaves device |
-| **⌚ NFC Pendant** | Device ID, public key, chip UID | 🔓 Public data only |
-| **🤖 ESP32 MELD Nodes** | Nothing persistent | ✅ Stateless verification |
+### **🚧 In Development**
+- **🤖 ESP32 Firmware** - Hardware implementation (simulation complete)
+- **⚗️ ZK Proof System** - Zero-knowledge authentication (basic structure)
+- **🌐 P2P Network** - Decentralized identity registry (partial implementation)
+
+### **📋 Planned Features**
+- **🔗 Physical MELD Nodes** - Distributed ESP32 hardware network
+- **⌚ NFC Pendant Production** - Metal cryptographic pendants
+- **🎵 Audio Transcription** - Local AI transcription services
+- **📁 Private File Servers** - Cryptographically secured file access
 
 ---
 
@@ -42,243 +45,203 @@ graph TD
 ### **Prerequisites**
 - Node.js 18+ (recommend Node 20+)
 - pnpm (preferred) or npm
-- Modern browser with NFC support
+- Modern browser with Web NFC support (Chrome, Edge on Android)
 
 ### **Installation**
 ```bash
-git clone https://github.com/your-org/kairos.git
-cd kairos
+git clone https://github.com/BradleyRoyes/KairOS.git
+cd KairOS
 pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and experience the magic! ✨
+Open [http://localhost:3000](http://localhost:3000) and try the authentication flow.
 
-### **Try It Instantly**
-1. 🌐 Visit `/nfc-test` - Generate real Ed25519 keys and test authentication
-2. 🔧 Visit `/chip-config` - Generate URLs for programming NFC chips  
-3. 📱 Visit `/nfc` - Experience the beautiful authentication flow
+### **Demo Features**
+1. 🔧 **Chip Configuration** → `/chip-config` - Generate NFC URLs and test cryptography
+2. 🧪 **NFC Test Suite** → `/nfc-test` - Authentication testing
+3. 🎨 **Authentication Flow** → `/nfc` - Main UI
+4. 🤖 **ESP32 Simulation** → `/ritual-designer` - Hardware simulation
 
 ---
 
-## 🏗️ **Project Architecture**
+## 🏗️ **Current Architecture**
 
 ### **Frontend (Next.js 15 + TypeScript)**
 ```
 app/
-├── nfc/                     # 🎨 Professional NFC authentication system
-│   ├── components/          # Beautiful UI components
-│   ├── hooks/              # Smart React hooks
-│   ├── utils/              # Business logic
+├── nfc/                     # Core NFC authentication system  
+│   ├── components/          # React components
+│   ├── hooks/              # Authentication hooks
+│   ├── utils/              # Business logic & crypto operations
 │   └── types/              # TypeScript interfaces
-├── chip-config/            # 🔧 NFC chip programming tools
-├── nfc-test/              # 🧪 Real crypto testing suite
-└── api/                   # 🚀 Edge-optimized API routes
+├── chip-config/            # NFC chip programming tools
+├── nfc-test/              # Cryptographic testing suite
+├── ritual-designer/       # ESP32 hardware simulation
+└── api/                   # Edge API routes
 ```
 
 ### **Core Libraries**
 ```
 lib/
-├── crypto/                # 🔐 Real Ed25519 cryptography
-│   └── decentralizedNFC.ts  # Zero-database authentication engine
-├── nfc/                   # 📡 Web NFC integration
-├── esp32/                 # 🤖 MELD node communication
-└── hal/                   # 💻 Hardware abstraction layer
+├── crypto/                # Ed25519 cryptography
+│   ├── simpleDecentralizedAuth.ts    # Main DID:Key authentication
+│   ├── decentralizedNFC.ts          # Legacy authentication support  
+│   └── portableCrypto.ts            # Cross-platform crypto utilities
+├── nfc/                   # Web NFC integration
+│   ├── accountManager.ts             # Account & session management
+│   └── sessionManager.ts            # Secure session handling
+└── hal/                   # Hardware abstraction (simulation)
 ```
 
-### **Hardware Integration**
+### **Hardware Simulation**
 ```
-src/                       # 🔩 Hardware & firmware
-├── fw/                    # ESP32 firmware (C++)
-├── sim/                   # Device simulators
-└── wasm/                  # WebAssembly modules
+src/                       # ESP32 simulation & planned firmware
+├── fw/                    # ESP32 firmware (in development)
+├── sim/                   # Browser-based hardware simulation
+└── wasm/                  # WebAssembly modules (planned)
 ```
 
 ---
 
 ## 🔐 **Security & Cryptography**
 
-### **Real Ed25519 Implementation**
-- **Library**: `@noble/ed25519` v2.2.3 (industry standard)
-- **Private Keys**: 32 bytes, never leave user's device
+### **Cryptography**
+- **Library**: `@noble/ed25519` v2.2.3 (audited implementation)
+- **Standards**: W3C DID:Key, RFC 8032 Ed25519 signatures
+- **Private Keys**: 32 bytes, never stored, PIN-derived
 - **Signatures**: 64 bytes, quantum-resistant
-- **Verification**: Constant-time, side-channel resistant
+- **Sessions**: Device fingerprinting + encrypted local storage
 
-### **Threat Model Protection**
-| Attack Vector | Protection Method |
-|---------------|-------------------|
-| **NFC Cloning** | Only public keys on chip |
-| **Replay Attacks** | Unique challenge-response |
-| **MITM** | Ed25519 signature verification |
-| **Physical Theft** | Device-specific key derivation |
-| **Quantum Computing** | Post-quantum Ed25519 resistance |
+### **Threat Model & Protection**
+| Attack Vector | Protection Method | Status |
+|---------------|-------------------|--------|
+| **NFC Cloning** | Only public keys on chip | ✅ Implemented |
+| **Replay Attacks** | Challenge-response authentication | ✅ Implemented |
+| **MITM** | Ed25519 signature verification | ✅ Implemented |
+| **Physical Theft** | PIN-based key derivation | ✅ Implemented |
+| **Session Hijacking** | Device fingerprinting | ✅ Implemented |
 
-### **Zero-Database Architecture**
-- ✅ **Private keys**: Stored in phone localStorage only
-- ✅ **Device registry**: Local to user's device
-- ✅ **Authentication**: Direct P2P verification
-- ✅ **Data access**: Local network only
+### **What's Stored Where**
+| Component | Data Stored | Security Level |
+|-----------|-------------|----------------|
+| **📱 User's Browser** | Encrypted profiles, session data | 🔒 Local only |
+| **⌚ NFC Card** | Device ID, public key, chip UID | 🔓 Public data only |
+| **🤖 ESP32 Simulation** | Nothing persistent | ✅ Stateless verification |
 
 ---
 
 ## 🎨 **Design System**
 
-### **Brand Colors (Her-Inspired)**
+### **KairOS Brand**
 ```css
---primary: 245 181 145;        /* Warm peach - main brand */
---accent: 144 193 196;         /* Dusty teal - complement */
---success: 149 189 152;        /* Sage green - status */
+/* Core brand colors */
+--primary: 245 181 145;        /* Warm peach */
+--accent: 144 193 196;         /* Dusty teal */
+--success: 149 189 152;        /* Sage green */
 --background: 252 250 247;     /* Warm white */
 ```
 
 ### **UI Philosophy**
-- **Sophisticated Simplicity**: Clean, uncluttered interfaces
-- **Warm Technology**: Human-centered design
-- **Retro-Futuristic**: Terminal aesthetics meets modern UX
-- **Professional Polish**: Enterprise-grade visual design
+- **Simplicity** - Clean interfaces
+- **Consistency** - Predictable interactions
+- **Cross-Platform** - Mobile and desktop support  
+- **Error Handling** - Clear error experiences
 
 ---
 
-## 🧪 **Testing & Development**
+## 🧪 **Development & Testing**
 
 ### **Development Commands**
 ```bash
 # Start development server
 pnpm dev
 
-# Linting
-pnpm lint
+# Fast development with Turbo
+pnpm dev:fast
 
-# Build for production
+# Build for production  
 pnpm build
 
-# Build ZK circuits (when ready)
-pnpm build:zk
+# Lint and fix code
+pnpm lint:fix
+
+# Build ESP32 firmware (when ready)
+pnpm build:esp32
+
+# Build WebAssembly modules (planned)
+pnpm build:wasm
 ```
 
-### **Performance Characteristics**
-- **Ed25519 Operations**: Optimized for modern devices
-- **Web NFC**: Browser-native integration
-- **Client-Side Crypto**: No server dependencies
-- **Cross-Platform**: Desktop and mobile support
+### **Testing the Authentication System**
+1. **Visit `/nfc-test`** - Generate test cards and validate cryptography
+2. **Visit `/chip-config`** - Create NFC URLs for real chip programming
+3. **Test Legacy Cards** - Validate backward compatibility
+4. **Try Error Pages** - Visit non-existent URLs to see error handling
 
 ---
 
-## 🚀 **Current Implementation**
+## 🌍 **Deployment**
 
-### **🔑 Ed25519 Cryptographic Authentication**
-Real cryptographic operations using industry-standard libraries
-```typescript
-// Generate keypair
-const { privateKey, publicKey } = await generateEd25519KeyPair()
+### **Current Deployment** 
+- **Platform**: Vercel Edge Functions
+- **Production**: https://kair-os.vercel.app
+- **Auto-deploy**: Connected to GitHub main branch
+- **Edge Regions**: Global distribution for low latency
 
-// Sign message
-const signature = await signMessage("challenge-data", privateKey)
-
-// Verify signature
-const isValid = await verifySignature(signature, "challenge-data", publicKey)
-```
-
-### **📱 NFC Authentication Flow**
-Web-based NFC reading and cryptographic verification
-```bash
-# Browser reads NFC chip
-navigator.nfc.scan() → read device ID and public key
-
-# Generate challenge-response authentication
-authenticate(deviceId, publicKey) → verify Ed25519 signature
-```
-
-### **⚡ Planned Use Cases**
-
-Future implementations will enable:
-- **Local Audio Transcription** - ESP32 nodes serving AI transcriptions
-- **Private File Servers** - Raspberry Pi file access via NFC authentication  
-- **Edge AI Services** - Local GPU inference with cryptographic access control
-
----
-
-## 📦 **Tech Stack**
-
-### **Frontend**
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript 5.0+
-- **Styling**: Tailwind CSS + shadcn/ui
-- **State**: React Hooks + Custom hook architecture
-- **Crypto**: @noble/ed25519, @noble/hashes
-
-### **Backend & Hardware**
-- **API**: Next.js Edge Runtime
-- **Hardware**: ESP32, Raspberry Pi
-- **NFC**: NTAG213/215/216 chips
-- **Communication**: HTTPS, Web NFC API
-
-### **Development**
-- **Package Manager**: pnpm
-- **Code Quality**: ESLint, TypeScript strict mode
-- **Testing**: Jest, Hardware-in-the-loop testing
-- **Deployment**: Vercel Edge Functions
-
----
-
-## 🌟 **Why KairOS?**
-
-### **For Users**
-- 🔒 **True Privacy**: No data ever leaves your devices
-- ⚡ **Instant Access**: Tap and go authentication
-- 🔋 **Offline First**: Works without internet
-- 💎 **Beautiful UX**: Premium, polished interfaces
-
-### **For Developers**
-- 🏗️ **Clean Architecture**: Professional component separation
-- 🔐 **Real Crypto**: Industry-standard Ed25519 implementation
-- 📱 **Modern Stack**: Next.js 15, TypeScript, Tailwind
-- 🧪 **Testable**: Comprehensive testing infrastructure
-
-### **For Enterprises**
-- 🌐 **Standards-Based**: W3C DID Core compliance
-- 📊 **Zero Infrastructure**: No servers or databases required
-- 🛡️ **Secure**: Post-quantum cryptography
-- 💰 **Cost-Effective**: No ongoing cloud costs
-
----
-
-## 📚 **Documentation**
-
-Explore the comprehensive documentation:
-
-- **[🏗️ Architecture Guide](docs/ARCHITECTURE.md)** - System design and components
-- **[🔐 Security Model](docs/SECURITY.md)** - Threat model and cryptography  
-- **[🔧 Hardware Setup](docs/HARDWARE.md)** - ESP32 and NFC configuration
-- **[🎨 Design System](docs/DESIGN.md)** - Brand guide and UI components
-- **[🚀 Deployment](docs/DEPLOYMENT.md)** - Production deployment guide
+### **Future Hardware Deployment** (Planned)
+- **ESP32 MELD Nodes**: Local network devices for file/content serving
+- **NFC Pendants**: Metal pocket watches with NFC chips
+- **Local AI Services**: Edge computing with cryptographic access control
 
 ---
 
 ## 🤝 **Contributing**
 
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributors to help build decentralized authentication. 
 
-### **Development Setup**
-```bash
-# Install dependencies
-pnpm install
+### **How to Contribute**
+1. **Fork the repository** and create a feature branch
+2. **Read `CONTRIBUTING.md`** for detailed guidelines
+3. **Check open issues** for tasks needing help
+4. **Focus on documentation** improvements and testing
+5. **Submit pull requests** with clear descriptions
 
-# Start development server
-pnpm dev
+### **Priority Contribution Areas**
+- 🧪 **Testing & Validation** - Expand test coverage
+- 📚 **Documentation** - Improve guides and examples  
+- 🎨 **UI/UX Improvements** - Enhance user experience
+- 🔐 **Security Review** - Audit cryptographic implementations
+- 🤖 **ESP32 Development** - Complete hardware firmware
+- 🌐 **P2P Networking** - Advance decentralized features
 
-# Linting
-pnpm lint
+### **Not Ready Yet**
+- ❌ Hardware deployment (simulation only)
+- ❌ Production NFC pendant manufacturing
+- ❌ Large-scale network deployment
 
-# Build for production
-pnpm build
-```
+---
+
+## 📊 **Project Status**
+
+**Current Phase**: 🎯 **Web Application Complete**  
+**Next Phase**: 🤖 **Hardware Integration**  
+**Timeline**: Open source development community-driven
+
+### **Technology Stack**
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS, Framer Motion, shadcn/ui
+- **Crypto**: @noble/ed25519, @noble/hashes
+- **Storage**: Browser localStorage, session management
+- **Deployment**: Vercel Edge Functions
 
 ---
 
 ## 📄 **License**
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE) file for details.
+
+**Built for the open source community**
 
 ---
 

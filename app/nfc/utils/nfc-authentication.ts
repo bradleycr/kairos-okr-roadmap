@@ -1,12 +1,12 @@
 /**
- * 🎯 Simple NFC Authentication Engine - DID:Key Only
+ * NFC Authentication Engine - DID:Key Implementation
  * 
- * MASSIVE SIMPLIFICATION:
- * ✅ Single authentication flow
- * ✅ Zero infrastructure dependencies  
- * ✅ 100% offline operation
- * ✅ Backward compatibility maintained
- * ✅ 10x faster than IPFS approach
+ * Features:
+ * - Single authentication flow
+ * - Zero infrastructure dependencies  
+ * - Offline operation
+ * - Backward compatibility maintained
+ * - Improved performance over IPFS approach
  */
 
 import type { NFCParameters, AuthenticationResult } from '../types/nfc.types'
@@ -17,11 +17,11 @@ export class NFCAuthenticationEngine {
   private static simpleAuth = new SimpleDecentralizedAuth()
 
   /**
-   * 🚀 Single unified authentication flow - DID:Key based
+   * Main authentication flow - DID:Key based
    */
   public static async authenticate(params: NFCParameters): Promise<AuthenticationResult> {
     try {
-      console.log('🎯 Starting authentication...', params)
+      console.log('Starting authentication...', params)
 
       // First validate parameters
       const validation = this.validateParameters(params)
@@ -61,7 +61,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🔑 DID:Key authentication (modern and optimal legacy)
+   * DID:Key authentication (modern and optimal legacy)
    */
   private static async authenticateWithDIDKey(params: NFCParameters): Promise<AuthenticationResult> {
     // Extract chipUID and PIN from parameters
@@ -74,7 +74,7 @@ export class NFCAuthenticationEngine {
       }
     }
 
-    // Use simplified DID:Key authentication (no network calls!)
+    // Use DID:Key authentication (no network calls)
     const authResult = await this.simpleAuth.authenticate(chipUID, pin)
 
     if (!authResult.success) {
@@ -84,7 +84,7 @@ export class NFCAuthenticationEngine {
       }
     }
 
-    // 🆕 Create or update account in database
+    // Create or update account in database
     await this.ensureAccountExists(chipUID, {
       publicKey: Array.from(authResult.publicKey!).map(b => b.toString(16).padStart(2, '0')).join(''),
       did: authResult.did!
@@ -93,7 +93,7 @@ export class NFCAuthenticationEngine {
     // Generate session token
     const sessionToken = `didkey_session_${Date.now()}_${Math.random().toString(36).slice(2)}`
 
-    console.log(`✅ DID:Key authentication successful in ${authResult.performance.totalTime}ms`)
+    console.log(`DID:Key authentication successful in ${authResult.performance.totalTime}ms`)
 
     return {
       verified: true,
@@ -110,7 +110,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🔄 Decentralized authentication (legacy support)
+   * Decentralized authentication (legacy support)
    */
   private static async authenticateDecentralized(params: NFCParameters): Promise<AuthenticationResult> {
     const { chipUID } = params
@@ -122,7 +122,7 @@ export class NFCAuthenticationEngine {
       }
     }
 
-    console.log('🔄 Using decentralized legacy authentication')
+    console.log('Using decentralized legacy authentication')
 
     // For legacy decentralized format, try to use existing account data
     try {
@@ -180,10 +180,10 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 📝 Legacy signature authentication (fallback support)
+   * Legacy signature authentication (fallback support)
    */
   private static async authenticateLegacySignature(params: NFCParameters): Promise<AuthenticationResult> {
-    // 🔧 LEGACY FIX: Extract chipUID from either chipUID or uid parameter
+    // Extract chipUID from either chipUID or uid parameter
     const chipUID = params.chipUID || params.uid || params.id
     const { signature, publicKey } = params
     
@@ -194,7 +194,7 @@ export class NFCAuthenticationEngine {
       }
     }
 
-    console.log('📝 Using legacy signature authentication for chipUID:', chipUID)
+    console.log('Using legacy signature authentication for chipUID:', chipUID)
 
     // For legacy signature format, verify basic structure and create account
     try {
@@ -206,7 +206,7 @@ export class NFCAuthenticationEngine {
         }
       }
 
-      // 🔧 LEGACY COMPATIBILITY: Normalize chipUID format
+      // Normalize chipUID format
       const normalizedChipUID = this.normalizeChipUID(chipUID)
 
       // Create or update legacy account
@@ -217,7 +217,7 @@ export class NFCAuthenticationEngine {
 
       const sessionToken = `legacy_sig_session_${Date.now()}_${Math.random().toString(36).slice(2)}`
 
-      console.log('✅ Legacy signature authentication successful')
+      console.log('Legacy signature authentication successful')
 
       return {
         verified: true,
@@ -242,7 +242,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🔧 Normalize chipUID format for consistency
+   * Normalize chipUID format for consistency
    */
   private static normalizeChipUID(chipUID: string): string {
     if (!chipUID) return chipUID
@@ -263,7 +263,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🔍 Extract authentication parameters from various URL formats
+   * Extract authentication parameters from various URL formats
    */
   private static extractAuthParams(params: NFCParameters): { chipUID?: string, pin?: string } {
     // Priority 1: Direct DID:Key format
@@ -283,7 +283,7 @@ export class NFCAuthenticationEngine {
       return { chipUID: params.chipUID, pin: params.pin }
     }
 
-    // 🔧 LEGACY SUPPORT: Try alternative parameter names
+    // Legacy support: Try alternative parameter names
     // Some legacy cards might use different parameter naming
     const alternativeChipUID = params.chipUID || 
                               params.chip_uid || 
@@ -304,7 +304,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🔑 Extract chipUID from DID (if embedded in DID document)
+   * Extract chipUID from DID (if embedded in DID document)
    */
   private static extractChipUIDFromDID(did: string): string | undefined {
     // For now, DID:Key doesn't embed chipUID, so return undefined
@@ -313,7 +313,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🎯 Generate DID:Key NFC URL (for chip configuration)
+   * Generate DID:Key NFC URL (for chip configuration)
    */
   public static async generateNFCURL(chipUID: string, pin: string, baseURL?: string): Promise<string> {
     try {
@@ -331,7 +331,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 📱 Generate data for NTAG215 chip (offline venues)
+   * Generate data for NTAG215 chip (offline venues)
    */
   public static async generateNFCChipData(chipUID: string, pin: string): Promise<string> {
     try {
@@ -344,7 +344,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🆕 Create or update account in database
+   * Create or update account in database
    */
   private static async ensureAccountExists(chipUID: string, authData?: { publicKey: string; did?: string }): Promise<void> {
     try {
@@ -354,7 +354,7 @@ export class NFCAuthenticationEngine {
       if (existingResponse.ok) {
         const existingAccount = await existingResponse.json()
         if (existingAccount && existingAccount.chipUID) {
-          console.log('✅ Account already exists for chipUID:', chipUID)
+          console.log('Account already exists for chipUID:', chipUID)
           return
         }
       }
@@ -377,19 +377,19 @@ export class NFCAuthenticationEngine {
       })
 
       if (createResponse.ok) {
-        console.log('✅ Created new account for chipUID:', chipUID)
+        console.log('Created new account for chipUID:', chipUID)
       } else {
-        console.warn('⚠️ Failed to create account, continuing with authentication')
+        console.warn('Failed to create account, continuing with authentication')
       }
 
     } catch (error) {
-      console.warn('⚠️ Account creation error (non-fatal):', error)
+      console.warn('Account creation error (non-fatal):', error)
       // Don't fail authentication if account creation fails
     }
   }
 
   /**
-   * ✅ Validate authentication parameters
+   * Validate authentication parameters
    */
   public static validateParameters(params: NFCParameters): {
     valid: boolean
@@ -398,12 +398,12 @@ export class NFCAuthenticationEngine {
   } {
     const errors: string[] = []
 
-    // 🔧 PRIORITY FIX: Check legacy signature format FIRST
+    // Legacy signature format FIRST
     // Legacy cards might have both DID and signature parameters
     // Accept either chipUID or uid parameter
     const chipUID = params.chipUID || params.uid || params.id
     if (chipUID && params.signature && params.publicKey) {
-      console.warn('⚠️ Legacy signature format detected (with DID) - using signature authentication')
+      console.warn('Legacy signature format detected (with DID) - using signature authentication')
       
       return {
         valid: true, // Allow legacy format
@@ -428,7 +428,7 @@ export class NFCAuthenticationEngine {
     // Check for optimal format (legacy support)
     if (params.chipUID && params.pin) {
       if (!this.isValidChipUID(params.chipUID)) {
-        // 🔧 LEGACY FIX: Be more lenient with chipUID validation
+        // Legacy chipUID format detected, allowing with relaxed validation
         console.warn('⚠️ Legacy chipUID format detected, allowing with relaxed validation')
       }
       
@@ -463,7 +463,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🔍 Validate chipUID format (more lenient for legacy support)
+   * Validate chipUID format (more lenient for legacy support)
    */
   private static isValidChipUID(chipUID: string): boolean {
     if (!chipUID) return false
@@ -472,7 +472,7 @@ export class NFCAuthenticationEngine {
     const standardPattern = /^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){6}$/
     if (standardPattern.test(chipUID)) return true
     
-    // 🔧 LEGACY SUPPORT: Allow various legacy formats
+    // Legacy support: Allow various legacy formats
     const legacyPatterns = [
       /^[0-9A-Fa-f]{14}$/, // Raw hex without colons
       /^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){3}$/, // 4-byte format
@@ -484,7 +484,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 📊 Get authentication engine status
+   * Get authentication engine status
    */
   public static getStatus() {
     return {
@@ -495,7 +495,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * 🔄 Challenge-response authentication (for ESP32)
+   * Challenge-response authentication (for ESP32)
    */
   public static async challengeResponse(chipUID: string, pin: string): Promise<{
     challenge: string
@@ -526,7 +526,7 @@ export class NFCAuthenticationEngine {
   }
 
   /**
-   * ✅ Verify challenge-response (for ESP32)
+   * Verify challenge-response (for ESP32)
    */
   public static async verifyChallenge(did: string, challenge: string, signature: string): Promise<boolean> {
     try {
