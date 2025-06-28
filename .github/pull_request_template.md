@@ -1,63 +1,44 @@
-## 🎯 **Description**
-Brief description of what this PR does.
+## Description
+What does this PR accomplish?
 
 Fixes #(issue_number)
 
-## 🔄 **Type of Change**
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] 📝 Documentation update
-- [ ] 🎨 Style/UI changes
-- [ ] 🔧 Refactoring (no functional changes)
-- [ ] ⚡ Performance improvements
-- [ ] 🧪 Tests
+## Type of Change
+- [ ] Bug fix (non-breaking)
+- [ ] New feature (non-breaking)
+- [ ] Breaking change
+- [ ] Documentation
+- [ ] UI/UX improvement
+- [ ] Performance optimization
+- [ ] Refactoring
 
-## 🧪 **Testing**
-- [ ] Tests pass locally with my changes
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] I have tested on multiple browsers/devices (if applicable)
-
-### **Testing Checklist** (check all that apply)
-- [ ] ✅ Unit tests added/updated
-- [ ] ✅ Integration tests added/updated
-- [ ] ✅ Manual testing completed
-- [ ] ✅ Crypto operations tested with real data
-- [ ] ✅ NFC functionality tested (if applicable)
-- [ ] ✅ Cross-platform testing (mobile/desktop)
-- [ ] ✅ Performance impact assessed
-
-## 📝 **Changes Made**
-Detailed list of changes:
+## Changes Made
 - 
 - 
 - 
 
-## 🖼️ **Screenshots** (if applicable)
-Include screenshots for UI changes.
+## Testing
+- [ ] All tests pass locally
+- [ ] Added tests for new functionality
+- [ ] Manual testing completed
+- [ ] Cross-platform testing (if applicable)
 
-## 🔐 **Security Considerations**
-- [ ] No sensitive data exposed
-- [ ] Crypto operations follow best practices
-- [ ] No private keys stored inappropriately
-- [ ] Follows zero-database architecture
+## Security & Privacy
+- [ ] Ed25519 operations follow best practices
+- [ ] No private keys inappropriately stored
+- [ ] Decentralized architecture maintained
+- [ ] Authentication flows secure
 
-## 📚 **Documentation**
+## Documentation
+- [ ] Code properly commented
 - [ ] README updated (if needed)
-- [ ] API documentation updated (if needed)
-- [ ] Code comments added for complex logic
-- [ ] CONTRIBUTING.md followed
+- [ ] API docs updated (if needed)
 
-## ✅ **Checklist**
-- [ ] My code follows the style guidelines of this project
-- [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published
+## Review Checklist
+- [ ] Self-review completed
+- [ ] Code follows project standards
+- [ ] No new warnings introduced
+- [ ] Performance impact considered
 
-## 🤝 **Additional Notes**
-Any additional information that reviewers should know. 
+## Additional Notes
+Any other context for reviewers. 

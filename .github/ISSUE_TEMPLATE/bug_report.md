@@ -1,43 +1,33 @@
 ---
-name: 🐛 Bug Report
-about: Create a report to help us improve KairOS
+name: Bug Report
+about: Report an issue with KairOS
 title: '[BUG] '
 labels: ['bug', 'needs-triage']
 assignees: ''
 ---
 
-## 🐛 **Bug Description**
-A clear and concise description of what the bug is.
+## Bug Description
+Clear description of the issue.
 
-## 🔄 **Steps to Reproduce**
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
+## Steps to Reproduce
+1. Navigate to...
+2. Tap/click...
+3. Observe...
 
-## ✅ **Expected Behavior**
-A clear and concise description of what you expected to happen.
+## Expected vs Actual
+**Expected:** What should happen
+**Actual:** What actually happens
 
-## ❌ **Actual Behavior**
-A clear and concise description of what actually happened.
+## Environment
+- **OS:** [iOS/Android/macOS/Windows]
+- **Browser:** [Chrome/Safari/Firefox + version]
+- **Node:** [e.g. MELD-001, pocket-watch-1234]
+- **NFC:** [Supported/Not supported]
 
-## 📱 **Environment**
-- **OS**: [e.g. iOS, Android, macOS, Windows]
-- **Browser**: [e.g. Chrome 91, Safari 14, Firefox 89]
-- **KairOS Version**: [e.g. v1.0.0]
-- **Device**: [e.g. iPhone 12, Pixel 5, Desktop]
-- **NFC Support**: [Yes/No]
+## Technical Context
+- **Authentication:** [key generation/signing/verification]
+- **NFC Chip:** [NTAG213/NTAG215/other]
+- **Error:** [exact error message]
 
-## 🖼️ **Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-## 🔐 **Crypto/NFC Context** (if applicable)
-- **NFC Chip Type**: [e.g. NTAG213, NTAG215]
-- **Crypto Operation**: [e.g. key generation, signing, verification]
-- **Error Message**: [exact error message if any]
-
-## 📋 **Additional Context**
-Add any other context about the problem here.
-
-## 🔧 **Possible Solution** (optional)
-If you have ideas on how to fix this, please share them. 
+## Additional Context
+Any other relevant information. 
