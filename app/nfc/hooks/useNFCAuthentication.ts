@@ -36,6 +36,7 @@ export function useNFCAuthentication() {
     migrateSessionsIfNeeded()
   }, [])
 
+  // LEVEL 1: Functions with no dependencies (except state setters)
   const addDebugLog = useCallback((message: string) => {
     setVerificationState(prev => ({
       ...prev,
@@ -43,51 +44,16 @@ export function useNFCAuthentication() {
     }))
   }, [])
 
-  const executeAuthentication = useCallback(async (params: NFCParameters) => {
-    setVerificationState(prev => ({
-      ...prev,
-      status: 'verifying',
+  const resetAuthentication = useCallback(() => {
+    setVerificationState({
+      status: 'initializing',
       progress: 0,
-      currentPhase: 'Starting authentication...',
-      error: undefined
-    }))
+      currentPhase: 'Ready for authentication...',
+      debugLogs: []
+    })
+  }, [])
 
-    try {
-      // Validate parameters first
-      const validation = NFCAuthenticationEngine.validateParameters(params)
-      if (!validation.valid) {
-        throw new Error(`Invalid parameters: ${validation.errors.join(', ')}`)
-      }
-
-      addDebugLog(`✅ Parameters validated - Format: ${validation.format}`)
-      
-      // Execute authentication flow based on format
-      if (validation.format === 'decentralized') {
-        await executeDecentralizedFlow(params)
-      } else if (validation.format === 'legacy') {
-        await executeLegacyFlow(params)
-      }
-
-    } catch (error: any) {
-      const errorMessage = error.message || 'Authentication failed'
-      
-      setVerificationState(prev => ({
-        ...prev,
-        status: 'failure',
-        error: errorMessage,
-        currentPhase: 'Authentication failed'
-      }))
-      
-      addDebugLog(`❌ Authentication failed: ${errorMessage}`)
-      
-      toast({
-        title: "Authentication Failed",
-        description: errorMessage,
-        variant: "destructive"
-      })
-    }
-  }, [addDebugLog, toast])
-
+  // LEVEL 2: Functions that depend on Level 1 functions
   const executeDecentralizedFlow = useCallback(async (params: NFCParameters) => {
     addDebugLog('🔄 Starting decentralized authentication flow')
     
@@ -221,14 +187,51 @@ export function useNFCAuthentication() {
     }
   }, [addDebugLog])
 
-  const resetAuthentication = useCallback(() => {
-    setVerificationState({
-      status: 'initializing',
+  // LEVEL 3: Functions that depend on Level 1 and Level 2 functions
+  const executeAuthentication = useCallback(async (params: NFCParameters) => {
+    setVerificationState(prev => ({
+      ...prev,
+      status: 'verifying',
       progress: 0,
-      currentPhase: 'Ready for authentication...',
-      debugLogs: []
-    })
-  }, [])
+      currentPhase: 'Starting authentication...',
+      error: undefined
+    }))
+
+    try {
+      // Validate parameters first
+      const validation = NFCAuthenticationEngine.validateParameters(params)
+      if (!validation.valid) {
+        throw new Error(`Invalid parameters: ${validation.errors.join(', ')}`)
+      }
+
+      addDebugLog(`✅ Parameters validated - Format: ${validation.format}`)
+      
+      // Execute authentication flow based on format
+      if (validation.format === 'decentralized') {
+        await executeDecentralizedFlow(params)
+      } else if (validation.format === 'legacy') {
+        await executeLegacyFlow(params)
+      }
+
+    } catch (error: any) {
+      const errorMessage = error.message || 'Authentication failed'
+      
+      setVerificationState(prev => ({
+        ...prev,
+        status: 'failure',
+        error: errorMessage,
+        currentPhase: 'Authentication failed'
+      }))
+      
+      addDebugLog(`❌ Authentication failed: ${errorMessage}`)
+      
+      toast({
+        title: "Authentication Failed",
+        description: errorMessage,
+        variant: "destructive"
+      })
+    }
+  }, [addDebugLog, toast, executeDecentralizedFlow, executeLegacyFlow])
 
   return {
     verificationState,

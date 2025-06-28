@@ -16,7 +16,7 @@ import { useNFCAuthentication } from './hooks/useNFCAuthentication'
 import { NFCAuthFlow } from './components/NFCAuthFlow'
 import { NFCWelcomeScreen } from './components/NFCWelcomeScreen'
 import PINEntry from '@/components/ui/pin-entry'
-import { BondDialog } from '@/components/ui/bond-dialog'
+// import { BondDialog } from '@/components/ui/bond-dialog' // Temporarily commented out
 
 /**
  * Main NFC Authentication Content
@@ -115,19 +115,19 @@ function NFCPageContent() {
         </div>
       </div>
 
-      {/* Bond Dialog */}
-      {showBondDialog && newUserInfo && currentSession?.currentUser && (
+      {/* Bond Dialog - Temporarily disabled */}
+      {/* {showBondDialog && newUserInfo && currentSession?.currentUser && (
         <BondDialog
           isOpen={showBondDialog}
           onClose={handleBondDialogClose}
           currentUser={{
-            chipUID: currentSession.currentUser.chipUID,
-            displayName: currentSession.currentUser.displayName
+            chipUID: currentSession.currentUser?.chipUID || '',
+            displayName: currentSession.currentUser?.displayName || 'Unknown User'
           }}
           newUser={newUserInfo}
           onBondCreate={handleBondCreate}
         />
-      )}
+      )} */}
     </div>
   )
 }

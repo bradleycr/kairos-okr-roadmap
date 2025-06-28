@@ -160,8 +160,8 @@ export default function DIDKeyNFCTest() {
       addLog('')
       addLog('🔏 [4/6] Testing Ed25519 signature verification...')
       
-      // Import Ed25519 for verification
-      const { ed25519 } = await import('@noble/curves/ed25519')
+      // Import Ed25519 for verification  
+      const { ed25519 } = await import('@noble/ed25519')
       
       const sig1Valid = ed25519.verify(
         Buffer.from(user1Config.signature, 'hex'),
@@ -244,7 +244,7 @@ export default function DIDKeyNFCTest() {
       addLog('')
       addLog('🚀 System ready for production deployment!')
       addLog('💡 Generate chip URLs at /chip-config')
-      addLog('🔗 View live demo at /didkey-demo')
+      addLog('🔗 NFC Test Suite completed successfully')
       
       toast({
         title: "🎉 All Tests Passed!",
@@ -269,8 +269,8 @@ export default function DIDKeyNFCTest() {
     window.open('/chip-config', '_blank')
   }
 
-  const openDIDKeyDemo = () => {
-    window.open('/didkey-demo', '_blank')
+  const openNFCAuth = () => {
+    window.open('/nfc', '_blank')
   }
 
   return (
@@ -341,11 +341,11 @@ export default function DIDKeyNFCTest() {
               
               <Button 
                 variant="secondary" 
-                onClick={openDIDKeyDemo}
+                onClick={openNFCAuth}
                 className="w-full"
               >
                 <KeyIcon className="mr-2 h-4 w-4" />
-                View DID:Key Demo
+                Open NFC Auth
               </Button>
             </div>
           </CardContent>

@@ -273,7 +273,7 @@ const ProfilePage = () => {
         const isRecentAuth = authTimestamp && (Date.now() - parseInt(authTimestamp)) < 60000; // 1 minute
         
         // Additional security: Check if session is recent (but allow fresh auth to bypass)
-        const sessionAge = Date.now() - new Date(session.currentUser.lastAuthenticated).getTime();
+        const sessionAge = Date.now() - new Date(session.currentUser?.lastAuthenticated || Date.now()).getTime();
         const MAX_SESSION_AGE = isRecentAuth ? 60000 : 30 * 60 * 1000; // 1 min for fresh auth, 30 min for normal
         
         if (sessionAge > MAX_SESSION_AGE) {
@@ -288,7 +288,7 @@ const ProfilePage = () => {
         }
         
         // Verify the session token cryptographically
-        const isValidSession = await SessionManager.verifySessionToken(session.currentUser.sessionId);
+        const isValidSession = await SessionManager.verifySessionToken(session.currentUser?.sessionId || '');
         if (!isValidSession) {
           console.warn('🚫 Invalid session token detected - clearing session');
           await SessionManager.clearSession();
@@ -296,12 +296,17 @@ const ProfilePage = () => {
           return;
         }
         
-        const chipUID = session.currentUser.chipUID;
+        const chipUID = session.currentUser?.chipUID;
+        if (!chipUID) {
+          console.error('❌ No chipUID found in session');
+          window.location.href = '/nfc';
+          return;
+        }
         console.log('✅ Valid cryptographic session found for chipUID:', chipUID);
         
         // Optional: Check URL parameters for additional context, but don't rely on them for security
-        const urlSearchParams = new URLSearchParams(window.location.search);
-        const urlChipUID = urlSearchParams.get('chipUID');
+        const additionalParams = new URLSearchParams(window.location.search);
+        const urlChipUID = additionalParams.get('chipUID');
         
         // If URL has chipUID, it should match the session (but this is not required for security)
         if (urlChipUID && urlChipUID !== chipUID) {
@@ -387,7 +392,7 @@ const ProfilePage = () => {
               totalBonds: 0, // Will be loaded from bond manager
               joinDate: currentAccount.createdAt,
               lastSession: {
-                sessionToken: session.currentUser.sessionId,
+                sessionToken: session.currentUser?.sessionId || '',
                 momentId: `moment_${Date.now()}`,
                 timestamp: new Date().toISOString()
               },
@@ -400,7 +405,7 @@ const ProfilePage = () => {
                 totalMoments: currentAccount.stats.totalMoments,
                 isNewAccount: accountResult.isNewAccount,
                 isNewDevice: accountResult.isNewDevice,
-                sessionCreated: session.currentUser.lastAuthenticated,
+                sessionCreated: session.currentUser?.lastAuthenticated || new Date().toISOString(),
                 sessionExpires: new Date(Date.now() + MAX_SESSION_AGE).toISOString()
               }
             }

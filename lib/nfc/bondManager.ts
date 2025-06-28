@@ -120,13 +120,7 @@ export class BondManager {
    * Get bond type emoji
    */
   static getBondTypeEmoji(bondType: string): string {
-    switch (bondType) {
-      case 'friend': return '👥'
-      case 'family': return '👪'
-      case 'colleague': return '💼'
-      case 'other': return '🤝'
-      default: return '🤝'
-    }
+    return '🤝'  // Simple - always connection emoji
   }
   
   /**

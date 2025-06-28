@@ -5,6 +5,8 @@
  * Handles multiple formats with detailed debugging information
  */
 
+'use client'
+
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
@@ -77,91 +79,48 @@ export function useNFCParameterParser() {
     }
   }, [shouldRedirectToProfile, parsedParams.chipUID, currentSession, router])
 
-  const parseParameters = useCallback(async () => {
-    setIsParsing(true)
-    
+  const getDisplayNameForChip = useCallback(async (chipUID: string): Promise<string> => {
     try {
-      const result = NFCParameterParser.parseParameters(searchParams)
-      
-      setParsedParams(result.params)
-      setFormat(result.format)
-      setDebugInfo(result.debugInfo)
-      
-      // Initialize session manager
-      SessionManager.initialize()
-      
-      // Check for active session and same-chip scenario
-      if (result.params.chipUID && !accountInitialized) {
-        await checkSessionAndAuthRequirements(result.params.chipUID)
-      }
-      
-    } catch (error) {
-      console.error('Parameter parsing failed:', error)
-      setDebugInfo(prev => [...prev, `❌ Parsing error: ${error}`])
-      setFormat('none')
-      setParsedParams({})
-    } finally {
-      setIsParsing(false)
-    }
-  }, [searchParams, accountInitialized])
-
-  const checkSessionAndAuthRequirements = useCallback(async (chipUID: string) => {
-    try {
-      console.log(`🔍 Checking session and auth for chipUID: ${chipUID.slice(-4)}`)
-      console.log(`📱 Current session state:`, {
-        isActive: currentSession?.isActive,
-        hasUser: !!currentSession?.currentUser,
-        currentChipUID: currentSession?.currentUser?.chipUID?.slice(-4) || 'none'
+      const response = await fetch('/api/nfc/accounts', {
+        method: 'GET',
+        headers: {
+          'X-Chip-UID': chipUID
+        }
       })
       
-      // Check if this is the same chip as current user
-      const isSameChip = await SessionManager.isSameChip(chipUID)
-      setIsSameChip(isSameChip)
-      console.log(`🔍 Same chip check: ${isSameChip} (${chipUID.slice(-4)} vs ${currentSession?.currentUser?.chipUID?.slice(-4) || 'none'})`)
+      const data = await response.json()
       
-      if (isSameChip) {
-        console.log('✅ Same chip detected - redirecting to profile')
-        setShouldRedirectToProfile(true)
-        return
+      if (data.success && data.account) {
+        return data.account.displayName || `User ${chipUID.slice(-4).toUpperCase()}`
       }
       
-      // Different chip - check if we have an active session for bonding
-      if (currentSession?.isActive) {
-        console.log('🤝 Different chip + active session = DIRECT BONDING')
-        
-        // Get display name for the new user
-        const displayName = await getDisplayNameForChip(chipUID)
-        
-        // Set up for immediate bonding (no PIN required)
-        setNewUserInfo({
-          chipUID,
-          displayName
-        })
-        
-        setShowBondDialog(true)
-        
-        toast({
-          title: "🤝 Ready to bond!",
-          description: `Create a connection with ${displayName}?`,
-        })
-        
-        setDebugInfo(prev => [...prev, `🤝 Direct bonding with ${displayName}`])
-        return
-      }
-      
-      // No active session - need to authenticate the tapped chip
-      console.log('🔐 No active session - checking PIN requirements for new user')
-      await checkPINRequirements(chipUID, false)
-      
+      return `User ${chipUID.slice(-4).toUpperCase()}`
     } catch (error) {
-      console.warn('Session check failed:', error)
-      setDebugInfo(prev => [...prev, `⚠️ Session check failed: ${error}`])
-      // Fallback to normal PIN gate check
-      await checkPINRequirements(chipUID, false)
+      console.error('Failed to get display name:', error)
+      return `User ${chipUID.slice(-4).toUpperCase()}`
     }
-  }, [currentSession, toast, router])
+  }, [])
+
+  const checkIfChipHasAccount = useCallback(async (chipUID: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/nfc/accounts', {
+        method: 'GET',
+        headers: {
+          'X-Chip-UID': chipUID
+        }
+      })
+      
+      const data = await response.json()
+      return data.success && data.account
+    } catch (error) {
+      console.error('Failed to check account:', error)
+      return false
+    }
+  }, [])
 
   const checkPINRequirements = useCallback(async (chipUID: string, isDifferentChip: boolean = false) => {
+    console.log(`🔐 Checking PIN requirements for chipUID: ${chipUID} (different chip: ${isDifferentChip})`)
+    
     try {
       const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
       const result = await NFCAccountManager.authenticateWithPINGate(chipUID)
@@ -253,29 +212,124 @@ export function useNFCParameterParser() {
       setDebugInfo(prev => [...prev, `⚠️ PIN gate failed: ${error}`])
       // Continue with normal flow - error handling is built into the auth system
     }
-  }, [currentSession, toast, router])
+  }, [currentSession, toast, router, getDisplayNameForChip])
 
-  const getDisplayNameForChip = useCallback(async (chipUID: string): Promise<string> => {
+  const checkSessionAndAuthRequirements = useCallback(async (chipUID: string) => {
     try {
-      const response = await fetch('/api/nfc/accounts', {
-        method: 'GET',
-        headers: {
-          'X-Chip-UID': chipUID
-        }
+      console.log(`🔍 Checking session and auth for chipUID: ${chipUID.slice(-4)}`)
+      console.log(`📱 Current session state:`, {
+        isActive: currentSession?.isActive,
+        hasUser: !!currentSession?.currentUser,
+        currentChipUID: currentSession?.currentUser?.chipUID?.slice(-4) || 'none'
       })
       
-      const data = await response.json()
+      // Check if this is the same chip as current user
+      const isSameChip = await SessionManager.isSameChip(chipUID)
+      setIsSameChip(isSameChip)
+      console.log(`🔍 Same chip check: ${isSameChip} (${chipUID.slice(-4)} vs ${currentSession?.currentUser?.chipUID?.slice(-4) || 'none'})`)
       
-      if (data.success && data.account) {
-        return data.account.displayName || `User ${chipUID.slice(-4).toUpperCase()}`
+      if (isSameChip) {
+        console.log('✅ Same chip detected - redirecting to profile')
+        setShouldRedirectToProfile(true)
+        return
       }
       
-      return `User ${chipUID.slice(-4).toUpperCase()}`
+      // Different chip - check if we have an active session for bonding
+      if (currentSession?.isActive) {
+        console.log('🤝 Different chip + active session = BONDING MODE')
+        
+        // Get display name for the new user (from existing account if available)
+        const displayName = await getDisplayNameForChip(chipUID)
+        
+        // Check if users are already bonded
+        const areAlreadyBonded = await BondManager.areBonded(
+          currentSession.currentUser.chipUID, 
+          chipUID
+        )
+        
+        if (areAlreadyBonded) {
+          console.log('🤝 Users are already bonded')
+          toast({
+            title: "🤝 Already connected!",
+            description: `You're already bonded with ${displayName}`,
+          })
+          setDebugInfo(prev => [...prev, `🤝 Already bonded with ${displayName}`])
+          return
+        }
+        
+        // Check if the tapped chip has an account (basic validation)
+        const hasAccount = await checkIfChipHasAccount(chipUID)
+        
+        if (!hasAccount) {
+          console.log('❌ Tapped chip has no account')
+          toast({
+            title: "⚠️ No account found",
+            description: "This NFC chip doesn't have a KairOS account yet",
+            variant: "destructive"
+          })
+          return
+        }
+        
+        console.log('🤝 Ready to bond - showing dialog immediately')
+        
+        // Set up for immediate bonding
+        setNewUserInfo({
+          chipUID,
+          displayName
+        })
+        
+        setShowBondDialog(true)
+        
+        toast({
+          title: "🤝 Ready to bond!",
+          description: `Create a connection with ${displayName}?`,
+        })
+        
+        setDebugInfo(prev => [...prev, `🤝 Bonding with ${displayName}`])
+        return
+      }
+      
+      // No active session - this is a new login, not bonding
+      console.log('🔐 No active session - normal authentication flow')
+      await checkPINRequirements(chipUID, false)
+      
     } catch (error) {
-      console.error('Failed to get display name:', error)
-      return `User ${chipUID.slice(-4).toUpperCase()}`
+      console.warn('Session check failed:', error)
+      setDebugInfo(prev => [...prev, `⚠️ Session check failed: ${error}`])
+      // Fallback to normal PIN gate check
+      await checkPINRequirements(chipUID, false)
     }
-  }, [])
+  }, [currentSession, toast, router, checkPINRequirements, getDisplayNameForChip, checkIfChipHasAccount])
+
+  const parseParameters = useCallback(async () => {
+    setIsParsing(true)
+    
+    try {
+      const result = NFCParameterParser.parseParameters(searchParams)
+      
+      setParsedParams(result.params)
+      setFormat(result.format)
+      setDebugInfo(result.debugInfo)
+      
+      // Initialize session manager
+      SessionManager.initialize()
+      
+      // Check for active session and same-chip scenario
+      if (result.params.chipUID && !accountInitialized) {
+        await checkSessionAndAuthRequirements(result.params.chipUID)
+      }
+      
+    } catch (error) {
+      console.error('Parameter parsing failed:', error)
+      setDebugInfo(prev => [...prev, `❌ Parsing error: ${error}`])
+      setFormat('none')
+      setParsedParams({})
+    } finally {
+      setIsParsing(false)
+    }
+  }, [searchParams, accountInitialized, checkSessionAndAuthRequirements])
+
+
 
   const handlePINSuccess = useCallback(async (account: any) => {
     console.log(`✅ PIN authentication successful: ${account.accountId}`)
@@ -320,7 +374,7 @@ export function useNFCParameterParser() {
     }
     
     setDebugInfo(prev => [...prev, `✅ PIN auth complete: ${account.accountId}`])
-  }, [toast, currentSession, newUserInfo])
+  }, [toast, currentSession, newUserInfo, router])
 
   const handleBondCreate = useCallback(async (bondType: string, note?: string): Promise<boolean> => {
     if (!currentSession?.currentUser || !newUserInfo) {
@@ -377,7 +431,7 @@ export function useNFCParameterParser() {
       })
       return false
     }
-  }, [currentSession, newUserInfo, toast])
+  }, [currentSession, newUserInfo, toast, router])
 
   const handleBondDialogClose = useCallback(() => {
     setShowBondDialog(false)

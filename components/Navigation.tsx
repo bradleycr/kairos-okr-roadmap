@@ -80,12 +80,7 @@ const navItems: NavItemWithChildren[] = [
     icon: <SparklesIcon className="h-4 w-4" />,
     description: 'Zero-knowledge moment viewer'
   },
-  {
-    href: '/didkey-demo',
-    label: 'DID:Key Demo',
-    icon: <KeyIcon className="h-4 w-4" />,
-    description: 'Simplified DID:Key authentication demo'
-  },
+
   {
     href: '/profile',
     label: 'Profile',

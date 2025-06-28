@@ -39,7 +39,7 @@ interface BondDialogProps {
     chipUID: string
     displayName: string
   }
-  onBondCreate: (bondType: string, note?: string, useZKProof?: boolean) => Promise<boolean>
+  onBondCreate: (bondType: string, note?: string) => Promise<boolean>
 }
 
 export function BondDialog({ 
@@ -53,7 +53,6 @@ export function BondDialog({
   const [note, setNote] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [useZKProof, setUseZKProof] = useState(false)
 
   const bondTypes = [
     {
@@ -69,7 +68,7 @@ export function BondDialog({
     setIsCreating(true)
     
     try {
-      const success = await onBondCreate(selectedBondType, note, useZKProof)
+      const success = await onBondCreate(selectedBondType, note)
       
       if (success) {
         setShowSuccess(true)
@@ -208,44 +207,6 @@ export function BondDialog({
                     </div>
                   </div>
 
-                  {/* ZK Proof Option */}
-                  <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
-                    <div className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        id="zkProof"
-                        checked={useZKProof}
-                        onChange={(e) => setUseZKProof(e.target.checked)}
-                        className="rounded border-border"
-                      />
-                      <Label
-                        htmlFor="zkProof"
-                        className="flex items-center gap-2 cursor-pointer flex-1"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ShieldIcon className="w-4 h-4 text-primary" />
-                          <ZapIcon className="w-3 h-3 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-foreground text-sm">Create ZK Ritual Bond</div>
-                          <div className="text-xs text-muted-foreground">
-                            Generate cryptographic proof of this bonding ritual for privacy-preserving social experiments
-                          </div>
-                        </div>
-                      </Label>
-                    </div>
-                    
-                    {useZKProof && (
-                      <div className="mt-3 p-3 bg-background rounded border border-border">
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <p>🔐 <strong>Privacy-First:</strong> Creates cryptographic proof without revealing identities</p>
-                          <p>🎭 <strong>Ritual Bonding:</strong> Enables future social experiments and collective intelligence</p>
-                          <p>🤝 <strong>Verifiable:</strong> Others can verify the bond exists without knowing who participated</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
                   {/* Connection Preview */}
                   <div className="bg-muted/30 border border-muted rounded-lg p-4">
                     <div className="text-xs text-muted-foreground mb-2 font-medium">BOND PREVIEW</div>
@@ -269,12 +230,6 @@ export function BondDialog({
                       <p className="text-xs text-muted-foreground mt-2 italic">
                         "{note}"
                       </p>
-                    )}
-                    {useZKProof && (
-                      <div className="flex items-center gap-1 mt-2">
-                        <ShieldIcon className="w-3 h-3 text-primary" />
-                        <span className="text-xs text-primary font-mono">ZK RITUAL BOND</span>
-                      </div>
                     )}
                   </div>
 

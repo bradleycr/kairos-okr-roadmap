@@ -67,7 +67,7 @@ export default function DIDKeyAccountDemo() {
       const resolved = didKeyRegistry.resolveDIDKey(authResult.did)
       
       // Verify signature to ensure system works correctly
-      const { ed25519 } = await import('@noble/curves/ed25519')
+      const { ed25519 } = await import('@noble/ed25519')
       const isValid = ed25519.verify(
         Buffer.from(authResult.signature, 'hex'),
         challenge,

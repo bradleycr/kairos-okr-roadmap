@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Lock, Unlock, Shield, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { Loader2, Lock, Unlock, Key, AlertCircle, Eye, EyeOff } from "lucide-react"
 
 interface PINEntryProps {
   chipUID: string
@@ -57,75 +57,127 @@ export default function PINEntry({
     setError('')
 
     try {
-      // Import both session systems
-      const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+      // 🔐 CRYPTO: Use proper DID:Key authentication instead of password-like PIN
+      console.log('🔐 Starting cryptographic DID:Key authentication...')
+      
+      const { SimpleDecentralizedAuth } = await import('@/lib/crypto/simpleDecentralizedAuth')
       const { SessionManager } = await import('@/lib/nfc/sessionManager')
+      const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
       
-      // Verify PIN and authenticate
-      const result = await NFCAccountManager.authenticateAfterPIN(chipUID, pin)
+      // Step 1: Try NEW cryptographic DID:Key authentication first
+      const auth = new SimpleDecentralizedAuth()
+      const authResult = await auth.authenticate(chipUID, pin)
       
-      if (result.success && result.account) {
-        console.log('✅ PIN authentication successful')
+      if (!authResult.success || !authResult.identity) {
+        console.log('🔄 DID:Key auth failed, trying legacy PIN verification...')
         
-        // 🔐 CRYPTO: Create cryptographically secure session token
-        const sessionToken = Array.from({ length: 32 }, () => 
-          Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
-        ).join('')
+        // Step 1b: FALLBACK - Try legacy encrypted PIN verification
+        const legacyResult = await NFCAccountManager.authenticateAfterPIN(chipUID, pin)
         
-        // Create both session types for consistency
+        if (!legacyResult.success) {
+          setAttempts(prev => prev + 1)
+          setError('Incorrect PIN - both cryptographic and legacy authentication failed')
+          setPIN('')
+          
+          // Focus input for retry
+          setTimeout(() => {
+            if (inputRef.current) {
+              inputRef.current.focus()
+            }
+          }, 100)
+          return
+        }
+        
+        console.log('✅ Legacy PIN authentication successful - creating session...')
+        
+        // Step 5: Create secure sessions for legacy users
         const apiSession = await SessionManager.createSession(chipUID)
         
         if (!apiSession) {
           throw new Error('Failed to create secure session')
         }
 
-        console.log('🔐 Secure session created:', {
+        console.log('🔐 Legacy session created:', {
           sessionId: apiSession.sessionId,
           chipUID: chipUID.slice(-4),
-          deviceFingerprint: apiSession.deviceFingerprint?.slice(-8) || 'unknown'
+          deviceFingerprint: apiSession.deviceFingerprint?.slice(-8) || 'unknown',
+          authType: 'legacy-pin'
         })
         
-        // Smart routing logic for better UX
-        if (isNewDevice) {
-          // Returning user on NEW device: Show success screen for security awareness
-          onSuccess({
-            ...result.account,
-            sessionToken: apiSession.sessionId,
-            apiSession
-          })
-        } else {
-          // Returning user on familiar device (expired session): Go directly to profile
-          const profileUrl = new URL('/profile', window.location.origin)
-          profileUrl.searchParams.set('verified', 'true')
-          profileUrl.searchParams.set('source', 'pin')
-          profileUrl.searchParams.set('chipUID', chipUID)
-          profileUrl.searchParams.set('session', apiSession.sessionId)
-          profileUrl.searchParams.set('auth_timestamp', Date.now().toString())
-          
-          console.log('🚀 Navigating to profile with secure session')
-          
-          // Wait for session to be fully stored before navigation
-          await new Promise(resolve => setTimeout(resolve, 500))
-          
-          // Use window.location for immediate redirect after PIN success
-          window.location.href = profileUrl.toString()
-        }
-      } else {
-        setAttempts(prev => prev + 1)
-        setError(result.error || 'Incorrect PIN')
-        setPIN('')
-        
-        // Focus input for retry
-        setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.focus()
-          }
-        }, 100)
+        // Success with legacy system
+        onSuccess({
+          ...legacyResult.account,
+          sessionToken: apiSession.sessionId,
+          apiSession,
+          authType: 'legacy-pin',
+          isNewDevice
+        })
+        return
       }
+      
+      console.log('✅ DID:Key authentication successful:', {
+        did: authResult.did,
+        performance: authResult.performance,
+        chipUID: chipUID.slice(-4),
+        authType: 'new-did-key'
+      })
+      
+      // Step 2: Generate and sign challenge for cryptographic proof
+      const challenge = auth.generateChallenge(chipUID)
+      const signature = await auth.signChallenge(chipUID, pin, challenge.challenge)
+      
+      console.log('🔐 Challenge signed - verifying cryptographic proof...')
+      
+      // Step 3: Verify the signature (proves they know PIN + have chip)
+      const isValidSignature = await auth.verifyChallenge(
+        authResult.did!, 
+        challenge.challenge, 
+        signature
+      )
+      
+      if (!isValidSignature) {
+        setAttempts(prev => prev + 1)
+        setError('Cryptographic signature verification failed')
+        setPIN('')
+        return
+      }
+      
+      console.log('✅ Cryptographic proof verified successfully')
+      
+      // Step 4: Create or get account using cryptographic identity
+      const accountResult = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
+      
+      // Step 5: Create secure sessions
+      const apiSession = await SessionManager.createSession(chipUID)
+      
+      if (!apiSession) {
+        throw new Error('Failed to create secure session')
+      }
+
+      console.log('🔐 Secure session created:', {
+        sessionId: apiSession.sessionId,
+        chipUID: chipUID.slice(-4),
+        deviceFingerprint: apiSession.deviceFingerprint?.slice(-8) || 'unknown',
+        cryptographicDID: authResult.did
+      })
+      
+      // Success - call onSuccess with cryptographic account
+      onSuccess({
+        ...accountResult.account,
+        sessionToken: apiSession.sessionId,
+        apiSession,
+        cryptographicIdentity: authResult.identity,
+        did: authResult.did,
+        publicKey: authResult.publicKey,
+        authType: 'did-key',
+        isNewDevice,
+        authPerformance: authResult.performance
+      })
+      
     } catch (error) {
-      console.error('PIN verification failed:', error)
+      console.error('Cryptographic PIN authentication failed:', error)
       setAttempts(prev => prev + 1)
-      setError(error instanceof Error ? error.message : 'Authentication failed')
+      setError(error instanceof Error ? error.message : 'Cryptographic authentication failed')
       setPIN('')
     } finally {
       if (isNewDevice) {
@@ -152,17 +204,17 @@ export default function PINEntry({
       <Card className="w-full max-w-sm border border-primary/20 shadow-lg bg-card/95 backdrop-blur-sm">
         <CardHeader className="text-center pb-4">
           <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-            <Shield className="h-8 w-8 text-primary" />
+            <Key className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="text-lg font-mono tracking-wide">
-            {isNewDevice ? 'New Device Detected' : 'Enter PIN'}
+            {isNewDevice ? 'Cryptographic Authentication' : 'DID:Key Authentication'}
           </CardTitle>
           <CardDescription className="text-sm leading-relaxed">
             {isVerifying && !isNewDevice 
-              ? 'Taking you to your profile...'
+              ? 'Authenticating securely...'
               : isNewDevice 
-                ? `Welcome back${displayName ? `, ${displayName}` : ''}! Please verify it's you on this new device.`
-                : 'Please enter your PIN to continue'
+                ? `Welcome back${displayName ? `, ${displayName}` : ''}! Please verify your cryptographic identity on this new device.`
+                : 'Enter PIN to derive your cryptographic keys'
             }
           </CardDescription>
         </CardHeader>
@@ -175,7 +227,7 @@ export default function PINEntry({
                 <Input
                   ref={inputRef}
                   type={showPIN ? "text" : "password"}
-                  placeholder="Enter PIN"
+                  placeholder="Enter PIN for key derivation"
                   value={pin}
                   onChange={(e) => handlePINChange(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -203,7 +255,7 @@ export default function PINEntry({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground text-center font-mono">
-                4-8 digits required
+                PIN + chipUID → private key derivation
               </p>
             </div>
 
@@ -243,12 +295,12 @@ export default function PINEntry({
                 {isVerifying ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isNewDevice ? 'Verifying' : 'Opening Profile'}
+                    {isNewDevice ? 'Authenticating' : 'Verifying'}
                   </>
                 ) : (
                   <>
                     <Unlock className="mr-2 h-4 w-4" />
-                    Unlock
+                    Authenticate
                   </>
                 )}
               </Button>
@@ -259,7 +311,7 @@ export default function PINEntry({
           <div className="pt-4 border-t border-muted/30">
             <div className="flex items-center justify-center space-x-2 text-xs text-muted-foreground font-mono">
               <Lock className="h-3 w-3" />
-              <span>Chip: {chipUID.slice(-6).toUpperCase()}</span>
+              <span>DID:Key • Chip: {chipUID.slice(-6).toUpperCase()}</span>
             </div>
           </div>
         </CardContent>

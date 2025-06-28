@@ -11,7 +11,7 @@
 
 import type { NFCParameters, AuthenticationResult } from '../types/nfc.types'
 import { SimpleDecentralizedAuth } from '@/lib/crypto/simpleDecentralizedAuth'
-import { DIDKeyRegistry } from '@/lib/crypto/didKeyRegistry'
+// import { DIDKeyRegistry } from '@/lib/crypto/didKeyRegistry'
 
 export class NFCAuthenticationEngine {
   private static simpleAuth = new SimpleDecentralizedAuth()

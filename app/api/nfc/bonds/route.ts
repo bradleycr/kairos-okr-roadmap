@@ -13,7 +13,7 @@ export interface UserBond {
   toChipUID: string
   fromDisplayName: string
   toDisplayName: string
-  bondType: 'friend'  // Simplified to just one type
+  bondType: 'friend'  // Back to simple bonding
   createdAt: string
   lastInteraction: string
   isActive: boolean
