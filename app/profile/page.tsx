@@ -11,6 +11,7 @@ import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, 
 import Link from 'next/link';
 import { PINSetup } from '@/components/ui/pin-setup';
 import { ProfileEditor } from '@/components/ui/profile-editor';
+import PINEntry from '@/components/ui/pin-entry';
 
 // Welcome Ritual Component
 const WelcomeRitual = ({ onComplete }: { onComplete: () => void }) => {
@@ -248,6 +249,8 @@ const ProfilePage = () => {
   const [showPINSetup, setShowPINSetup] = useState(false);
   const [hasPIN, setHasPIN] = useState(false);
   const [userBonds, setUserBonds] = useState<any[]>([]);
+  const [requiresPINAuth, setRequiresPINAuth] = useState(false);
+  const [pinAuthenticatedChipUID, setPinAuthenticatedChipUID] = useState<string | null>(null);
 
   // Check for chipUID in URL parameters
   useEffect(() => {
@@ -419,6 +422,15 @@ const ProfilePage = () => {
             // Show PIN setup prompt for new accounts without PIN
             if (!currentAccount.hasPIN && !currentAccount.pinSetupPrompted) {
               setShowPINSetup(true)
+            }
+            
+            // Security gate: Require PIN authentication for profile access
+            if (currentAccount.hasPIN) {
+              console.log('🔐 PIN authentication required for profile access')
+              setRequiresPINAuth(true)
+            } else {
+              console.log('⚠️ No PIN set - allowing access but showing setup prompt')
+              setPinAuthenticatedChipUID(chipUID)
             }
             
             console.log('✅ Loaded REAL profile data from cryptographically verified session')
@@ -594,6 +606,21 @@ const ProfilePage = () => {
     }
   }
 
+  const handleProfilePINAuth = async (account: any, pin: string) => {
+    // This function is called by PINEntry after successful PIN verification
+    if (!userProfile) return
+    
+    try {
+      console.log('✅ PIN authentication successful - granting profile access')
+      console.log(`Account: ${account.chipUID}, PIN verified for profile access`)
+      
+      setPinAuthenticatedChipUID(userProfile.chipUID)
+      setRequiresPINAuth(false)
+    } catch (error) {
+      console.error('Profile PIN auth failed:', error)
+    }
+  }
+
   const handleLogout = async () => {
     if (userProfile) {
       try {
@@ -675,6 +702,42 @@ const ProfilePage = () => {
               <Shield className="h-4 w-4 mr-2" />
               Go to NFC Authentication
             </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show PIN authentication gate if required
+  if (requiresPINAuth && userProfile && pinAuthenticatedChipUID !== userProfile.chipUID) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden">
+        {/* Holographic Background Effect */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/25 to-secondary/15 animate-pulse"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 py-8 max-w-md relative z-10 flex items-center justify-center min-h-screen">
+          <div className="w-full">
+            <div className="text-center mb-8">
+              <div className="relative p-4 rounded-full bg-primary/10 border border-primary/20 mx-auto w-fit mb-6">
+                <Shield className="h-12 w-12 text-primary" />
+              </div>
+              
+              <h1 className="text-2xl font-mono font-light text-foreground/90 mb-2">
+                Profile Security Gate
+              </h1>
+              <p className="text-muted-foreground font-mono text-sm">
+                Enter your PIN to access your KairOS profile
+              </p>
+            </div>
+            
+            <PINEntry
+              chipUID={userProfile.chipUID}
+              isNewDevice={false}
+              displayName={userProfile.displayName}
+              onSuccess={handleProfilePINAuth}
+            />
           </div>
         </div>
       </div>

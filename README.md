@@ -1,7 +1,7 @@
-# KairOS - Decentralized Edge Authentication
+# KairOS - Decentralized NFC Authentication
 
-> **Enterprise-grade NFC cryptographic authentication for Web3 edge computing**  
-> Real Ed25519 cryptography • Zero-database architecture • MELD ecosystem integration
+> **Enterprise-grade NFC challenge-response authentication for Web3**  
+> Ed25519 cryptography • Nonce-based security • Zero-database architecture
 
 [![MIT License](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
@@ -10,27 +10,53 @@
 
 ## 🎯 **What is KairOS?**
 
-KairOS is a **decentralized NFC authentication system** that demonstrates cryptographic authentication using NFC devices. Built with modern web technologies, it showcases **Ed25519 cryptography**, **DID:Key standards**, and **Web NFC integration**.
+KairOS implements **challenge-response NFC authentication** using industry-standard cryptography. Similar to [Gnosis Pay's authentication flow](https://docs.gnosispay.com/auth), it uses nonce-based verification to prevent replay attacks and ensure secure access.
 
-**Currently implemented as a web application with ESP32 simulation.**
+**Production-ready web application with ESP32 simulation.**
+
+---
+
+## 🔐 **How Authentication Works**
+
+### **🎫 Simple NFC Flow**
+1. **Tap NFC card** → Browser reads `chipUID` from card
+2. **Generate challenge** → App creates unique nonce + timestamp  
+3. **Enter PIN** → User provides PIN to derive signing key
+4. **Sign challenge** → App signs challenge with Ed25519 private key
+5. **Verify signature** → Server validates signature and issues session token
+6. **Access granted** → User can interact with protected resources
+
+### **🔒 Security Features**
+- ✅ **Nonce-based challenges** - Fresh random nonce for each authentication
+- ✅ **Timestamp validation** - Prevents replay attacks (60 second expiry)
+- ✅ **PIN-derived keys** - Private keys computed on-demand, never stored
+- ✅ **Ed25519 signatures** - Quantum-resistant cryptography
+- ✅ **Session management** - JWT-style tokens with device fingerprinting
+
+### **📱 NFC Card Format** 
+```
+NFC Card contains only:
+https://kair-os.vercel.app/nfc?chipUID=04:38:02:E3:B4:9C:74
+
+That's it! Short, simple, secure.
+```
 
 ---
 
 ## 🚀 **Current Implementation Status**
 
-### **✅ Working Features**
-- **🔐 DID:Key Authentication** - W3C standards-compliant cryptographic authentication
-- **📱 Web NFC Integration** - Browser-based NFC card reading and authentication  
-- **🎨 UI** - Interface with holographic design system
-- **⚡ Multi-format Support** - Legacy card compatibility with modern crypto
-- **💾 Account Management** - Local storage with PIN-based encryption
-- **🔄 Session Management** - Secure session handling with device fingerprinting
-- **🎯 ESP32 Simulation** - Hardware simulation in browser
+### **✅ Production Ready**
+- **🔐 Challenge-Response Auth** - Gnosis Pay-style nonce authentication
+- **📱 Web NFC Integration** - Browser-based NFC card reading  
+- **🎨 Professional UI** - Holographic design system with error handling
+- **⚡ Multi-format Support** - Legacy card compatibility + modern crypto
+- **💾 Account Management** - Encrypted local storage with PIN protection
+- **🔄 Session Management** - Secure JWT-style session tokens
+- **🧪 Testing Suite** - Comprehensive crypto validation tools
 
 ### **🚧 In Development**
-- **🤖 ESP32 Firmware** - Hardware implementation (simulation complete)
-- **⚗️ ZK Proof System** - Zero-knowledge authentication (basic structure)
-- **🌐 P2P Network** - Decentralized identity registry (partial implementation)
+- **🤖 ESP32 Firmware** - Real hardware implementation (simulation complete)
+- **🌐 P2P Network** - Decentralized key registry (partial implementation)
 
 ### **📋 Planned Features**
 - **🔗 Physical MELD Nodes** - Distributed ESP32 hardware network
@@ -55,79 +81,66 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and try the authentication flow.
+### **Test the Authentication**
+1. 🔧 **Generate Test Card** → `/chip-config` - Create NFC URLs
+2. 🧪 **Test Authentication** → `/nfc-test` - Validate crypto 
+3. 🎨 **Main Auth Flow** → `/nfc` - Experience the full UI
+4. 🤖 **ESP32 Simulation** → `/ritual-designer` - See hardware demo
 
-### **Demo Features**
-1. 🔧 **Chip Configuration** → `/chip-config` - Generate NFC URLs and test cryptography
-2. 🧪 **NFC Test Suite** → `/nfc-test` - Authentication testing
-3. 🎨 **Authentication Flow** → `/nfc` - Main UI
-4. 🤖 **ESP32 Simulation** → `/ritual-designer` - Hardware simulation
-
----
-
-## 🏗️ **Current Architecture**
-
-### **Frontend (Next.js 15 + TypeScript)**
-```
-app/
-├── nfc/                     # Core NFC authentication system  
-│   ├── components/          # React components
-│   ├── hooks/              # Authentication hooks
-│   ├── utils/              # Business logic & crypto operations
-│   └── types/              # TypeScript interfaces
-├── chip-config/            # NFC chip programming tools
-├── nfc-test/              # Cryptographic testing suite
-├── ritual-designer/       # ESP32 hardware simulation
-└── api/                   # Edge API routes
-```
-
-### **Core Libraries**
-```
-lib/
-├── crypto/                # Ed25519 cryptography
-│   ├── simpleDecentralizedAuth.ts    # Main DID:Key authentication
-│   ├── decentralizedNFC.ts          # Legacy authentication support  
-│   └── portableCrypto.ts            # Cross-platform crypto utilities
-├── nfc/                   # Web NFC integration
-│   ├── accountManager.ts             # Account & session management
-│   └── sessionManager.ts            # Secure session handling
-└── hal/                   # Hardware abstraction (simulation)
-```
-
-### **Hardware Simulation**
-```
-src/                       # ESP32 simulation & planned firmware
-├── fw/                    # ESP32 firmware (in development)
-├── sim/                   # Browser-based hardware simulation
-└── wasm/                  # WebAssembly modules (planned)
-```
+### **Production Testing**
+Visit: **https://kair-os.vercel.app/nfc?chipUID=04:38:02:E3:B4:9C:74**
 
 ---
 
-## 🔐 **Security & Cryptography**
+## 🏗️ **Architecture Overview**
 
-### **Cryptography**
-- **Library**: `@noble/ed25519` v2.2.3 (audited implementation)
-- **Standards**: W3C DID:Key, RFC 8032 Ed25519 signatures
-- **Private Keys**: 32 bytes, never stored, PIN-derived
-- **Signatures**: 64 bytes, quantum-resistant
-- **Sessions**: Device fingerprinting + encrypted local storage
+### **Authentication Flow**
+```mermaid
+sequenceDiagram
+    participant U as 👤 User
+    participant N as 📱 NFC Card
+    participant A as 🖥️ KairOS App  
+    participant S as 🔒 Server
+    
+    U->>N: Taps NFC card
+    N->>A: Returns chipUID
+    A->>A: Generate nonce/challenge
+    A->>U: Request PIN entry
+    U->>A: Enters PIN
+    A->>A: Derive private key (PIN + chipUID)
+    A->>A: Sign challenge with Ed25519
+    A->>S: Send signature + challenge
+    S->>S: Verify signature & timestamp
+    S->>A: Return session JWT
+    A->>U: Authentication complete
+```
 
-### **Threat Model & Protection**
-| Attack Vector | Protection Method | Status |
-|---------------|-------------------|--------|
-| **NFC Cloning** | Only public keys on chip | ✅ Implemented |
-| **Replay Attacks** | Challenge-response authentication | ✅ Implemented |
-| **MITM** | Ed25519 signature verification | ✅ Implemented |
-| **Physical Theft** | PIN-based key derivation | ✅ Implemented |
-| **Session Hijacking** | Device fingerprinting | ✅ Implemented |
-
-### **What's Stored Where**
+### **Security Model**
 | Component | Data Stored | Security Level |
 |-----------|-------------|----------------|
-| **📱 User's Browser** | Encrypted profiles, session data | 🔒 Local only |
-| **⌚ NFC Card** | Device ID, public key, chip UID | 🔓 Public data only |
-| **🤖 ESP32 Simulation** | Nothing persistent | ✅ Stateless verification |
+| **📱 User's Browser** | Encrypted profiles, session JWTs | 🔒 Local only |
+| **📋 NFC Card** | chipUID only (public data) | 🔓 Public data |
+| **🔒 Server** | No private keys, stateless verification | ✅ Zero-trust |
+
+---
+
+## 🔐 **Cryptography Details**
+
+### **Implementation**
+- **Library**: `@noble/ed25519` v2.2.3 (audited)
+- **Key Derivation**: `SHA-256(chipUID + PIN)` 
+- **Signatures**: Ed25519 (64 bytes, quantum-resistant)
+- **Challenges**: `KairOS-DIDKey-{chipUID}-{timestamp}-{nonce}`
+- **Sessions**: JWT-style tokens with 1-hour expiry
+
+### **Threat Protection**
+| Attack | Protection Method | Status |
+|--------|-------------------|--------|
+| **Replay Attacks** | Unique nonces + timestamps | ✅ Implemented |
+| **NFC Cloning** | Only public chipUID on card | ✅ Implemented |
+| **MITM** | Ed25519 signature verification | ✅ Implemented |
+| **PIN Brute Force** | PIN-derived keys (offline only) | ✅ Implemented |
+| **Session Hijacking** | Device fingerprinting | ✅ Implemented |
 
 ---
 

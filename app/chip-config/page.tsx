@@ -181,7 +181,8 @@ async function generateFirstTimeNFCConfig(chipUID: string): Promise<{
     const deviceId = `kairos-pendant-${chipUID.replace(/:/g, '')}`
     
     // Create simple URL with just chipUID - PIN will be set up on first tap
-    const baseUrl = window.location.origin
+    // Always use production URL for NFC chips, never localhost
+    const baseUrl = 'https://kair-os.vercel.app'
     const nfcUrl = `${baseUrl}/nfc?chipUID=${encodeURIComponent(chipUID)}`
     
     return {
@@ -674,6 +675,9 @@ export default function ChipConfigPage() {
       const chipId = chipName || `KAIROS_${generateRandomHex(4).toUpperCase()}`
       const chipUID = generateChipUID()
       
+      // Always use the custom base URL for production deployment
+      const baseUrl = customBaseUrl || 'https://kair-os.vercel.app'
+      
       let urlResult: {
         nfcUrl: string
         urlAnalysis: { bytes: number; chars: number; compatibility: Record<string, string> }
@@ -684,15 +688,15 @@ export default function ChipConfigPage() {
       let config: NTAG424Config
       
       if (format === 'first-time') {
-        // Step 1: Generate first-time setup configuration (recommended for production)
-        const firstTimeConfig = await generateFirstTimeNFCConfig(chipUID)
+        // Generate optimal production URL for first-time setup
+        const nfcUrl = `${baseUrl}/nfc?chipUID=${encodeURIComponent(chipUID)}`
         
         // Calculate URL analysis
-        const bytes = new TextEncoder().encode(firstTimeConfig.nfcUrl).length
-        const chars = firstTimeConfig.nfcUrl.length
+        const bytes = new TextEncoder().encode(nfcUrl).length
+        const chars = nfcUrl.length
         
         urlResult = {
-          nfcUrl: firstTimeConfig.nfcUrl,
+          nfcUrl,
           urlAnalysis: {
             bytes,
             chars,
@@ -738,7 +742,7 @@ export default function ChipConfigPage() {
         urlResult = generateDIDKeyNFCUrl(
           keyPair.did,
           chipUID,
-          customBaseUrl
+          baseUrl
         )
         
         config = {
@@ -775,7 +779,7 @@ export default function ChipConfigPage() {
           keyPair.signature,
           keyPair.publicKey,
           did,
-          customBaseUrl,
+          baseUrl,
           selectedChipType
         )
         urlResult = cryptoSafeUrl
@@ -791,7 +795,7 @@ export default function ChipConfigPage() {
             const decentralizedUrl = generateDecentralizedNFCUrl(
               keyPair.deviceId,
               chipUID,
-              customBaseUrl
+              baseUrl
             )
             
             urlResult = {
@@ -805,7 +809,7 @@ export default function ChipConfigPage() {
           } else {
             // For larger chips, should not fail - use fallback
             urlResult = {
-              nfcUrl: `${customBaseUrl}/nfc?error=generation_failed`,
+              nfcUrl: `${baseUrl}/nfc?error=generation_failed`,
               urlAnalysis: {
                 bytes: 0,
                 chars: 0,
@@ -873,12 +877,12 @@ export default function ChipConfigPage() {
       // Generate optimal P2P URL (chipUID only, PIN will be entered at tap)
       const urlResult = generateOptimalP2PUrl(
         chipUID,
-        customBaseUrl,
+        customBaseUrl || 'https://kair-os.vercel.app',
         selectedChipType
       )
       
       // Create simple test URL for optimal format
-      const testUrl = `${customBaseUrl}/nfc?chipUID=${encodeURIComponent(chipUID)}&test=1`
+      const testUrl = `${customBaseUrl || 'https://kair-os.vercel.app'}/nfc?chipUID=${encodeURIComponent(chipUID)}&test=1`
       
       const config: NTAG424Config = {
         chipId,
@@ -1037,7 +1041,8 @@ export default function ChipConfigPage() {
   // --- Create Browser Testing URL ---
   const createBrowserTestUrl = useCallback((config: NTAG424Config) => {
     // Create a special test URL that bypasses NFC and simulates a chip tap
-    const testUrl = `${window.location.origin}/nfc?${new URL(config.nfcUrl).searchParams.toString()}&test=browser_simulation&source=chip_config_test`
+    // Use the actual production URL from the config, not localhost
+    const testUrl = `${config.nfcUrl}&test=browser_simulation&source=chip_config_test`
     window.open(testUrl, '_blank')
     
     toast({
@@ -1060,19 +1065,19 @@ export default function ChipConfigPage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold text-primary">
-                🎯 DID:Key NFC Setup
+                🎯 KairOS NFC Setup
               </h1>
               <p className="text-muted-foreground text-lg">
-                Generate simplified DID:Key URLs for instant authentication
+                Generate production-ready URLs for your NFC chips
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
                   <RocketIcon className="h-3 w-3 mr-1" />
-                  Zero Infrastructure
+                  Production Ready
                 </Badge>
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
                   <ZapIcon className="h-3 w-3 mr-1" />
-                  10x Faster
+                  Works Everywhere
                 </Badge>
               </div>
             </div>
@@ -1193,26 +1198,7 @@ export default function ChipConfigPage() {
                     ) : (
                       <>
                         <RocketIcon className="h-4 w-4 mr-2" />
-                        🌟 Generate First-Time Setup (Cross-Device Ready)
-                      </>
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => generateNTAG424Config('didkey')}
-                    disabled={isGenerating}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <SmartphoneIcon className="h-4 w-4 mr-2" />
-                        Generate DID:Key (Testing)
+                        🌟 Generate Production NFC URL
                       </>
                     )}
                   </Button>

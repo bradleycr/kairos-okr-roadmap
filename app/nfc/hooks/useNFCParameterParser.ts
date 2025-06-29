@@ -316,7 +316,14 @@ export function useNFCParameterParser() {
       
       // Check for active session and same-chip scenario
       if (result.params.chipUID && !accountInitialized) {
-        await checkSessionAndAuthRequirements(result.params.chipUID)
+        // For legacy-full format, skip PIN requirements since it has full crypto parameters
+        if (result.format === 'legacy-full') {
+          debugInfo.push('✅ Legacy card with full crypto parameters - skipping PIN gate')
+          setAccountInitialized(true)
+          setRequiresPIN(false)
+        } else {
+          await checkSessionAndAuthRequirements(result.params.chipUID)
+        }
       }
       
     } catch (error) {
