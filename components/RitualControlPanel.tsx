@@ -44,8 +44,8 @@ import {
   Wand2,
   BookOpen,
   ExternalLink,
-  Grid3X3,
-  MonitorSpeaker
+  Grid,
+  MessageSquare
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -69,6 +69,13 @@ const BEHAVIOR_ICONS: Record<NodeBehavior, React.ReactNode> = {
   trigger_light: <Palette className="w-4 h-4 text-retro-sage-600" />,
   play_sound: <Volume2 className="w-4 h-4 text-retro-teal-500" />,
   increment_counter: <Hash className="w-4 h-4 text-warm-gray-600" />,
+  favorite_artwork: <Heart className="w-4 h-4 text-pink-600" />,
+  rate_artwork: <CheckCircle className="w-4 h-4 text-yellow-600" />,
+  leave_comment: <MessageSquare className="w-4 h-4 text-blue-600" />,
+  view_artist_info: <BookOpen className="w-4 h-4 text-purple-600" />,
+  join_discussion: <Grid className="w-4 h-4 text-green-600" />,
+  unlock_story: <ExternalLink className="w-4 h-4 text-indigo-600" />,
+  collect_memory: <Wand2 className="w-4 h-4 text-rose-600" />,
   custom: <Code className="w-4 h-4 text-her-orange-600" />
 }
 
@@ -495,6 +502,13 @@ export default function RitualControlPanel({
       trigger_light: '#A8B89D',  // retro-sage-400
       play_sound: '#73A7AA',     // retro-teal-500
       increment_counter: '#A8A39C', // warm-gray-400
+      favorite_artwork: '#EC4899', // pink-500
+      rate_artwork: '#EAB308',    // yellow-500
+      leave_comment: '#3B82F6',   // blue-500
+      view_artist_info: '#8B5CF6', // purple-500
+      join_discussion: '#10B981', // green-500
+      unlock_story: '#6366F1',    // indigo-500
+      collect_memory: '#F43F5E',  // rose-500
       custom: '#F5B591'          // her-orange-400
     }
     return colors[behavior]
@@ -510,6 +524,13 @@ export default function RitualControlPanel({
       trigger_light: 'Trigger Light',
       play_sound: 'Play Sound',
       increment_counter: 'Counter',
+      favorite_artwork: 'Favorite Artwork',
+      rate_artwork: 'Rate Artwork',
+      leave_comment: 'Leave Comment',
+      view_artist_info: 'View Artist Info',
+      join_discussion: 'Join Discussion',
+      unlock_story: 'Unlock Story',
+      collect_memory: 'Collect Memory',
       custom: 'Custom'
     }
     return labels[behavior]
@@ -687,7 +708,7 @@ export default function RitualControlPanel({
             aria-expanded={expandedSections.nodeManagement}
           >
             <div className="flex items-center gap-2">
-              <Grid3X3 className="w-5 h-5" />
+              <Grid className="w-5 h-5" />
               <span>Physical Nodes</span>
             </div>
             {expandedSections.nodeManagement ? 
