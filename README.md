@@ -264,4 +264,4 @@ KairOS is crafted with love for the standards-based future. Built for users who 
 
 > *"The future is decentralized, standards-based, and beautiful."*
 
-**[📧 Contact](mailto:contact@kairos.dev)** • **[🐙 GitHub](https://github.com/BradleyRoyes/KairOS)** 
+**[📧 Contact](mailto:contact@kairos.dev)** • **[🐙 GitHub](https://github.com/BradleyRoyes/KairOS)** // Force deployment Sun Jun 29 03:36:06 CEST 2025
