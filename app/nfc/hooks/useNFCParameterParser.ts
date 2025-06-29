@@ -316,14 +316,43 @@ export function useNFCParameterParser() {
       
       // Check for active session and same-chip scenario
       if (result.params.chipUID && !accountInitialized) {
-        // For legacy-full format, skip PIN requirements since it has full crypto parameters
+        // For legacy-full format, attempt immediate authentication since it has full crypto parameters
         if (result.format === 'legacy-full') {
-          debugInfo.push('✅ Legacy card with full crypto parameters - skipping PIN gate')
-          setAccountInitialized(true)
-          setRequiresPIN(false)
-        } else {
-          await checkSessionAndAuthRequirements(result.params.chipUID)
+          debugInfo.push('✅ Legacy card with full crypto parameters - attempting immediate auth')
+          try {
+            // Try immediate authentication for legacy cards with full parameters
+            const { NFCAuthenticationEngine } = await import('@/app/nfc/utils/nfc-authentication')
+            const authResult = await NFCAuthenticationEngine.authenticate(result.params)
+            
+            if (authResult.verified) {
+              console.log('✅ Legacy card authenticated immediately')
+              setAccountInitialized(true)
+              setRequiresPIN(false)
+              
+              // Create session and redirect to profile
+              await SessionManager.createSession(result.params.chipUID!)
+              
+              const profileUrl = new URL('/profile', window.location.origin)
+              profileUrl.searchParams.set('verified', 'true')
+              profileUrl.searchParams.set('source', 'legacy-immediate-auth')
+              profileUrl.searchParams.set('chipUID', result.params.chipUID!)
+              profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+              
+              router.push(profileUrl.toString())
+              return
+            } else {
+              // Legacy card auth failed - fall back to PIN requirement
+              console.log('⚠️ Legacy card immediate auth failed, requiring PIN')
+              debugInfo.push('⚠️ Legacy card auth failed - requiring PIN')
+            }
+          } catch (error) {
+            console.log('⚠️ Legacy card immediate auth error:', error)
+            debugInfo.push('⚠️ Legacy card auth error - requiring PIN')
+          }
         }
+        
+        // For simple chipUID cards or failed legacy auths, require PIN
+        await checkSessionAndAuthRequirements(result.params.chipUID)
       }
       
     } catch (error) {

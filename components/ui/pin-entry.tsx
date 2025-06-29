@@ -122,14 +122,14 @@ export default function PINEntry({
             <Key className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="text-lg font-mono tracking-wide">
-            {isNewDevice ? 'Cryptographic Authentication' : 'DID:Key Authentication'}
+            {isNewDevice ? 'Welcome Back' : 'KairOS'}
           </CardTitle>
           <CardDescription className="text-sm leading-relaxed">
             {isVerifying && !isNewDevice 
-              ? 'Authenticating securely...'
+              ? 'Authenticating...'
               : isNewDevice 
-                ? `Welcome back${displayName ? `, ${displayName}` : ''}! Please verify your cryptographic identity on this new device.`
-                : 'Enter PIN to derive your cryptographic keys'
+                ? `Welcome back${displayName ? `, ${displayName}` : ''}! Enter your PIN to continue.`
+                : 'Enter your PIN to continue'
             }
           </CardDescription>
         </CardHeader>
@@ -142,7 +142,7 @@ export default function PINEntry({
                 <Input
                   ref={inputRef}
                   type={showPIN ? "text" : "password"}
-                  placeholder="Enter PIN for key derivation"
+                  placeholder="Enter PIN"
                   value={pin}
                   onChange={(e) => handlePINChange(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -169,9 +169,6 @@ export default function PINEntry({
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground text-center font-mono">
-                PIN + chipUID → private key derivation
-              </p>
             </div>
 
             {/* Error Display */}

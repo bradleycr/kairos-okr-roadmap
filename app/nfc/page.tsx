@@ -46,12 +46,13 @@ function NFCPageContent() {
     executeAuthentication 
   } = useNFCAuthentication()
 
-  // Auto-start authentication when valid parameters are detected and no PIN required
+  // Auto-start authentication only for legacy cards with full crypto parameters (no PIN needed)
   useEffect(() => {
-    if (hasValidParameters() && !requiresPIN && !accountInitialized && verificationState.status === 'initializing') {
+    if (hasValidParameters() && !requiresPIN && !accountInitialized && verificationState.status === 'initializing' && format === 'legacy-full') {
+      console.log('🔐 Auto-starting authentication for legacy card with full parameters')
       executeAuthentication(parsedParams)
     }
-  }, [hasValidParameters, requiresPIN, accountInitialized, parsedParams, verificationState.status, executeAuthentication])
+  }, [hasValidParameters, requiresPIN, accountInitialized, parsedParams, verificationState.status, executeAuthentication, format])
 
   return (
     <div className="h-screen w-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden touch-none" style={{ position: 'fixed', top: 0, left: 0 }}>

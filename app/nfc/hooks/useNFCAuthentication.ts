@@ -203,20 +203,29 @@ export function useNFCAuthentication() {
     } catch (error: any) {
       const errorMessage = error.message || 'Authentication failed'
       
+      // Don't show error toasts for PIN-related issues (user input required)
+      const isPINError = errorMessage.toLowerCase().includes('pin') || 
+                        errorMessage.toLowerCase().includes('missing chiuid or pin')
+      
       setVerificationState(prev => ({
         ...prev,
         status: 'failure',
         error: errorMessage,
-        currentPhase: 'Authentication failed'
+        currentPhase: isPINError ? 'PIN required for authentication' : 'Authentication failed'
       }))
       
       addDebugLog(`❌ Authentication failed: ${errorMessage}`)
       
-      toast({
-        title: "Authentication Failed",
-        description: errorMessage,
-        variant: "destructive"
-      })
+      // Only show error toast for actual authentication failures, not PIN requirements
+      if (!isPINError) {
+        toast({
+          title: "Authentication Failed",
+          description: errorMessage,
+          variant: "destructive"
+        })
+      } else {
+        console.log('🔐 PIN required - not showing error toast')
+      }
     }
   }, [addDebugLog, toast, executeDecentralizedFlow, executeLegacyFlow])
 
