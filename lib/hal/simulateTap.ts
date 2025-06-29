@@ -126,6 +126,42 @@ export const NODE_TEMPLATES = {
     color: '#66BB6A',
     icon: '🚪',
     status: 'online' as const
+  },
+  art_frame: {
+    id: 'art-frame-node',
+    name: 'Art Frame',
+    location: 'Gallery Wall',
+    type: 'custom' as const,
+    color: '#8B5CF6',
+    icon: '🖼️',
+    status: 'online' as const
+  },
+  sculpture_stand: {
+    id: 'sculpture-node',
+    name: 'Sculpture Stand',
+    location: 'Gallery Floor',
+    type: 'custom' as const,
+    color: '#10B981',
+    icon: '🗿',
+    status: 'online' as const
+  },
+  gallery_kiosk: {
+    id: 'gallery-kiosk-node',
+    name: 'Gallery Kiosk',
+    location: 'Information Desk',
+    type: 'custom' as const,
+    color: '#F59E0B',
+    icon: '📱',
+    status: 'online' as const
+  },
+  civic_portrait: {
+    id: 'civic-portrait-node',
+    name: 'Civic Portrait',
+    location: 'Community Space',
+    type: 'custom' as const,
+    color: '#DC2626',
+    icon: '🏛️',
+    status: 'online' as const
   }
 }
 

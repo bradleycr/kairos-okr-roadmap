@@ -5,6 +5,7 @@
 import { Ritual, RitualNodeConfig, RitualExecution, NodeBehavior } from './types'
 import { getMeldNodes, simulateTap, eventBus, TapMoment, NODE_TEMPLATES } from '@/lib/hal/simulateTap'
 import { memoryStore } from '@/lib/moment/memoryStore'
+import { galleryManager, recordInteraction } from '@/lib/gallery/artworkRegistry'
 
 // --- Storage Keys ---
 const STORAGE_KEYS = {
@@ -98,6 +99,79 @@ function getDefaultRituals(): Ritual[] {
   }
   
   // Multi-node rituals
+  const artGalleryRituals = [
+    {
+      id: 'art-gallery-experience',
+      name: 'Art Gallery Experience',
+      description: 'Interactive art appreciation with pendant tapping',
+      createdAt: Date.now(),
+      version: '1.0.0',
+      nodes: currentNodes.slice(0, 3).map((node, index) => {
+        const artworks = ['artwork-1', 'artwork-2', 'artwork-3']
+        const artworkTitles = ['The Persistence of Memory', 'Digital Confluence', 'Untitled Masterpiece']
+        const behaviors: NodeBehavior[] = ['favorite_artwork', 'rate_artwork', 'view_artist_info']
+        
+        return {
+          nodeId: node.id,
+          label: `${artworkTitles[index] || 'Artwork'} Frame`,
+          behavior: behaviors[index] || 'favorite_artwork',
+          parameters: {
+            artworkId: artworks[index] || 'artwork-1',
+            artworkTitle: artworkTitles[index] || 'Artwork',
+            artistName: index === 0 ? 'Salvador Dalí' : index === 1 ? 'Alex Chen' : 'Unknown Artist',
+            gallerySection: index === 0 ? 'Surrealism Wing' : index === 1 ? 'Contemporary Digital' : 'Modern Art',
+            rating: 5,
+            displayText: {
+              waiting_title: 'ART FRAME',
+              waiting_subtitle: 'TAP TO INTERACT',
+              detected_title: 'NFC DETECTED',
+              detected_subtitle: 'AUTHENTICATING...',
+              auth_title: 'AUTHENTICATED',
+              auth_instruction: 'TAP TO CONFIRM',
+              confirm_title: 'CONFIRM ACTION',
+              confirm_button: 'CONFIRM',
+              success_title: index === 0 ? 'FAVORITED' : index === 1 ? 'RATED' : 'INFO UNLOCKED',
+              success_subtitle: index === 0 ? 'ADDED TO FAVORITES' : index === 1 ? '★★★★★ RATED' : 'ARTIST INFO AVAILABLE',
+              error_title: 'ERROR',
+              error_subtitle: 'AUTH FAILED'
+            }
+          }
+        }
+      })
+    },
+    {
+      id: 'civic-portrait-experience',
+      name: 'Civic Portrait Experience',
+      description: 'Interactive civic engagement through portrait interfaces',
+      createdAt: Date.now(),
+      version: '1.0.0',
+      nodes: currentNodes.slice(0, 2).map((node, index) => ({
+        nodeId: node.id,
+        label: index === 0 ? 'Civic Guardian' : 'Community Portal',
+        behavior: index === 0 ? 'unlock_story' : 'join_discussion',
+        parameters: {
+          artworkId: index === 0 ? 'civic-portrait-1' : 'civic-portrait-2',
+          artworkTitle: index === 0 ? 'The Civic Guardian' : 'Community Portal',
+          gallerySection: 'Civic Space',
+          displayText: {
+            waiting_title: index === 0 ? 'CIVIC GUARDIAN' : 'COMMUNITY PORTAL',
+            waiting_subtitle: 'TAP TO ENGAGE',
+            detected_title: 'CITIZEN DETECTED',
+            detected_subtitle: 'VERIFYING...',
+            auth_title: 'WELCOME, CITIZEN',
+            auth_instruction: 'TAP TO CONTINUE',
+            confirm_title: index === 0 ? 'UNLOCK STORY' : 'JOIN DISCUSSION',
+            confirm_button: 'ENGAGE',
+            success_title: index === 0 ? 'STORY UNLOCKED' : 'DISCUSSION JOINED',
+            success_subtitle: index === 0 ? 'COMMUNITY HISTORY REVEALED' : 'WELCOME TO THE CONVERSATION',
+            error_title: 'ACCESS DENIED',
+            error_subtitle: 'VERIFICATION FAILED'
+          }
+        }
+      }))
+    }
+  ]
+  
   return [
     {
       id: 'moment-collection',
@@ -208,7 +282,8 @@ function getDefaultRituals(): Ritual[] {
           }
         }
       })
-    }
+    },
+    ...artGalleryRituals
   ]
 }
 
@@ -621,6 +696,174 @@ export async function executeRitualBehavior(
         execution.data = { 
           contentUnlocked: true, 
           contentId: `content-${nodeId}`,
+          pendantDID
+        }
+        break
+
+      case 'favorite_artwork':
+        const artworkId = nodeConfig.parameters?.artworkId
+        if (!artworkId) throw new Error('Artwork ID required for favorite_artwork behavior')
+        
+        const favoriteInteraction = recordInteraction({
+          artworkId,
+          userId: pendantDID,
+          pendantDID,
+          type: 'favorite',
+          nodeId,
+          gallerySection: nodeConfig.parameters?.gallerySection || 'Unknown',
+          signature: 'temp-sig' // In production, sign with pendant private key
+        })
+        
+        execution.data = { 
+          artworkId,
+          interactionId: favoriteInteraction.id,
+          artworkTitle: nodeConfig.parameters?.artworkTitle,
+          pendantDID
+        }
+        break
+
+      case 'rate_artwork':
+        const ratingArtworkId = nodeConfig.parameters?.artworkId
+        const rating = nodeConfig.parameters?.rating || 5
+        if (!ratingArtworkId) throw new Error('Artwork ID required for rate_artwork behavior')
+        
+        const ratingInteraction = recordInteraction({
+          artworkId: ratingArtworkId,
+          userId: pendantDID,
+          pendantDID,
+          type: 'rating',
+          rating,
+          nodeId,
+          gallerySection: nodeConfig.parameters?.gallerySection || 'Unknown',
+          signature: 'temp-sig'
+        })
+        
+        const artworkRating = galleryManager.getArtworkRating(ratingArtworkId)
+        execution.data = { 
+          artworkId: ratingArtworkId,
+          rating,
+          interactionId: ratingInteraction.id,
+          averageRating: artworkRating.averageRating,
+          totalRatings: artworkRating.totalRatings,
+          artworkTitle: nodeConfig.parameters?.artworkTitle,
+          pendantDID
+        }
+        break
+
+      case 'leave_comment':
+        const commentArtworkId = nodeConfig.parameters?.artworkId
+        const comment = nodeConfig.parameters?.comment || 'Beautiful artwork!'
+        if (!commentArtworkId) throw new Error('Artwork ID required for leave_comment behavior')
+        
+        const commentInteraction = recordInteraction({
+          artworkId: commentArtworkId,
+          userId: pendantDID,
+          pendantDID,
+          type: 'comment',
+          comment,
+          nodeId,
+          gallerySection: nodeConfig.parameters?.gallerySection || 'Unknown',
+          signature: 'temp-sig'
+        })
+        
+        execution.data = { 
+          artworkId: commentArtworkId,
+          comment,
+          interactionId: commentInteraction.id,
+          artworkTitle: nodeConfig.parameters?.artworkTitle,
+          pendantDID
+        }
+        break
+
+      case 'view_artist_info':
+        const infoArtworkId = nodeConfig.parameters?.artworkId
+        if (!infoArtworkId) throw new Error('Artwork ID required for view_artist_info behavior')
+        
+        const artwork = galleryManager.getArtwork(infoArtworkId)
+        if (!artwork) throw new Error('Artwork not found')
+        
+        const infoInteraction = recordInteraction({
+          artworkId: infoArtworkId,
+          userId: pendantDID,
+          pendantDID,
+          type: 'view_info',
+          nodeId,
+          gallerySection: nodeConfig.parameters?.gallerySection || 'Unknown',
+          signature: 'temp-sig'
+        })
+        
+        execution.data = { 
+          artworkId: infoArtworkId,
+          artistInfo: artwork.artist,
+          artworkInfo: {
+            title: artwork.title,
+            year: artwork.year,
+            medium: artwork.medium,
+            description: artwork.description
+          },
+          interactionId: infoInteraction.id,
+          pendantDID
+        }
+        break
+
+      case 'join_discussion':
+        const discussionArtworkId = nodeConfig.parameters?.artworkId
+        if (!discussionArtworkId) throw new Error('Artwork ID required for join_discussion behavior')
+        
+        execution.data = { 
+          artworkId: discussionArtworkId,
+          discussionUrl: `/gallery/discussions/${discussionArtworkId}`,
+          artworkTitle: nodeConfig.parameters?.artworkTitle,
+          pendantDID
+        }
+        break
+
+      case 'unlock_story':
+        const storyArtworkId = nodeConfig.parameters?.artworkId
+        if (!storyArtworkId) throw new Error('Artwork ID required for unlock_story behavior')
+        
+        const storyInteraction = recordInteraction({
+          artworkId: storyArtworkId,
+          userId: pendantDID,
+          pendantDID,
+          type: 'unlock_story',
+          nodeId,
+          gallerySection: nodeConfig.parameters?.gallerySection || 'Unknown',
+          signature: 'temp-sig'
+        })
+        
+        execution.data = { 
+          artworkId: storyArtworkId,
+          storyUnlocked: true,
+          storyContent: `The story behind "${nodeConfig.parameters?.artworkTitle || 'this artwork'}" is now available to you...`,
+          interactionId: storyInteraction.id,
+          audioGuideUrl: nodeConfig.parameters?.audioGuideUrl,
+          pendantDID
+        }
+        break
+
+      case 'collect_memory':
+        const memoryArtworkId = nodeConfig.parameters?.artworkId
+        const memoryNote = nodeConfig.parameters?.memoryNote || 'A moment with this beautiful artwork'
+        if (!memoryArtworkId) throw new Error('Artwork ID required for collect_memory behavior')
+        
+        const memoryInteraction = recordInteraction({
+          artworkId: memoryArtworkId,
+          userId: pendantDID,
+          pendantDID,
+          type: 'collect_memory',
+          memoryNote,
+          nodeId,
+          gallerySection: nodeConfig.parameters?.gallerySection || 'Unknown',
+          signature: 'temp-sig'
+        })
+        
+        execution.data = { 
+          artworkId: memoryArtworkId,
+          memoryNote,
+          memoryCollected: true,
+          interactionId: memoryInteraction.id,
+          artworkTitle: nodeConfig.parameters?.artworkTitle,
           pendantDID
         }
         break

@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react'
 import { generateKeypair, createDIDFromPublicKey } from '@/lib/crypto/keys'
 import { PendantIdentity } from '@/lib/hal/simulateTap'
-import { Plus, Zap, Shuffle, Download, Upload, Circle, Grid3X3, List } from 'lucide-react'
+import { Plus, Zap, Shuffle, Download, Upload, Circle, Grid, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface PendantSelectorProps {

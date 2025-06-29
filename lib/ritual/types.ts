@@ -14,6 +14,13 @@ export type NodeBehavior =
   | 'trigger_light'   // Trigger audio pattern (no LEDs)
   | 'play_sound'      // Play audio feedback
   | 'increment_counter' // Simple counter increment
+  | 'favorite_artwork' // Mark artwork as favorite (gallery mode)
+  | 'rate_artwork'    // Rate artwork 1-5 stars (gallery mode)
+  | 'leave_comment'   // Leave a voice comment about artwork
+  | 'view_artist_info' // Display artist information and bio
+  | 'join_discussion' // Join community discussion about artwork
+  | 'unlock_story'    // Unlock the story behind the artwork
+  | 'collect_memory'  // Create a personalized memory of the artwork
   | 'custom'          // Custom logic defined in logic field
 
 /**
@@ -29,6 +36,20 @@ export interface RitualNodeConfig {
     soundFile?: string    // For play_sound behavior
     lightPattern?: string // For trigger_light behavior
     voteOption?: string   // For voting behaviors
+    
+    // Art Gallery specific parameters
+    artworkId?: string    // Unique artwork identifier
+    artworkTitle?: string // Title of the artwork
+    artistName?: string   // Name of the artist
+    artworkYear?: number  // Year created
+    artworkMedium?: string // Medium (oil on canvas, sculpture, etc.)
+    artworkDescription?: string // Description of the artwork
+    artworkImageUrl?: string // URL to artwork image
+    gallerySection?: string // Gallery section/room
+    audioGuideUrl?: string // URL to audio guide
+    maxRating?: number    // Maximum rating (default 5)
+    requireComment?: boolean // Whether comment is required
+    
     [key: string]: any    // Extensible parameters
   }
 }
