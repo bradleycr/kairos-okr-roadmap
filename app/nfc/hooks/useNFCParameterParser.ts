@@ -183,16 +183,29 @@ export function useNFCParameterParser() {
             setAccountInitialized(true)
             setDebugInfo(prev => [...prev, `✅ Account ready: ${result.account.accountId}`])
             
-            // Redirect to appropriate page based on ritual flow completion
-            if (!shouldShowRitual) {
-              // User has completed ritual flow - redirect to profile
+            // 🆕 For simple chipUID-only URLs, skip ritual flow and go directly to profile
+            // These are basic authentication URLs, not full onboarding experiences
+            const isSimpleChipUIDAuth = !result.account.displayName || result.account.displayName.includes('Memory Keeper')
+            
+            if (!shouldShowRitual || isSimpleChipUIDAuth) {
+              // Mark ritual flow as completed for simple auth URLs
+              if (isSimpleChipUIDAuth && shouldShowRitual) {
+                console.log('🎭 Marking ritual flow completed for simple chipUID auth')
+                await NFCAccountManager.markRitualFlowCompleted(chipUID)
+              }
+              
+              // Redirect to profile
               const profileUrl = new URL('/profile', window.location.origin)
               profileUrl.searchParams.set('verified', 'true')
-              profileUrl.searchParams.set('source', 'returning-user')
+              profileUrl.searchParams.set('source', isSimpleChipUIDAuth ? 'new-user-simple' : 'returning-user')
               profileUrl.searchParams.set('chipUID', chipUID)
               profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
               
+              console.log('🚀 Redirecting to profile:', profileUrl.toString())
               router.push(profileUrl.toString())
+            } else {
+              // User needs ritual flow - let the authentication component handle it
+              console.log('🎭 User needs ritual flow - will show auth component')
             }
           }
         }
