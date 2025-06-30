@@ -23,7 +23,13 @@ export function useVoiceDump(): VoiceDumpHook {
       // Fallback to API
       try {
         const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
+        // Determine file extension based on MIME type
+        let extension = 'webm';
+        if (audioBlob.type.includes('mp4')) extension = 'mp4';
+        else if (audioBlob.type.includes('ogg')) extension = 'ogg';
+        else if (audioBlob.type.includes('wav')) extension = 'wav';
+        
+        formData.append('audio', audioBlob, `recording.${extension}`);
         
         const response = await fetch('/api/morning-eight/whisper', {
           method: 'POST',
@@ -62,9 +68,28 @@ export function useVoiceDump(): VoiceDumpHook {
         }
       });
       
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Try different MIME types for better mobile compatibility
+      let mediaRecorderOptions = {};
+      
+      const supportedTypes = [
+        'audio/webm;codecs=opus',
+        'audio/mp4;codecs=aac',  // Better iOS support
+        'audio/mp4',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/wav'  // Fallback for older devices
+      ];
+      
+      // Find the first supported MIME type
+      for (const mimeType of supportedTypes) {
+        if (MediaRecorder.isTypeSupported(mimeType)) {
+          mediaRecorderOptions = { mimeType };
+          console.log(`Using MIME type: ${mimeType}`);
+          break;
+        }
+      }
+      
+      const mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions);
       
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -79,7 +104,9 @@ export function useVoiceDump(): VoiceDumpHook {
         setRecordingState('processing');
         
         try {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          // Use the MIME type that was supported, or fallback
+          const mimeType = (mediaRecorderOptions as any).mimeType || 'audio/webm';
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
           const transcriptionResult = await transcribeAudio(audioBlob);
           
           setLastTranscription(transcriptionResult.text);
