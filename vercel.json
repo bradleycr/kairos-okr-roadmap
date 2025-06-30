@@ -44,6 +44,26 @@
     {
       "source": "/zk-moments/zkbirthday/quick-add",
       "destination": "/zk-moments/zkbirthday/quick-add"
+    },
+    {
+      "source": "/wof",
+      "destination": "/installation/way-of-flowers"
+    },
+    {
+      "source": "/flowers",
+      "destination": "/installation/way-of-flowers"
+    },
+    {
+      "source": "/civic",
+      "destination": "/installation/civic-portraits"
+    },
+    {
+      "source": "/portraits",
+      "destination": "/installation/civic-portraits"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin/installations"
     }
   ],
   "cleanUrls": true,
