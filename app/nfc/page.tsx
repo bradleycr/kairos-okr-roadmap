@@ -35,6 +35,8 @@ function NFCPageContent() {
     currentSession,
     showBondDialog,
     newUserInfo,
+    // Legacy card states (simplified)
+    pinVerificationComplete,
     handlePINSuccess,
     handleBondCreate,
     handleBondDialogClose
@@ -46,13 +48,13 @@ function NFCPageContent() {
     executeAuthentication 
   } = useNFCAuthentication()
 
-  // Auto-start authentication only for legacy cards with full crypto parameters (no PIN needed)
+  // Auto-start authentication when valid parameters are detected and no PIN required
   useEffect(() => {
-    if (hasValidParameters() && !requiresPIN && !accountInitialized && verificationState.status === 'initializing' && format === 'legacy-full') {
-      console.log('🔐 Auto-starting authentication for legacy card with full parameters')
+    if (hasValidParameters() && !requiresPIN && accountInitialized && verificationState.status === 'initializing') {
+      console.log('🔐 Auto-starting authentication for authenticated card')
       executeAuthentication(parsedParams)
     }
-  }, [hasValidParameters, requiresPIN, accountInitialized, parsedParams, verificationState.status, executeAuthentication, format])
+  }, [hasValidParameters, requiresPIN, accountInitialized, parsedParams, verificationState.status, executeAuthentication])
 
   return (
     <div className="h-screen w-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden touch-none" style={{ position: 'fixed', top: 0, left: 0 }}>
@@ -92,7 +94,7 @@ function NFCPageContent() {
                   displayName={pinGateInfo?.displayName}
                   onSuccess={handlePINSuccess}
                 />
-              ) : accountInitialized ? (
+              ) : accountInitialized && pinVerificationComplete ? (
                 /* AUTHENTICATED: Show auth flow */
                 <NFCAuthFlow 
                   verificationState={verificationState}
@@ -104,8 +106,16 @@ function NFCPageContent() {
                 <div className="text-center space-y-4">
                   <LoaderIcon className="h-8 w-8 animate-spin text-primary mx-auto" />
                   <p className="text-sm text-muted-foreground font-mono">
-                    Checking authentication requirements...
+                    {parsedParams.chipUID ? 
+                      `Processing authentication for ${parsedParams.chipUID.slice(-4)}...` : 
+                      'Checking authentication requirements...'
+                    }
                   </p>
+                  {debugInfo.length > 0 && (
+                    <div className="text-xs text-muted-foreground/70 font-mono max-w-xs">
+                      {debugInfo[debugInfo.length - 1]}
+                    </div>
+                  )}
                 </div>
               )}
             </>
