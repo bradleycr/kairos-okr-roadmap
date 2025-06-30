@@ -1001,12 +1001,7 @@ export default function ChipConfigPage() {
             </div>
           </div>
           
-          <Alert className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
-            <RocketIcon className="h-4 w-4 text-green-600" />
-            <AlertDescription>
-              <strong>DID:Key Workflow:</strong> Generate DID → Copy URL → Write to chip → Instant offline authentication!
-            </AlertDescription>
-          </Alert>
+
 
           {/* Enhanced Web NFC Status */}
           {nfcSupport && (
@@ -1036,14 +1031,7 @@ export default function ChipConfigPage() {
                       </Badge>
                     )}
                   </div>
-                  {nfcSupport.estimatedReliability === 'high' && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {nfcCompatibility && nfcCompatibility.supported 
-                        ? `Direct NFC writing available ${nfcCompatibility.fallbackRequired ? '(with copy-paste backup)' : ''}`
-                        : `Copy-paste method available`
-                      }
-                    </p>
-                  )}
+
                 </div>
                 {nfcSupport.estimatedReliability === 'high' && (
                   <WifiIcon className="h-4 w-4 text-green-600 animate-pulse" />
