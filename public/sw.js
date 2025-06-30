@@ -1,6 +1,6 @@
 // --- KairOS Service Worker ---
 // Minimal service worker to prevent 404 errors and enable PWA functionality
-// This elegant implementation focuses on essential features while maintaining performance
+// This implementation focuses on essential features while maintaining performance
 
 const CACHE_NAME = 'kairos-v1'
 const STATIC_ASSETS = [

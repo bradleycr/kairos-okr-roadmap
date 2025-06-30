@@ -84,7 +84,7 @@ export class DeviceDetector {
     if (caps.isIPhone) {
       return {
         shouldPromptChromeSwitch: false,
-        message: 'NFC authentication works perfectly on Safari with your iPhone\'s native NFC reading capabilities.'
+        message: 'NFC authentication works well on Safari with your iPhone\'s native NFC reading capabilities.'
       }
     }
 
