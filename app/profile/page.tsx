@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { PINSetup } from '@/components/ui/pin-setup';
 import { ProfileEditor } from '@/components/ui/profile-editor';
 import PINEntry from '@/components/ui/pin-entry';
+import { MorningEightPanel, NFCGate, useMorningEightNFCGate } from '@/src/features/morningEight';
 
 // Welcome Ritual Component
 const WelcomeRitual = ({ onComplete }: { onComplete: () => void }) => {
@@ -721,6 +722,9 @@ const ProfilePage = () => {
           <WelcomeRitual onComplete={handleWelcomeComplete} />
         )}
       </AnimatePresence>
+      
+      {/* Morning Eight NFC Gate - runs in background */}
+      <NFCGate chipUID={userProfile?.chipUID} />
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
         {/* Header */}
@@ -836,6 +840,11 @@ const ProfilePage = () => {
               <span className="hidden xs:inline sm:inline font-mono text-xs">Bonds</span>
               <span className="xs:hidden sm:hidden font-mono text-xs">Bonds</span>
             </ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="morning-eight">
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline sm:inline font-mono text-xs">Morning Eight</span>
+              <span className="xs:hidden sm:hidden font-mono text-xs">8AM</span>
+            </ResponsiveTabsTrigger>
             <ResponsiveTabsTrigger value="community">
               <Users className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline sm:inline font-mono text-xs">Community</span>
@@ -921,6 +930,10 @@ const ProfilePage = () => {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="morning-eight" className="mt-4 sm:mt-6">
+            <MorningEightPanel />
           </TabsContent>
 
           <TabsContent value="bonds" className="mt-4 sm:mt-6">
