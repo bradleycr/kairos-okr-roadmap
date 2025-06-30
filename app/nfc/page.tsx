@@ -3,7 +3,7 @@
 /**
  * NFC Gateway - Minimal Holographic Interface
  * 
- * Elegant NFC authentication matching the KairOS holographic aesthetic
+ * NFC authentication matching the KairOS holographic aesthetic
  * Minimal design inspired by the Figma interface
  */
 

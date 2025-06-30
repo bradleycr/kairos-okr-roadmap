@@ -132,7 +132,7 @@ class ESP32Display {
     }
   }
 
-  // Draw a pixel-perfect button (for confirmation) - Enhanced for e-paper
+  // Draw a precise button (for confirmation) - Enhanced for e-paper
   drawButton(x: number, y: number, width: number, height: number, text: string, pressed: boolean = false) {
     // Draw thick button border for better e-paper visibility
     const borderThickness = 3
@@ -436,18 +436,18 @@ export default function ESP32WearableDevice({
     // Draw main content based on AuthState
     switch (authState) {
       case 'WAITING':
-        // "Meld: Tap to begin" screen - MUCH LARGER fonts with perfect centering
+        // "Meld: Tap to begin" screen - MUCH LARGER fonts with center alignment
         const waitingTitle = getConfigurableText('waiting_title', 'MELD')
         const waitingSubtitle = getConfigurableText('waiting_subtitle', 'TAP TO BEGIN')
         
         // Center "MELD" title (4 chars * 6px * 4 size = 96px width)
         const titleWidth = waitingTitle.length * 6 * 4
-        const titleX = (296 - titleWidth) / 2  // Perfect horizontal center
+        const titleX = (296 - titleWidth) / 2  // Horizontal center
         display.drawText(Math.floor(titleX), 50, waitingTitle, 4)
         
         // Center "TAP TO BEGIN" subtitle (11 chars * 6px * 2 size = 132px width)
         const subtitleWidth = waitingSubtitle.length * 6 * 2
-        const subtitleX = (296 - subtitleWidth) / 2  // Perfect horizontal center
+        const subtitleX = (296 - subtitleWidth) / 2  // Horizontal center
         display.drawText(Math.floor(subtitleX), 120, waitingSubtitle, 2)
         
         // Show ritual-specific action at bottom - centered
@@ -906,7 +906,7 @@ export default function ESP32WearableDevice({
           />
         </div>
 
-        {/* E-Paper Display - Perfect size that doesn't crowd the screen */}
+                  {/* E-Paper Display - Optimal size that doesn't crowd the screen */}
         <div 
           className={`w-64 h-64 sm:w-72 sm:h-72 mx-auto rounded-lg border-2 relative overflow-hidden ${
             refreshing ? 'animate-pulse' : ''

@@ -2,7 +2,7 @@
 
 // --- ZKBirthday Quick Add: Mobile-Optimized Party Experience ---
 // Streamlined interface for quick word contributions via QR code
-// Perfect for party guests to instantly add words to the constellation
+// Good for party guests to instantly add words to the constellation
 
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,7 +49,7 @@ export default function QuickAddPage() {
   }, [])
 
   const generateFriendlyName = () => {
-    const adjectives = ['Happy', 'Joyful', 'Bright', 'Cheerful', 'Wonderful', 'Amazing', 'Brilliant', 'Fantastic']
+    const adjectives = ['Happy', 'Joyful', 'Bright', 'Cheerful', 'Positive', 'Kind', 'Brilliant', 'Great']
     const nouns = ['Friend', 'Guest', 'Visitor', 'Contributor', 'Helper', 'Buddy', 'Pal', 'Companion']
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
     const noun = nouns[Math.floor(Math.random() * nouns.length)]
@@ -237,12 +237,12 @@ export default function QuickAddPage() {
                   Add a word starting with <span className="font-mono font-bold text-primary">{assignedLetter}</span> that reminds you of Charlie
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Examples: {assignedLetter === 'C' ? 'Creative, Caring, Cheerful' : 
-                           assignedLetter === 'H' ? 'Happy, Helpful, Hilarious' :
-                           assignedLetter === 'A' ? 'Amazing, Artistic, Awesome' :
+                  Examples: {assignedLetter === 'C' ? 'Creative, Caring, Curious' : 
+                           assignedLetter === 'H' ? 'Happy, Honest, Helpful' :
+                           assignedLetter === 'A' ? 'Artistic, Adventurous, Authentic' :
                            assignedLetter === 'R' ? 'Radiant, Reliable, Remarkable' :
                            assignedLetter === 'L' ? 'Loving, Loyal, Lively' :
-                           assignedLetter === 'I' ? 'Inspiring, Incredible, Intelligent' :
+                           assignedLetter === 'I' ? 'Inspiring, Intelligent, Intuitive' :
                            assignedLetter === 'E' ? 'Energetic, Empathetic, Extraordinary' : 'Creative, Kind, Fun'}
                 </p>
               </CardContent>
@@ -262,7 +262,7 @@ export default function QuickAddPage() {
                       <Check className="w-8 h-8 text-green-400" />
                     </div>
                     <div>
-                      <p className="text-white font-medium">Perfect!</p>
+                      <p className="text-white font-medium">Great!</p>
                       <p className="text-sm text-white/80">
                         "<span className="font-mono text-primary">{submissionResult.word}</span>" 
                         added to letter <span className="font-bold text-accent">{submissionResult.letter}</span>

@@ -1,7 +1,7 @@
 "use client"
 
 // --- ZKBirthday: Ritual Memory Constellation ---
-// Beautiful interface for creating poetic word constellations around a name
+// Interface for creating poetic word constellations around a name
 // Cross-platform design ready for NFC companion integration
 
 import React, { useState, useEffect } from 'react'
@@ -100,7 +100,7 @@ export default function ZKBirthdayPage() {
       try {
         await navigator.share({
           title: 'ZKBirthday: Charlie\'s Memory Constellation',
-          text: 'Help create a beautiful word constellation for Charlie\'s birthday!',
+          text: 'Help create a word constellation for Charlie\'s birthday!',
           url: addWordUrl
         })
       } catch (error) {
@@ -182,7 +182,7 @@ export default function ZKBirthdayPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Elegant Header */}
+              {/* Header */}
       <div className="container mx-auto px-6 py-8 sm:px-8 sm:py-12 max-w-4xl">
         <div className="text-center space-y-6 mb-12">
           {/* Brand Integration */}
@@ -201,7 +201,7 @@ export default function ZKBirthdayPage() {
               A Ritual Memory Constellation
             </h2>
             <p className="text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto">
-              Create a beautiful word constellation around <strong className="text-primary font-mono">CHARLIE</strong>'s name. 
+              Create a word constellation around <strong className="text-primary font-mono">CHARLIE</strong>'s name. 
               Each friend contributes one word, building a poetic visual representation of memories and associations.
             </p>
           </div>
@@ -459,7 +459,7 @@ export default function ZKBirthdayPage() {
                 </div>
                 <h3 className="font-mono text-sm font-semibold text-foreground">Constellation Grows</h3>
                 <p className="text-xs text-muted-foreground">
-                  Words orbit around their letters, creating a beautiful memory constellation
+                  Words orbit around their letters, creating a memory constellation
                 </p>
               </div>
             </div>

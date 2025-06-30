@@ -14,7 +14,7 @@
  * - Cryptographic attestation of privacy preservation for AI processing
  * - Anonymous processing with no user data retention
  * 
- * 🎯 Perfect for:
+ * 🎯 Good for:
  * - Personal voice memos and reflections
  * - Meeting notes and action item extraction
  * - Voice journaling with AI insights
@@ -275,7 +275,7 @@ export default function AudioTranscriptionDemo() {
         </div>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Record voice memos, get AI-powered transcriptions and summaries - all processed privately using Nillion's TEE.
-          Perfect for personal reflections, meeting notes, and voice journaling.
+                      Good for personal reflections, meeting notes, and voice journaling.
         </p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4 max-w-lg mx-auto">
           <p className="text-blue-800 text-sm font-medium">

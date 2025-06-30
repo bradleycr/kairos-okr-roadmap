@@ -9,8 +9,8 @@ import { Loader } from 'lucide-react';
 
 /**
  * @module PageLoader
- * @description An elegant page loader that provides immediate feedback for navigation
- * while being fast enough to not feel sluggish. Strikes the perfect balance.
+ * @description A page loader that provides immediate feedback for navigation
+ * while being fast enough to not feel sluggish. Strikes the right balance.
  */
 export function PageLoader() {
   const { isPageLoading, stopPageLoad } = usePageLoading();
@@ -91,7 +91,7 @@ export function PageLoader() {
         )}
       >
         <div className="relative w-16 h-16">
-          {/* Simple elegant spinner */}
+          {/* Simple spinner */}
           <div className="absolute inset-0 animate-spin">
             <div className="w-4 h-4 bg-primary rounded-full absolute top-0 left-1/2 -translate-x-1/2 opacity-75" />
           </div>

@@ -2,7 +2,7 @@
  * NFCWelcomeScreen Component
  * 
  * Minimal welcome interface matching the holographic KairOS aesthetic
- * Elegant guidance for cryptographic key authentication and pendant setup
+ * Guidance for cryptographic key authentication and pendant setup
  */
 
 'use client'

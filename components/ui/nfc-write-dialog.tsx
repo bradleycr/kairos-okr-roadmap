@@ -1,8 +1,8 @@
 /**
- * 📱 NFC Write Progress Dialog - Elegant Mobile-First Experience
+ * 📱 NFC Write Progress Dialog - Mobile-First Experience
  * 
- * Beautiful, animated dialog that provides real-time feedback during NFC writing
- * operations. Features progress tracking, error handling, and stunning mobile UX.
+ * Animated dialog that provides real-time feedback during NFC writing
+ * operations. Features progress tracking, error handling, and mobile UX.
  * 
  * @author KairOS Team
  * @version 1.0.0
@@ -38,7 +38,7 @@ interface NFCWriteDialogProps {
 }
 
 /**
- * 🎨 Beautiful NFC Write Dialog Component
+ * 🎨 NFC Write Dialog Component
  * 
  * Provides an immersive, mobile-optimized experience for NFC writing
  * with real-time progress, animations, and comprehensive feedback.
@@ -280,7 +280,7 @@ export function NFCWriteDialog({
  * 🎨 Hook for Managing NFC Write Dialog State
  * 
  * Provides convenient state management for the NFC write dialog
- * with TypeScript support and elegant API.
+ * with TypeScript support and clean API.
  */
 export function useNFCWriteDialog() {
   const [isOpen, setIsOpen] = React.useState(false)

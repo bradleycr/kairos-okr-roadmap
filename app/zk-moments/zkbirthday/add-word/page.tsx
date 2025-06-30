@@ -1,7 +1,7 @@
 "use client"
 
 // --- ZKBirthday Add Word: Letter Assignment & Contribution ---
-// Beautiful interface for adding words to Charlie's memory constellation
+// Interface for adding words to Charlie's memory constellation
 // Handles letter rotation and localStorage management
 
 import React, { useState, useEffect } from 'react'

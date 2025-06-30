@@ -1,7 +1,7 @@
 /**
  * NFCAuthFlow Component
  * 
- * Main authentication flow orchestrator with beautiful crypto-themed UI
+ * Main authentication flow orchestrator with crypto-themed UI
  * Handles all authentication states with professional polish
  */
 

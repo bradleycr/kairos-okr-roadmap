@@ -741,7 +741,7 @@ export default function MeldSimulation() {
                 {currentNodes.length === 1 && (
                   <div className="retro-card p-3 sm:p-4 text-center">
                     <div className="text-xs sm:text-sm text-muted-foreground mb-2">
-                      <span className="text-primary font-semibold">Minimal Setup:</span> Perfect for simple installations
+                      <span className="text-primary font-semibold">Minimal Setup:</span> Good for simple installations
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Open the Ritual Designer to add more nodes for complex multi-station experiences

@@ -1,5 +1,5 @@
 // --- Ritual Control Panel ---
-// Beautiful collapsible panel for ritual configuration and management
+// Collapsible panel for ritual configuration and management
 // Integrates seamlessly with existing MELD Node simulation with dynamic 1-6 nodes
 
 "use client"
@@ -226,7 +226,7 @@ function NodeManager({ onNodesChange }: NodeManagerProps) {
 
       {currentNodes.length === 1 && (
         <div className="text-xs text-muted-foreground bg-muted rounded-lg p-3">
-          💡 <strong>Minimal Setup:</strong> Perfect for simple installations. Add more nodes to create complex multi-station experiences.
+                      💡 <strong>Minimal Setup:</strong> Good for simple installations. Add more nodes to create complex multi-station experiences.
         </div>
       )}
     </div>
@@ -721,7 +721,7 @@ export default function RitualControlPanel({
             <div className="space-y-4">
               <div className="text-sm text-neutral-600 mb-4">
                 Configure your physical MELD nodes (1-6 devices). Changes automatically sync to all rituals.
-                <span className="block mt-1 text-xs text-muted-foreground font-medium">Perfect for scalable installations from minimal to complex.</span>
+                <span className="block mt-1 text-xs text-muted-foreground font-medium">Good for scalable installations from minimal to complex.</span>
               </div>
               
               <NodeManager onNodesChange={loadRitualData} />

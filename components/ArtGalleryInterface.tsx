@@ -1,6 +1,6 @@
 /**
  * Art Gallery Interface Component
- * Beautiful interface for managing and displaying art gallery experiences
+ * Interface for managing and displaying art gallery experiences
  * Integrates with MELD nodes for interactive art appreciation
  */
 

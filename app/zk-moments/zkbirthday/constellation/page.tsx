@@ -1,7 +1,7 @@
 "use client"
 
 // --- ZKBirthday Constellation: Galactic Mycelium Memory Network ---
-// Beautiful word constellation with orbital dynamics and mycelium connections
+// Word constellation with orbital dynamics and mycelium connections
 // Real-time updates with sophisticated animations and responsive layout
 
 import React, { useState, useEffect, useRef } from 'react'
@@ -132,7 +132,7 @@ export default function ConstellationPage() {
       try {
         await navigator.share({
           title: 'Charlie\'s Friendship Constellation',
-          text: `Check out this beautiful constellation of friendship words created for Charlie's birthday! ${totalWords} words from friends so far. ✨`,
+          text: `Check out this constellation of friendship words created for Charlie's birthday! ${totalWords} words from friends so far. ✨`,
           url: url
         })
       } catch (error) {
@@ -183,7 +183,7 @@ export default function ConstellationPage() {
       // Even distribution around circle
       const angle = (positionInLayer / wordsPerLayer) * Math.PI * 2 + (letterIndex * 0.1)
       
-      // Calculate position with some small variation to avoid perfect grid
+      // Calculate position with some small variation to avoid rigid grid
       const radiusVariation = layer === 0 ? 0 : (Math.random() - 0.5) * 8 * mobileScale * densityScale
       const angleVariation = (Math.random() - 0.5) * 0.2
       

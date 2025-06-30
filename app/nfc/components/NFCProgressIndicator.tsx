@@ -1,7 +1,7 @@
 /**
  * NFCProgressIndicator Component
  * 
- * Elegant progress visualization for authentication flows
+ * Progress visualization for authentication flows
  * Clean, professional progress tracking with percentage display
  */
 

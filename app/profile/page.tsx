@@ -903,7 +903,7 @@ const ProfilePage = () => {
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
                 <p className="text-foreground text-sm sm:text-base leading-relaxed">
-                  Transform civic discourse into shared knowledge resources. Perfect for town halls, 
+                  Transform civic discourse into shared knowledge resources. Good for town halls, 
                   community forums, and preserving the civic wisdom that emerges through dialogue.
                 </p>
                 <div className="bg-accent/10 border border-accent/20 p-3 sm:p-4 rounded-lg">
