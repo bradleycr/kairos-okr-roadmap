@@ -251,11 +251,13 @@ const ProfilePage = () => {
   const [userBonds, setUserBonds] = useState<any[]>([]);
   const [requiresPINAuth, setRequiresPINAuth] = useState(false);
   const [pinAuthenticatedChipUID, setPinAuthenticatedChipUID] = useState<string | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   // Check for chipUID in URL parameters
   useEffect(() => {
     const loadProfileData = async () => {
       console.log('🔐 Starting secure profile authentication...');
+      setIsLoadingProfile(true);
       
       try {
         // Import session manager for secure authentication
@@ -266,6 +268,7 @@ const ProfilePage = () => {
         
         if (!session.isActive || !session.currentUser) {
           console.warn('🚫 No active cryptographic session found - redirecting to NFC auth');
+          setIsLoadingProfile(false);
           window.location.href = '/nfc';
           return;
         }
@@ -282,6 +285,7 @@ const ProfilePage = () => {
         if (sessionAge > MAX_SESSION_AGE) {
           console.warn(`🚫 Session too old for profile access (${Math.round(sessionAge/60000)}min) - requiring fresh authentication`);
           await SessionManager.clearSession();
+          setIsLoadingProfile(false);
           window.location.href = '/nfc';
           return;
         }
@@ -295,6 +299,7 @@ const ProfilePage = () => {
         if (!isValidSession) {
           console.warn('🚫 Invalid session token detected - clearing session');
           await SessionManager.clearSession();
+          setIsLoadingProfile(false);
           window.location.href = '/nfc';
           return;
         }
@@ -302,6 +307,7 @@ const ProfilePage = () => {
         const chipUID = session.currentUser?.chipUID;
         if (!chipUID) {
           console.error('❌ No chipUID found in session');
+          setIsLoadingProfile(false);
           window.location.href = '/nfc';
           return;
         }
@@ -379,6 +385,22 @@ const ProfilePage = () => {
               console.log('✅ Returning user - skipping welcome ritual')
             }
             
+            // 🆕 Get persistent verification count from database
+            let persistentVerificationCount = currentAccount.stats.totalSessions || 1
+            try {
+              const response = await fetch('/api/nfc/accounts', {
+                method: 'GET',
+                headers: { 'X-Chip-UID': chipUID }
+              })
+              const dbData = await response.json()
+              if (dbData.success && dbData.account) {
+                persistentVerificationCount = dbData.account.verificationCount || currentAccount.stats.totalSessions || 1
+                console.log(`✅ Using persistent verification count: ${persistentVerificationCount}`)
+              }
+            } catch (error) {
+              console.warn('Failed to fetch database verification count, using local:', error)
+            }
+
             // Use REAL account data instead of mock stats
             const profile = {
               chipUID,
@@ -388,8 +410,8 @@ const ProfilePage = () => {
               displayName: currentAccount.displayName,
               publicKey: currentAccount.publicKey,
               bio: currentAccount.bio,
-              // Use REAL stats from account instead of mock data
-              verificationsGiven: currentAccount.stats.totalSessions || 1,
+              // Use persistent verification count from database
+              verificationsGiven: persistentVerificationCount,
               memoriesContributed: currentAccount.stats.totalMoments || 0,
               momentsWitnessed: currentAccount.moments?.length || 0,
               totalBonds: 0, // Will be loaded from bond manager
@@ -424,19 +446,25 @@ const ProfilePage = () => {
               setShowPINSetup(true)
             }
             
-            // Security gate: Require PIN authentication for profile access
-            if (currentAccount.hasPIN) {
+            // Security gate: Require PIN authentication for profile access (unless fresh auth)
+            if (currentAccount.hasPIN && !isRecentAuth) {
               console.log('🔐 PIN authentication required for profile access')
               setRequiresPINAuth(true)
             } else {
-              console.log('⚠️ No PIN set - allowing access but showing setup prompt')
+              if (isRecentAuth) {
+                console.log('✅ Fresh authentication detected - skipping profile PIN requirement')
+              } else {
+                console.log('⚠️ No PIN set - allowing access but showing setup prompt')
+              }
               setPinAuthenticatedChipUID(chipUID)
             }
             
             console.log('✅ Loaded REAL profile data from cryptographically verified session')
+            setIsLoadingProfile(false)
             
           } catch (error) {
             console.error('❌ Failed to load account via NFCAccountManager:', error)
+            setIsLoadingProfile(false)
             
             // Show error and redirect - no fallback to mock data
             setUserProfile(null)
@@ -473,6 +501,7 @@ const ProfilePage = () => {
         }
         
         // Redirect to NFC authentication
+        setIsLoadingProfile(false);
         setTimeout(() => {
           window.location.href = '/nfc';
         }, 2000);
@@ -652,6 +681,35 @@ const ProfilePage = () => {
     }
   }
 
+  // Show loading spinner while profile is loading
+  if (isLoadingProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden">
+        {/* Holographic Background Effect */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/25 to-secondary/15 animate-pulse"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 py-8 max-w-md relative z-10">
+          <div className="text-center space-y-6 mt-32">
+            <div className="relative p-4 rounded-full bg-primary/10 border border-primary/20 mx-auto w-fit">
+              <Shield className="h-12 w-12 text-primary animate-spin" />
+            </div>
+            
+            <div className="space-y-4">
+              <h1 className="text-2xl font-mono font-light text-foreground/90">
+                Loading Profile
+              </h1>
+              <p className="text-muted-foreground font-mono text-sm leading-relaxed">
+                Verifying secure session...
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // If profile loading failed, show authentication required message
   if (userProfile === null) {
     return (
@@ -762,11 +820,14 @@ const ProfilePage = () => {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-mono text-primary">
             Memory Keeper Profile
           </h1>
-          <Link href="/ritual-designer">
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 font-mono w-full sm:w-auto">
-              Ritual Designer
-            </Button>
-          </Link>
+          {/* Hide Ritual Designer button on mobile devices */}
+          <div className="hidden md:block">
+            <Link href="/ritual-designer">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 font-mono">
+                Ritual Designer
+              </Button>
+            </Link>
+          </div>
         </motion.div>
 
         {/* Profile Header */}

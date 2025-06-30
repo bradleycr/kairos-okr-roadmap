@@ -182,7 +182,7 @@ export class NFCAccountManager {
       // Account exists in database but not locally - new device (this IS a new authentication)
       console.log('👋 Returning user on new device')
       const newProfile = await this.createLocalProfileFromExisting(chipUID, deterministicData, existingAccount)
-      await this.updateAccountInDatabase(chipUID, deterministicData, true)
+      await this.updateAccountInDatabase(chipUID, newProfile, true)
       
       return {
         account: newProfile,
@@ -489,7 +489,11 @@ export class NFCAccountManager {
         },
         body: JSON.stringify({
           lastSeen: new Date().toISOString(),
-          isAuthenticationEvent: isAuthenticationEvent
+          isAuthenticationEvent: isAuthenticationEvent,
+          // 🆕 Sync session stats to database for persistent verification counts
+          stats: isAuthenticationEvent ? {
+            totalSessions: accountData.stats?.totalSessions
+          } : undefined
         })
       })
     } catch (error) {
@@ -948,98 +952,111 @@ export class NFCAccountManager {
   }
 
   /**
-   * 🔐 PIN-Gated Authentication with Legacy Support
+   * Authentication with PIN Gate (Cross-Device Architecture)
+   * 
+   * This handles the logic for when PIN entry is required vs when direct access is allowed.
+   * Key insight: Legacy cards with full crypto parameters can skip PIN initially,
+   * but PIN is still needed for profile access (separate security layer).
+   * 
+   * Architecture:
+   * - Database (Vercel KV): Account recognition + encrypted PINs
+   * - localStorage: Rich profiles per device
+   * - PIN encryption: AES with salts for cross-device access
    */
   static async authenticateWithPINGate(chipUID: string): Promise<{
-    account?: LocalAccountProfile
     requiresPIN: boolean
     isNewAccount: boolean
     isNewDevice: boolean
     hasPIN: boolean
     reason?: string
+    account?: any
   }> {
-    console.log(`🔐 PIN-Gated authentication for chipUID: ${chipUID}`)
-    
-    // Step 1: Check if account exists (database or local)
-    const [existingAccount, localProfile] = await Promise.all([
-      this.checkAccountInDatabase(chipUID),
-      Promise.resolve(this.getLocalProfile(chipUID))
-    ])
-    
-    const isNewAccount = !existingAccount && !localProfile
-    const isNewDevice = !!existingAccount && !localProfile
-    const hasPIN = existingAccount?.hasPIN || localProfile?.hasPIN || false
-    
-    // Step 2: Handle completely new accounts (no PIN required)
-    if (isNewAccount) {
-      const result = await this.authenticateOrCreateAccount(chipUID)
-      return {
-        account: result.account,
-        requiresPIN: false,
-        isNewAccount: true,
-        isNewDevice: true,
-        hasPIN: false,
-        reason: 'new_account'
-      }
-    }
-
-    // 🔧 LEGACY SUPPORT: Check if this is a legacy account
-    const isLegacyAccount = this.isLegacyAccount(existingAccount, localProfile)
-    
-    if (isLegacyAccount) {
-      console.log('⚠️ Legacy account detected - allowing access without PIN')
-      const result = await this.authenticateOrCreateAccount(chipUID)
-      return {
-        account: result.account,
-        requiresPIN: false,
-        isNewAccount: false,
-        isNewDevice: isNewDevice,
-        hasPIN: false,
-        reason: 'legacy_account'
-      }
-    }
-    
-    // Step 3: Check if PIN is required
-    if (hasPIN) {
-      const session = this.getDeviceSession(chipUID)
-      const now = new Date()
+    try {
+      console.log(`🔐 PIN Gate Check for chipUID: ${chipUID}`)
       
-      // Check if user has a valid session on this device
-      if (session && session.pinEntered && new Date(session.autoLoginUntil) > now) {
-        console.log('✅ Valid session found, auto-login enabled')
-        // Update session and return account
-        const result = await this.authenticateOrCreateAccount(chipUID)
-        this.updateDeviceSession(chipUID, true)
+      // Check if account exists in our system
+      const existingAccount = await this.checkAccountInDatabase(chipUID)
+      const hasAccount = !!existingAccount
+      
+      // Check if there's an active session for this chip
+      const { SessionManager } = await import('@/lib/nfc/sessionManager')
+      const currentSession = await SessionManager.getCurrentSession()
+      const hasActiveSession = currentSession && currentSession.isActive && currentSession.currentUser?.chipUID === chipUID
+      
+      console.log(`📊 Account status:`, {
+        hasAccount,
+        hasActiveSession,
+        accountId: existingAccount?.accountId || 'none'
+      })
+      
+      if (!hasAccount) {
+        // New account - no PIN required initially for setup
+        console.log('🆕 New account detected - no PIN required for initial setup')
         return {
-          account: result.account,
+          requiresPIN: false,
+          isNewAccount: true,
+          isNewDevice: true,
+          hasPIN: false,
+          reason: 'New account setup'
+        }
+      }
+      
+      // Account exists - check PIN requirements using the correct database fields
+      const hasPINSetup = existingAccount.hasPIN && !!existingAccount.encryptedPIN
+      
+      console.log(`🔍 PIN setup status:`, {
+        hasPIN: existingAccount.hasPIN,
+        hasEncryptedPIN: !!existingAccount.encryptedPIN,
+        hasPINSetup
+      })
+      
+      if (hasActiveSession) {
+        // Active session exists - no PIN required for basic NFC authentication
+        console.log('✅ Active session found - no PIN required')
+        return {
           requiresPIN: false,
           isNewAccount: false,
-          isNewDevice: isNewDevice,
-          hasPIN: true,
-          reason: 'valid_session'
-        }
-      } else {
-        console.log('🔒 PIN required - no valid session')
-        return {
-          requiresPIN: true,
-          isNewAccount: false,
-          isNewDevice: isNewDevice,
-          hasPIN: true,
-          reason: session ? 'session_expired' : 'new_device'
+          isNewDevice: false,
+          hasPIN: hasPINSetup,
+          reason: 'Active session',
+          account: existingAccount
         }
       }
-    }
-    
-    // Step 4: No PIN set up, allow access
-    console.log('⚠️ No PIN protection - direct access granted')
-    const result = await this.authenticateOrCreateAccount(chipUID)
-    return {
-      account: result.account,
-      requiresPIN: false,
-      isNewAccount: false,
-      isNewDevice: isNewDevice,
-      hasPIN: false,
-      reason: 'no_pin_protection'
+      
+      if (!hasPINSetup) {
+        // Account exists but no PIN setup - allow access for first-time setup
+        console.log('🆕 Account exists but no PIN - allow direct access for setup')
+        return {
+          requiresPIN: false,
+          isNewAccount: false,
+          isNewDevice: true,
+          hasPIN: false,
+          reason: 'Account ready - PIN can be set up in profile',
+          account: existingAccount
+        }
+      }
+      
+      // Account has PIN setup but no active session - require PIN entry
+      console.log('🔐 PIN entry required for authentication')
+      return {
+        requiresPIN: true,
+        isNewAccount: false,
+        isNewDevice: !hasActiveSession,
+        hasPIN: true,
+        reason: 'PIN verification required',
+        account: existingAccount
+      }
+      
+    } catch (error) {
+      console.error('❌ PIN Gate authentication failed:', error)
+      // Fail safe - require PIN
+      return {
+        requiresPIN: true,
+        isNewAccount: false,
+        isNewDevice: true,
+        hasPIN: false,
+        reason: 'Error - PIN required for safety'
+      }
     }
   }
   
