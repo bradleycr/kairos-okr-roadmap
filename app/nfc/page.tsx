@@ -72,6 +72,26 @@ function NFCPageContent() {
     }
   }, [hasValidParameters, requiresPIN, accountInitialized, pinVerificationComplete, format, parsedParams, debugInfo, verificationState.status])
 
+  // 🚀 SIMPLE FIX: Direct redirect for legacy-full format URLs
+  useEffect(() => {
+    if (format === 'legacy-full' && parsedParams.chipUID) {
+      console.log('🚀 IMMEDIATE REDIRECT: Legacy-full format detected, redirecting to profile')
+      
+      const profileUrl = new URL('/profile', window.location.origin)
+      profileUrl.searchParams.set('verified', 'true')
+      profileUrl.searchParams.set('source', 'legacy-card-auth')
+      profileUrl.searchParams.set('chipUID', parsedParams.chipUID)
+      profileUrl.searchParams.set('accountId', 'verified')
+      profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+      profileUrl.searchParams.set('auth_timestamp', Date.now().toString())
+      
+      console.log('🚀 Redirecting to:', profileUrl.toString())
+      
+      // Use replace to avoid back button issues
+      window.location.replace(profileUrl.toString())
+    }
+  }, [format, parsedParams.chipUID])
+
   // Auto-start authentication when valid parameters are detected and no PIN required
   useEffect(() => {
     if (hasValidParameters() && !requiresPIN && accountInitialized && verificationState.status === 'initializing') {
@@ -138,18 +158,6 @@ function NFCPageContent() {
                   {debugInfo.length > 0 && (
                     <div className="text-xs text-muted-foreground/70 font-mono max-w-xs">
                       {debugInfo[debugInfo.length - 1]}
-                    </div>
-                  )}
-                  {/* 🔍 DEBUG: Show more debugging info for legacy-full format */}
-                  {format === 'legacy-full' && (
-                    <div className="text-xs text-red-400 font-mono max-w-md mt-4 space-y-1">
-                      <div>🎯 Legacy-full format detected</div>
-                      <div>ChipUID: {parsedParams.chipUID}</div>
-                      <div>Has Valid Params: {hasValidParameters() ? '✅' : '❌'}</div>
-                      <div>Requires PIN: {requiresPIN ? '🔒' : '🆓'}</div>
-                      <div>Account Init: {accountInitialized ? '✅' : '❌'}</div>
-                      <div>PIN Verified: {pinVerificationComplete ? '✅' : '❌'}</div>
-                      <div>Verification State: {verificationState.status}</div>
                     </div>
                   )}
                 </div>
