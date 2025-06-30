@@ -4,6 +4,10 @@
   "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["iad1"],
+  "alias": [
+    "kair-os.vercel.app",
+    "wof.kair-os.vercel.app"
+  ],
   "functions": {
     "app/api/zkbirthday/**/*.ts": {
       "maxDuration": 10,
