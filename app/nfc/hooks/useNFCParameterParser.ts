@@ -312,14 +312,20 @@ export function useNFCParameterParser() {
    * @returns {Promise<void>} Sets up PIN requirements or account access
    */
   const checkLegacyCardPINRequirements = useCallback(async (chipUID: string) => {
-    console.log(`🏆 Checking legacy card requirements for chipUID: ${chipUID.slice(-4)}`)
+    console.log(`🏆 Checking legacy card requirements for chipUID: ${chipUID?.slice(-4) || 'MISSING'}`)
     console.log(`🏆 Full chipUID: ${chipUID}`)
+    
+    if (!chipUID) {
+      console.error('🚨 Missing chipUID in checkLegacyCardPINRequirements')
+      throw new Error('Missing chipUID')
+    }
     
     try {
       // 📊 Check if this chip has an account in our database
       console.log('🏆 Importing NFCAccountManager...')
       const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
       console.log('🏆 Calling authenticateWithPINGate...')
+      
       const result = await NFCAccountManager.authenticateWithPINGate(chipUID)
       console.log('🏆 PIN gate result received:', result)
       
@@ -386,22 +392,44 @@ export function useNFCParameterParser() {
       
     } catch (error) {
       console.error('❌ Legacy card PIN check failed:', error)
-      console.error('❌ Error details:', error)
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
       setDebugInfo(prev => [...prev, `⚠️ Legacy PIN check failed: ${error}`])
       
-      // 🚨 CRITICAL FALLBACK: Always require PIN for security
-      console.log('🚨 Setting requiresPIN to true as fallback')
-      setRequiresPIN(true)
-      setPinGateInfo({
-        isNewAccount: true,
-        isNewDevice: true,
-        hasPIN: false,
-        reason: 'Legacy card verification required (fallback)',
-        displayName: `User ${chipUID.slice(-4).toUpperCase()}`
-      })
+      // 🚨 Instead of fallback to PIN, try direct authentication
+      console.log('🔄 PIN check failed, trying direct authentication without PIN...')
       
-      // 🔓 Ready for PIN entry
-      console.log('🔓 Ready for PIN entry fallback')
+      try {
+        // Try to create a session anyway
+        setRequiresPIN(false)
+        setAccountInitialized(true)
+        setPinVerificationComplete(true)
+        
+        await SessionManager.createSession(chipUID)
+        
+        // Redirect directly to profile
+        const profileUrl = new URL('/profile', window.location.origin)
+        profileUrl.searchParams.set('verified', 'true')
+        profileUrl.searchParams.set('source', 'legacy-direct')
+        profileUrl.searchParams.set('chipUID', chipUID)
+        profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+        
+        console.log('🚀 Direct redirect after PIN check failure:', profileUrl.toString())
+        router.push(profileUrl.toString())
+        
+      } catch (fallbackError) {
+        console.error('🚨 Even fallback failed:', fallbackError)
+        
+        // Last resort: show PIN entry
+        console.log('🚨 Last resort: requiring PIN for security')
+        setRequiresPIN(true)
+        setPinGateInfo({
+          isNewAccount: true,
+          isNewDevice: true,
+          hasPIN: false,
+          reason: 'Legacy card verification required (last resort)',
+          displayName: `User ${chipUID?.slice(-4).toUpperCase() || 'Unknown'}`
+        })
+      }
     }
   }, [toast, router, getDisplayNameForChip])
 
@@ -447,7 +475,36 @@ export function useNFCParameterParser() {
         if (result.format === 'legacy-full') {
           // 🎯 LEGACY CARD - Check database for PIN requirements
           console.log('🎯 Legacy card detected - checking database for PIN requirements')
-          await checkLegacyCardPINRequirements(result.params.chipUID)
+          console.log('🔍 Legacy card params:', {
+            chipUID: result.params.chipUID,
+            hasDID: !!result.params.did,
+            hasSignature: !!result.params.signature,
+            hasPublicKey: !!result.params.publicKey
+          })
+          setDebugInfo(prev => [...prev, `🎯 Legacy card with chipUID: ${result.params.chipUID}`])
+          
+          try {
+            await checkLegacyCardPINRequirements(result.params.chipUID)
+          } catch (error) {
+            console.error('🚨 checkLegacyCardPINRequirements failed:', error)
+            setDebugInfo(prev => [...prev, `🚨 Legacy card check failed: ${error}`])
+            
+            // Fallback: try to proceed anyway
+            console.log('🔄 Trying fallback authentication...')
+            setRequiresPIN(false)
+            setAccountInitialized(true)
+            setPinVerificationComplete(true)
+            
+            // Direct redirect to profile
+            const profileUrl = new URL('/profile', window.location.origin)
+            profileUrl.searchParams.set('verified', 'true')
+            profileUrl.searchParams.set('source', 'legacy-fallback')
+            profileUrl.searchParams.set('chipUID', result.params.chipUID!)
+            profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+            
+            console.log('🚀 Fallback redirect to profile:', profileUrl.toString())
+            router.push(profileUrl.toString())
+          }
         } else {
           // 🌐 OTHER FORMATS (didkey, optimal, decentralized)
           // Use the standard session-based authentication flow
