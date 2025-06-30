@@ -541,7 +541,67 @@ export function useNFCParameterParser() {
       console.log(`🔍 Processing chipUID: ${chipUID} (format: ${result.format})`)
       
       // Check if we have an existing session and if this is bonding
-      await handleSessionAndBondingLogic(chipUID)
+      // Inline session and bonding logic
+      try {
+        setDebugInfo(prev => [...prev, `🔍 Checking database for PIN requirements`])
+        
+        // 🔧 Initialize session manager for cross-device functionality
+        SessionManager.initialize()
+        
+        // 🔐 Handle different card formats with optimized flows
+        if (result.format === 'legacy-full') {
+          // 🎯 LEGACY CARD - Check database for PIN requirements
+          console.log('🎯 Legacy card detected - checking database for PIN requirements')
+          console.log('🔍 Legacy card params:', {
+            chipUID,
+            hasDID: !!result.params.did,
+            hasSignature: !!result.params.signature,
+            hasPublicKey: !!result.params.publicKey
+          })
+          setDebugInfo(prev => [...prev, `🎯 Legacy card with chipUID: ${chipUID}`])
+          
+          try {
+            await checkLegacyCardPINRequirements(chipUID)
+          } catch (error) {
+            console.error('🚨 checkLegacyCardPINRequirements failed:', error)
+            setDebugInfo(prev => [...prev, `🚨 Legacy card check failed: ${error}`])
+          
+            // Fallback: try to proceed anyway
+            console.log('🔄 Trying fallback authentication...')
+            setRequiresPIN(false)
+            setAccountInitialized(true)
+            setPinVerificationComplete(true)
+            
+            // Direct redirect to profile
+            const profileUrl = new URL('/profile', window.location.origin)
+            profileUrl.searchParams.set('verified', 'true')
+            profileUrl.searchParams.set('source', 'legacy-fallback')
+            profileUrl.searchParams.set('chipUID', chipUID)
+            profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+            
+            console.log('🚀 Fallback redirect to profile:', profileUrl.toString())
+            router.push(profileUrl.toString())
+          }
+        } else {
+          // 🌐 OTHER FORMATS (didkey, optimal, decentralized)
+          // Use the standard session-based authentication flow
+          setPinVerificationComplete(true) // Non-legacy cards are OK to show content
+          await checkSessionAndAuthRequirements(chipUID)
+        }
+      } catch (error) {
+        console.error('❌ Session/bonding logic failed:', error)
+        setDebugInfo(prev => [...prev, `❌ Session error: ${error}`])
+        
+        // Fallback to requiring PIN
+        setRequiresPIN(true)
+        setPinGateInfo({
+          isNewAccount: true,
+          isNewDevice: true,
+          hasPIN: false,
+          reason: 'Authentication error - fallback to PIN',
+          displayName: `User ${chipUID?.slice(-4).toUpperCase() || 'Unknown'}`
+        })
+      }
       
     } catch (error) {
       console.error('🚨 Parameter parsing failed:', error)
@@ -549,7 +609,7 @@ export function useNFCParameterParser() {
     } finally {
       setIsParsing(false)
     }
-  }, [searchParams, router, handleSessionAndBondingLogic])
+  }, [searchParams, router, checkLegacyCardPINRequirements, checkSessionAndAuthRequirements])
 
   /**
    * 🎯 Legacy Card PIN Success Handler
@@ -825,71 +885,3 @@ export function useNFCParameterParser() {
   }
 }
 
-/**
- * 🤝 Session and Bonding Logic Handler
- * 
- * Handles the standard authentication flow for existing cards,
- * including session management and bonding detection.
- */
-const handleSessionAndBondingLogic = useCallback(async (chipUID: string) => {
-  try {
-    setDebugInfo(prev => [...prev, `🔍 Checking database for PIN requirements`])
-    
-    // 🔧 Initialize session manager for cross-device functionality
-    SessionManager.initialize()
-    
-         // 🔐 Handle different card formats with optimized flows
-     if (format === 'legacy-full') {
-      // 🎯 LEGACY CARD - Check database for PIN requirements
-      console.log('🎯 Legacy card detected - checking database for PIN requirements')
-      console.log('🔍 Legacy card params:', {
-        chipUID,
-        hasDID: !!parsedParams.did,
-        hasSignature: !!parsedParams.signature,
-        hasPublicKey: !!parsedParams.publicKey
-      })
-      setDebugInfo(prev => [...prev, `🎯 Legacy card with chipUID: ${chipUID}`])
-      
-      try {
-        await checkLegacyCardPINRequirements(chipUID)
-      } catch (error) {
-        console.error('🚨 checkLegacyCardPINRequirements failed:', error)
-        setDebugInfo(prev => [...prev, `🚨 Legacy card check failed: ${error}`])
-      
-        // Fallback: try to proceed anyway
-        console.log('🔄 Trying fallback authentication...')
-        setRequiresPIN(false)
-        setAccountInitialized(true)
-        setPinVerificationComplete(true)
-        
-        // Direct redirect to profile
-        const profileUrl = new URL('/profile', window.location.origin)
-        profileUrl.searchParams.set('verified', 'true')
-        profileUrl.searchParams.set('source', 'legacy-fallback')
-        profileUrl.searchParams.set('chipUID', chipUID)
-        profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
-        
-        console.log('🚀 Fallback redirect to profile:', profileUrl.toString())
-        router.push(profileUrl.toString())
-      }
-    } else {
-      // 🌐 OTHER FORMATS (didkey, optimal, decentralized)
-      // Use the standard session-based authentication flow
-      setPinVerificationComplete(true) // Non-legacy cards are OK to show content
-      await checkSessionAndAuthRequirements(chipUID)
-    }
-  } catch (error) {
-    console.error('❌ Session/bonding logic failed:', error)
-    setDebugInfo(prev => [...prev, `❌ Session error: ${error}`])
-    
-    // Fallback to requiring PIN
-    setRequiresPIN(true)
-    setPinGateInfo({
-      isNewAccount: true,
-      isNewDevice: true,
-      hasPIN: false,
-      reason: 'Authentication error - fallback to PIN',
-      displayName: `User ${chipUID?.slice(-4).toUpperCase() || 'Unknown'}`
-    })
-  }
-}, [format, parsedParams, checkLegacyCardPINRequirements, checkSessionAndAuthRequirements, router])
