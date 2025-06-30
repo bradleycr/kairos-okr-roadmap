@@ -43,6 +43,8 @@ function WayOfFlowersContent() {
   // Component state
   const [currentStage, setCurrentStage] = useState<FlowStage>('welcome')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isSimulationMode, setIsSimulationMode] = useState(false)
+  const [isTestMode, setIsTestMode] = useState(false)
   
   // User session and flower data
   const [userSession, setUserSession] = useState<UserFlowerSession | null>(null)
@@ -56,8 +58,31 @@ function WayOfFlowersContent() {
   // Get available cause offerings
   const availableOfferings = flowerManager.getAllCauseOfferings()
 
-  // Check for NFC parameters on load
+  // Check for URL parameters on load
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const simulate = urlParams.get('simulate')
+    const test = urlParams.get('test')
+    
+    if (simulate === 'true') {
+      setIsSimulationMode(true)
+      // Skip authentication in simulation mode
+      const simulationSession = {
+        chipUID: urlParams.get('chipUID') || 'simulation-chip-' + Date.now(),
+        isNewUser: true,
+        sessionStarted: new Date().toISOString(),
+        lastInteraction: new Date().toISOString()
+      }
+      setUserSession(simulationSession)
+      setCurrentStage('first-interaction')
+      return
+    }
+    
+    if (test === 'true') {
+      setIsTestMode(true)
+    }
+    
+    // Handle normal NFC parameters
     if (parsedParams && Object.keys(parsedParams).length > 0 && currentStage === 'welcome') {
       setCurrentStage('auth')
     }
@@ -237,22 +262,57 @@ function WayOfFlowersContent() {
       <h1 className="text-3xl font-light text-neutral-900 mb-8">Way of Flowers</h1>
       
       <div className="w-16 h-16 border-2 border-green-200 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                        <Smartphone className="h-6 w-6" />
+        <Smartphone className="h-6 w-6" />
       </div>
       
-      <p className="text-neutral-500 text-lg font-light">Tap to begin</p>
+      <p className="text-neutral-500 text-lg font-light">
+        {isTestMode ? "Test mode - ready to authenticate" : "Tap to begin"}
+      </p>
 
-      <Button 
-        variant="ghost" 
-        size="sm"
-        onClick={() => {
-          window.history.pushState({}, '', '?chipUID=test_chip_123&ndefData=test_data&timestamp=' + Date.now())
-          window.location.reload()
-        }}
-        className="mt-8 text-xs text-neutral-400"
-      >
-        Simulate tap
-      </Button>
+      {/* Development/Testing Controls */}
+      <div className="mt-8 space-y-2">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => {
+            // Generate realistic test parameters
+            const testChipUID = `04:${Array.from({length: 6}, () => 
+              Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()
+            ).join(':')}`
+            
+            const testUrl = `?chipUID=${encodeURIComponent(testChipUID)}&pin=1234&test=true&timestamp=${Date.now()}`
+            window.history.pushState({}, '', testUrl)
+            window.location.reload()
+          }}
+          className="text-xs text-neutral-400 hover:text-green-600"
+        >
+          🧪 Test with NFC Auth
+        </Button>
+        
+        <br />
+        
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => {
+            const simulationUrl = `?simulate=true&chipUID=demo-chip-${Date.now()}`
+            window.history.pushState({}, '', simulationUrl)
+            window.location.reload()
+          }}
+          className="text-xs text-neutral-400 hover:text-blue-600"
+        >
+          🎭 Demo Mode (Skip Auth)
+        </Button>
+      </div>
+
+      {/* Status indicators for testing */}
+      {(isTestMode || isSimulationMode) && (
+        <div className="mt-6 px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
+          <span className="text-xs text-yellow-700 dark:text-yellow-300">
+            {isSimulationMode ? "🎭 Demo Mode" : isTestMode ? "🧪 Test Mode" : ""}
+          </span>
+        </div>
+      )}
     </div>
   )
 
@@ -414,8 +474,21 @@ function WayOfFlowersContent() {
     <div className="min-h-screen bg-white">
       {/* Ultra-minimal header */}
       <div className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-center">
-        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-          <Flower2 className="w-4 h-4 text-green-600" />
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+            <Flower2 className="w-4 h-4 text-green-600" />
+          </div>
+          {/* Mode indicator */}
+          {isSimulationMode && (
+            <div className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+              <span className="text-xs text-blue-700 dark:text-blue-300">Demo</span>
+            </div>
+          )}
+          {isTestMode && !isSimulationMode && (
+            <div className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
+              <span className="text-xs text-yellow-700 dark:text-yellow-300">Test</span>
+            </div>
+          )}
         </div>
         <Progress value={getStageProgress()} className="w-16 h-1" />
       </div>
