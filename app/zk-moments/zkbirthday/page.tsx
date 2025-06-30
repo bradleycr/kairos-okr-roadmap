@@ -333,7 +333,7 @@ export default function ZKBirthdayPage() {
                   </div>
                   
                   <div className="space-y-2">
-                    <p className="text-sm text-white font-medium">📱 Scan to Add Words</p>
+                    <p className="text-sm text-white font-medium">Scan to Add Words</p>
                     <p className="text-xs text-white/60">
                       Guests can quickly add words to the constellation
                     </p>

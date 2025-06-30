@@ -262,7 +262,7 @@ export default function QuickAddPage() {
                       <Check className="w-8 h-8 text-green-400" />
                     </div>
                     <div>
-                      <p className="text-white font-medium">Perfect! ✨</p>
+                      <p className="text-white font-medium">Perfect!</p>
                       <p className="text-sm text-white/80">
                         "<span className="font-mono text-primary">{submissionResult.word}</span>" 
                         added to letter <span className="font-bold text-accent">{submissionResult.letter}</span>

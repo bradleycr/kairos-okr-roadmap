@@ -184,7 +184,7 @@ export function NFCWriteDialog({
                   
                   {result.error.suggestions.length > 0 && (
                     <div className="mt-2">
-                      <p className="text-xs font-medium mb-1">💡 Try these solutions:</p>
+                      <p className="text-xs font-medium mb-1">Try these solutions:</p>
                       <ul className="text-xs space-y-0.5">
                         {result.error.suggestions.map((suggestion, index) => (
                           <li key={index} className="flex items-start gap-1">

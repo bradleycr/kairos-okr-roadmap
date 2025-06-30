@@ -1104,7 +1104,7 @@ export default function ChipConfigPage() {
                     ) : (
                       <>
                         <RocketIcon className="h-4 w-4 mr-2" />
-                        🔐 Generate Secure NFC URL
+Generate Secure NFC URL
                       </>
                     )}
                   </Button>
@@ -1241,9 +1241,9 @@ export default function ChipConfigPage() {
                     <CardContent className="pt-6">
                       <Tabs defaultValue="url" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
-                          <TabsTrigger value="url">📱 NFC URL</TabsTrigger>
-                          <TabsTrigger value="instructions">📋 How to Use</TabsTrigger>
-                          <TabsTrigger value="config">🔧 Details</TabsTrigger>
+                          <TabsTrigger value="url">NFC URL</TabsTrigger>
+                          <TabsTrigger value="instructions">How to Use</TabsTrigger>
+                          <TabsTrigger value="config">Details</TabsTrigger>
                         </TabsList>
                         
                         <TabsContent value="url" className="space-y-4">
@@ -1312,7 +1312,7 @@ export default function ChipConfigPage() {
                           </div>
                           
                           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm">
-                            <h4 className="font-medium text-primary mb-2">📊 Compatibility Analysis:</h4>
+                            <h4 className="font-medium text-primary mb-2">Compatibility Analysis:</h4>
                             <div className="grid grid-cols-2 gap-2 text-foreground text-xs">
                               {Object.entries(config.urlAnalysis.compatibility).map(([chip, status]) => (
                                 <div key={chip} className="flex justify-between">
@@ -1335,34 +1335,34 @@ export default function ChipConfigPage() {
                                     <div className="flex justify-between">
                                       <span>Browser:</span>
                                       <span className={nfcSupport.isSupportedBrowser ? 'text-green-600' : 'text-red-600'}>
-                                        {nfcSupport.isSupportedBrowser ? '✅ Compatible' : '❌ Unsupported'}
+                                        {nfcSupport.isSupportedBrowser ? 'Compatible' : 'Unsupported'}
                                       </span>
                                     </div>
                                     <div className="flex justify-between">
                                       <span>Platform:</span>
                                       <span className={nfcSupport.isSupportedPlatform ? 'text-green-600' : 'text-red-600'}>
-                                        {nfcSupport.isSupportedPlatform ? '✅ Compatible' : '❌ Limited'}
+                                        {nfcSupport.isSupportedPlatform ? 'Compatible' : 'Limited'}
                                       </span>
                                     </div>
                                     <div className="flex justify-between">
                                       <span>Direct Write:</span>
                                       <span className={nfcCompatibility?.supported ? 'text-green-600' : 'text-gray-600'}>
-                                        {nfcCompatibility?.supported ? '✅ Available' : '📋 Copy-paste only'}
+                                        {nfcCompatibility?.supported ? 'Available' : 'Copy-paste only'}
                                       </span>
                                     </div>
                                     <div className="flex justify-between">
                                       <span>Reliability:</span>
                                       <span className={NFCStatusIndicator.getStatusColor(nfcSupport.estimatedReliability)}>
-                                        {nfcSupport.estimatedReliability === 'high' ? '🚀 Excellent' :
-                                         nfcSupport.estimatedReliability === 'medium' ? '⚠️ Good' :
-                                         nfcSupport.estimatedReliability === 'low' ? '🔧 Experimental' : '📋 Fallback'}
+                                        {nfcSupport.estimatedReliability === 'high' ? 'Excellent' :
+                                         nfcSupport.estimatedReliability === 'medium' ? 'Good' :
+                                         nfcSupport.estimatedReliability === 'low' ? 'Experimental' : 'Fallback'}
                                       </span>
                                     </div>
                                     {deviceInfo.canUseIntent && (
                                       <div className="flex justify-between">
                                         <span>Intent URLs:</span>
                                         <span className="text-blue-600">
-                                          🚀 Available
+                                          Available
                                         </span>
                                       </div>
                                     )}
@@ -1375,7 +1375,7 @@ export default function ChipConfigPage() {
                               <strong>Total size:</strong> {config.urlAnalysis.bytes} bytes ({config.urlAnalysis.chars} characters)
                             </div>
                             <div className="mt-2 pt-2 border-t border-border text-xs text-muted-foreground">
-                              ✅ <strong>Format:</strong> Optimized compression with base64 encoding
+                              <strong>Format:</strong> Optimized compression with base64 encoding
                             </div>
                           </div>
                         </TabsContent>
@@ -1386,7 +1386,7 @@ export default function ChipConfigPage() {
                             <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-sm space-y-3">
                               <div className="flex items-center gap-2">
                                 <ZapIcon className="h-5 w-5 text-green-600" />
-                                <h4 className="font-medium">🚀 Direct Web NFC Writing:</h4>
+                                <h4 className="font-medium">Direct Web NFC Writing:</h4>
                               </div>
                               <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                                 <li>Click the <strong>"Write Directly"</strong> button above</li>
@@ -1399,7 +1399,7 @@ export default function ChipConfigPage() {
                                 <InfoIcon className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                                 <div>
                                   <p className="font-medium text-blue-800 dark:text-blue-200">
-                                    💡 Web NFC Tips:
+                                    Web NFC Tips:
                                   </p>
                                   <ul className="mt-1 space-y-0.5 text-blue-600 dark:text-blue-300">
                                     <li>• Works best on Chrome/Edge with Android</li>
@@ -1412,7 +1412,7 @@ export default function ChipConfigPage() {
                           )}
 
                           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm space-y-3">
-                            <h4 className="font-medium">📱 Universal NFC Programming:</h4>
+                            <h4 className="font-medium">Universal NFC Programming:</h4>
                             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                               <li>Copy the URL above using the "Copy" button</li>
                               <li>Download <strong>"NFC Tools"</strong> (free on iOS/Android)</li>
@@ -1441,7 +1441,7 @@ export default function ChipConfigPage() {
                           </div>
                           
                           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-sm space-y-3">
-                            <h4 className="font-medium">💡 Pro Tips:</h4>
+                            <h4 className="font-medium">Pro Tips:</h4>
                             <ul className="space-y-1 text-muted-foreground text-xs">
                               <li>• <strong>iPhone:</strong> NFC antenna is near the top back (camera area)</li>
                               <li>• <strong>Android:</strong> NFC antenna is usually in center back</li>

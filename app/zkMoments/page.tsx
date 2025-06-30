@@ -460,7 +460,7 @@ export default function ZKMomentsPage() {
 
         {/* Footer */}
         <div className="text-center text-xs text-gray-700 dark:text-gray-300 py-8">
-          <p>🔐 All moments are signed locally. Proofs reveal counts without exposing individual moments.</p>
+                      <p>All moments are signed locally. Proofs reveal counts without exposing individual moments.</p>
           <p className="mt-1">Ready for ESP32 porting with identical cryptographic guarantees.</p>
         </div>
       </div>

@@ -320,7 +320,7 @@ function WebNFCScanner() {
           {/* Discovered Account */}
           {discoveredAccount && (
             <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg space-y-3">
-              <h4 className="font-medium text-primary text-sm">✨ Identity Created</h4>
+              <h4 className="font-medium text-primary text-sm">Identity Created</h4>
               <div className="space-y-1 text-xs font-mono">
                 <div><strong>Pendant:</strong> {discoveredAccount.uid}</div>
                 <div><strong>Identity:</strong> {discoveredAccount.did}</div>

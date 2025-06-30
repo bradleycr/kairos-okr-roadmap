@@ -10,7 +10,7 @@ const QRCodeDisplay: React.FC<{ sessionId: string }> = ({ sessionId }) => {
 
   return (
     <div className="flex flex-col items-center bg-white p-4 rounded-lg border border-gray-200 shadow-sm max-w-xs">
-      <p className="text-sm font-mono text-gray-600 mb-3">📱 Connect to Session</p>
+      <p className="text-sm font-mono text-gray-600 mb-3">Connect to Session</p>
       
       <QRCodeSVG value={sessionUrl} size={120} level="M" includeMargin={true} />
       

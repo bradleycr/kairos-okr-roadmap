@@ -424,7 +424,7 @@ GND          Negative       Ground
             </div>
 
             <div className="mt-6 p-4 bg-success/10 border border-success/20 rounded-lg">
-              <h4 className="font-medium text-success mb-2">💡 Shopping Tips</h4>
+              <h4 className="font-medium text-success mb-2">Shopping Tips</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Buy ESP32 development boards with built-in USB (easier programming)</li>
                 <li>• Choose MFRC522 modules with antenna included</li>
@@ -482,7 +482,7 @@ GND          Negative       Ground
               </div>
               
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-                <h4 className="font-medium text-primary mb-2">🔧 Assembly Tips</h4>
+                <h4 className="font-medium text-primary mb-2">Assembly Tips</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Use breadboard for prototyping, perfboard for production</li>
                   <li>• Label your wires with tape for easier troubleshooting</li>

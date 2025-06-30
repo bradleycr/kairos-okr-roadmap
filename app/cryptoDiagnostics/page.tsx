@@ -1100,7 +1100,7 @@ bool verifyEd25519Signature(const char* signature_hex,
                   </div>
                   <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
                     <div className="space-y-3 text-sm">
-                      <div className="font-semibold text-green-800">🎯 "Crypto for IoT" - Bridging Digital Identity to Physical Reality</div>
+                      <div className="font-semibold text-green-800">"Crypto for IoT" - Bridging Digital Identity to Physical Reality</div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <div className="font-semibold text-blue-800 mb-1">Solving Real Problems</div>

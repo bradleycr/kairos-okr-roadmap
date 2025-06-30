@@ -181,7 +181,7 @@ export default function P2PIPFSDemo() {
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">🌐 P2P IPFS Decentralized Demo</h1>
+        <h1 className="text-3xl font-bold mb-2">P2P IPFS Decentralized Demo</h1>
         <p className="text-muted-foreground">
           Live demonstration of Phase 3 architecture - no central server needed!
         </p>
@@ -281,7 +281,7 @@ export default function P2PIPFSDemo() {
                   Registering in IPFS...
                 </>
               ) : (
-                '🌐 Register in P2P Network'
+                                  'Register in P2P Network'
               )}
             </Button>
             
@@ -362,7 +362,7 @@ export default function P2PIPFSDemo() {
       {/* Real-time P2P Features */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>🎯 P2P Features in Action</CardTitle>
+                          <CardTitle>P2P Features in Action</CardTitle>
           <CardDescription>
             Open multiple browser tabs to see real-time peer discovery
           </CardDescription>
@@ -409,7 +409,7 @@ export default function P2PIPFSDemo() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h4 className="font-semibold">🌐 P2P Discovery</h4>
+                              <h4 className="font-semibold">P2P Discovery</h4>
               <p className="text-sm text-muted-foreground">
                 Uses BroadcastChannel API for browser-to-browser communication within the same domain
               </p>
@@ -423,14 +423,14 @@ export default function P2PIPFSDemo() {
             </div>
             
             <div>
-              <h4 className="font-semibold">🔐 Cryptographic Security</h4>
+                              <h4 className="font-semibold">Cryptographic Security</h4>
               <p className="text-sm text-muted-foreground">
                 Ed25519 signatures with deterministic key derivation from chipUID + PIN
               </p>
             </div>
             
             <div>
-              <h4 className="font-semibold">⚡ Performance</h4>
+                              <h4 className="font-semibold">Performance</h4>
               <p className="text-sm text-muted-foreground">
                 Local caching with fallback mechanisms for maximum reliability
               </p>

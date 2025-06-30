@@ -38,7 +38,7 @@ export default function DIDKeyAuthDemo() {
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">🌐 DID:Key Authentication</h1>
+        <h1 className="text-3xl font-bold mb-2">DID:Key Authentication</h1>
         <p className="text-muted-foreground">
           W3C standards-based authentication for thousands of NFC pendants + ESP32 network
         </p>
@@ -67,7 +67,7 @@ export default function DIDKeyAuthDemo() {
               </div>
 
               <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="font-semibold text-blue-800 mb-2">🔐 What's Computed</h4>
+                <h4 className="font-semibold text-blue-800 mb-2">What's Computed</h4>
                 <ul className="text-sm text-blue-700 space-y-1">
                   <li>• Private Key = SHA256(chipUID + PIN)</li>
                   <li>• DID:Key resolution (local, no network)</li>
@@ -77,7 +77,7 @@ export default function DIDKeyAuthDemo() {
               </div>
 
               <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                <h4 className="font-semibold text-purple-800 mb-2">🌐 ESP32 Network</h4>
+                <h4 className="font-semibold text-purple-800 mb-2">ESP32 Network</h4>
                 <ul className="text-sm text-purple-700 space-y-1">
                   <li>• Local DID:Key resolution</li>
                   <li>• Offline signature verification</li>
@@ -196,14 +196,14 @@ export default function DIDKeyAuthDemo() {
 
               <Button variant="outline" className="h-16 justify-start">
                 <div className="text-left">
-                  <div className="font-medium">🔐 Identity Verification</div>
+                  <div className="font-medium">Identity Verification</div>
                   <div className="text-sm text-muted-foreground">Prove identity without revealing data</div>
                 </div>
               </Button>
 
               <Button variant="outline" className="h-16 justify-start">
                 <div className="text-left">
-                  <div className="font-medium">🌐 Mesh Networking</div>
+                  <div className="font-medium">Mesh Networking</div>
                   <div className="text-sm text-muted-foreground">Connect to ESP32 network</div>
                 </div>
               </Button>
@@ -242,7 +242,7 @@ export default function DIDKeyAuthDemo() {
       {/* Getting Started */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>🚀 Getting Started</CardTitle>
+                          <CardTitle>Getting Started</CardTitle>
           <CardDescription>
             Ready to implement? Here's your roadmap:
           </CardDescription>

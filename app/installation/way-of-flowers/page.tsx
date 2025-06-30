@@ -13,7 +13,8 @@ import {
   TreePine,
   Bug,
   Leaf,
-  Wheat
+  Wheat,
+  Smartphone
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -236,7 +237,7 @@ function WayOfFlowersContent() {
       <h1 className="text-3xl font-light text-neutral-900 mb-8">Way of Flowers</h1>
       
       <div className="w-16 h-16 border-2 border-green-200 rounded-full flex items-center justify-center mb-6 animate-bounce">
-        <span className="text-2xl">📱</span>
+                        <Smartphone className="h-6 w-6" />
       </div>
       
       <p className="text-neutral-500 text-lg font-light">Tap to begin</p>

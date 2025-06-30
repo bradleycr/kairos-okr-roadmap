@@ -438,7 +438,7 @@ export default function NillionAIDemo() {
       {/* Footer Info */}
       <Card className="bg-gradient-to-r from-blue-50 to-purple-50">
         <CardContent className="p-6">
-          <h3 className="font-semibold mb-2">🎉 Free Tier Available!</h3>
+                        <h3 className="font-semibold mb-2">Free Tier Available!</h3>
           <p className="text-sm text-gray-600 mb-3">
             This demo uses Nillion's free test API key "Nillion2025" - no setup or registration required. 
             Perfect for prototyping your privacy-preserving AI applications.

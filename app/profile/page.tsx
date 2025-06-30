@@ -1070,7 +1070,7 @@ const ProfilePage = () => {
                       </div>
                     </div>
                     <div className="bg-muted/50 border border-muted p-3 rounded-lg">
-                      <h5 className="text-xs font-mono text-muted-foreground mb-1">🔒 Private Key Security</h5>
+                      <h5 className="text-xs font-mono text-muted-foreground mb-1">Private Key Security</h5>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Your private key is never stored and is derived from your master seed when needed. 
                         This ensures maximum security - even if someone gains access to your profile, 
@@ -1290,7 +1290,7 @@ const ProfilePage = () => {
                 </div>
                 
                 <div className="bg-accent/10 border border-accent/20 p-3 rounded-lg">
-                  <h4 className="font-semibold text-accent mb-2 font-mono text-sm">💡 Recommendation</h4>
+                  <h4 className="font-semibold text-accent mb-2 font-mono text-sm">Recommendation</h4>
                   <p className="text-foreground text-sm leading-relaxed">
                     Export your data crystal first (Security tab) to preserve your identity and memories for future use.
                   </p>
