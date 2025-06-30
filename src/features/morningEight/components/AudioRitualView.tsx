@@ -13,7 +13,9 @@ import {
   Download,
   Sparkles,
   Waves,
-  X
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 import type { Routine } from '../types';
@@ -27,7 +29,8 @@ interface AudioRitualViewProps {
 
 export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRitualViewProps) {
   const [selectedVoice, setSelectedVoice] = useState('nova');
-  const [showSteps, setShowSteps] = useState(false);
+  const [showSteps, setShowSteps] = useState(true); // Show by default
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const audioRitual = useAudioRitual();
 
   const voices = [
@@ -54,6 +57,25 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
     }
   }, [autoStart, audioRitual.audioUrl, audioRitual.isPlaying, audioRitual]);
 
+  // Calculate current step based on audio progress
+  useEffect(() => {
+    if (audioRitual.duration > 0 && audioRitual.currentTime > 0) {
+      // Rough calculation: intro (30s) + steps evenly distributed + outro (30s)
+      const introTime = 30;
+      const outroTime = 30;
+      const stepTime = (audioRitual.duration - introTime - outroTime) / routine.steps.length;
+      
+      if (audioRitual.currentTime < introTime) {
+        setCurrentStepIndex(-1); // Intro
+      } else if (audioRitual.currentTime > audioRitual.duration - outroTime) {
+        setCurrentStepIndex(routine.steps.length); // Outro
+      } else {
+        const stepIndex = Math.floor((audioRitual.currentTime - introTime) / stepTime);
+        setCurrentStepIndex(Math.min(stepIndex, routine.steps.length - 1));
+      }
+    }
+  }, [audioRitual.currentTime, audioRitual.duration, routine.steps.length]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -63,6 +85,15 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
   const progressPercentage = audioRitual.duration > 0 
     ? (audioRitual.currentTime / audioRitual.duration) * 100 
     : 0;
+
+  // Handle mobile play button with user gesture
+  const handlePlayClick = () => {
+    if (!audioRitual.isPlaying) {
+      audioRitual.playAudio();
+    } else {
+      audioRitual.pauseAudio();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 relative overflow-hidden">
@@ -83,7 +114,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
 
       <div className="relative z-10 min-h-screen p-4 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <motion.div
               animate={{ rotate: audioRitual.isPlaying ? 360 : 0 }}
@@ -94,7 +125,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
             <div>
               <h1 className="text-2xl font-light text-primary">Guided Morning Ritual</h1>
               <p className="text-sm text-muted-foreground">
-                {routine.date} • Personalized for you
+                {routine.date} • 8 minutes • Personalized for you
               </p>
             </div>
           </div>
@@ -105,10 +136,9 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
           )}
         </div>
 
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-2xl space-y-8">
-            
-            {/* Main Audio Player */}
+        <div className="flex-1 flex flex-col lg:flex-row gap-6">
+          {/* Main Audio Player */}
+          <div className="flex-1">
             <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-6">
                 
@@ -157,7 +187,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                         animate={{ opacity: [0.5, 1, 0.5] }}
                         transition={{ duration: 2, repeat: Infinity }}
                       >
-                        <Badge variant="secondary">Generating your guided ritual...</Badge>
+                        <Badge variant="secondary">Generating your 8-minute guided ritual...</Badge>
                       </motion.div>
                       <Progress value={undefined} className="h-2" />
                     </div>
@@ -201,7 +231,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                         ) : (
                           <>
                             <Volume2 className="w-5 h-5 mr-2" />
-                            Create Audio Ritual
+                            Create 8-Minute Audio Ritual
                           </>
                         )}
                       </Button>
@@ -230,13 +260,13 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => audioRitual.seekTo(Math.max(0, audioRitual.currentTime - 10))}
+                        onClick={() => audioRitual.seekTo(Math.max(0, audioRitual.currentTime - 30))}
                       >
-                        -10s
+                        -30s
                       </Button>
                       
                       <Button
-                        onClick={audioRitual.isPlaying ? audioRitual.pauseAudio : audioRitual.playAudio}
+                        onClick={handlePlayClick}
                         size="lg"
                         className="w-16 h-16 rounded-full"
                       >
@@ -250,9 +280,9 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => audioRitual.seekTo(Math.min(audioRitual.duration, audioRitual.currentTime + 10))}
+                        onClick={() => audioRitual.seekTo(Math.min(audioRitual.duration, audioRitual.currentTime + 30))}
                       >
-                        +10s
+                        +30s
                       </Button>
                     </>
                   )}
@@ -261,12 +291,13 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
             </Card>
 
             {/* Additional Actions */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-4">
               <Button
                 variant="outline"
                 onClick={() => setShowSteps(!showSteps)}
               >
-                View Ritual Steps
+                {showSteps ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                {showSteps ? 'Hide Steps' : 'Show Steps'}
               </Button>
               
               {audioRitual.audioUrl && (
@@ -284,41 +315,93 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                 </Button>
               )}
             </div>
-
-            {/* Ritual Steps */}
-            <AnimatePresence>
-              {showSteps && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <Card className="border-dashed border-muted-foreground/30">
-                    <CardContent className="p-6">
-                      <h3 className="text-lg font-medium mb-4 text-center">Your Ritual Steps</h3>
-                      <div className="space-y-4">
-                        {routine.steps.map((step, index) => (
-                          <motion.div
-                            key={index}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="flex items-start space-x-3 p-3 rounded-lg bg-muted/30"
-                          >
-                            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-                              <span className="text-xs font-medium text-primary">{index + 1}</span>
-                            </div>
-                            <p className="text-sm leading-relaxed">{step}</p>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
+
+          {/* Ritual Steps Display */}
+          {showSteps && (
+            <div className="lg:w-96">
+              <Card className="border-primary/20 bg-card/50 backdrop-blur-sm h-full">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium">Your Ritual Steps</h3>
+                    {audioRitual.isPlaying && (
+                      <Badge variant="outline" className="text-xs">
+                        {currentStepIndex === -1 ? 'Introduction' : 
+                         currentStepIndex >= routine.steps.length ? 'Closing' :
+                         `Step ${currentStepIndex + 1} of ${routine.steps.length}`}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {/* Introduction */}
+                    <motion.div
+                      className={`p-3 rounded-lg transition-all duration-300 ${
+                        currentStepIndex === -1 && audioRitual.isPlaying 
+                          ? 'bg-primary/20 border border-primary/30' 
+                          : 'bg-muted/30'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-medium text-accent">○</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium mb-1">Welcome</p>
+                          <p className="text-xs text-muted-foreground">Getting centered and ready</p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Steps */}
+                    {routine.steps.map((step, index) => (
+                      <motion.div
+                        key={index}
+                        className={`p-3 rounded-lg transition-all duration-300 ${
+                          index === currentStepIndex && audioRitual.isPlaying 
+                            ? 'bg-primary/20 border border-primary/30' 
+                            : 'bg-muted/30'
+                        }`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${
+                            index === currentStepIndex && audioRitual.isPlaying
+                              ? 'bg-primary/30 animate-pulse'
+                              : 'bg-primary/20'
+                          }`}>
+                            <span className="text-xs font-medium text-primary">{index + 1}</span>
+                          </div>
+                          <p className="text-sm leading-relaxed">{step}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    {/* Closing */}
+                    <motion.div
+                      className={`p-3 rounded-lg transition-all duration-300 ${
+                        currentStepIndex >= routine.steps.length && audioRitual.isPlaying 
+                          ? 'bg-primary/20 border border-primary/30' 
+                          : 'bg-muted/30'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-xs font-medium text-accent">✓</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium mb-1">Complete</p>
+                          <p className="text-xs text-muted-foreground">Carrying the energy forward</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
     </div>

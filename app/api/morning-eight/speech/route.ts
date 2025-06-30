@@ -63,7 +63,14 @@ export async function POST(request: NextRequest) {
 }
 
 function createGuidedMeditationScript(steps: string[]): string {
-  const intro = `Welcome to your personalized morning ritual. Find a comfortable position, and let us begin your eight-minute journey together. Take a deep breath in... and slowly exhale. Let this time be yours.`;
+  // Calculate timing for exactly 8 minutes (480 seconds)
+  const totalDuration = 480; // 8 minutes in seconds
+  const introTime = 30; // 30 seconds for intro
+  const outroTime = 30; // 30 seconds for outro
+  const availableStepTime = totalDuration - introTime - outroTime; // 420 seconds for steps
+  const timePerStep = Math.floor(availableStepTime / steps.length); // Even distribution
+  
+  const intro = `Welcome to your personalized morning ritual. Find a comfortable position, and let us begin your eight-minute journey together. Take a deep breath in... and slowly exhale. Let this time be yours. ${generatePause(25)}`;
   
   const stepsWithTimings = steps.map((step, index) => {
     const stepNumber = index + 1;
@@ -82,14 +89,44 @@ function createGuidedMeditationScript(steps: string[]): string {
     // Add gentle pacing and breath cues
     const gentleStep = `${timing}${step} Take your time with this. Breathe naturally and allow yourself to be fully present.`;
     
+    // Calculate pause duration for this step
+    const pauseDuration = Math.max(15, timePerStep - Math.floor(gentleStep.length / 10)); // Rough estimate of speech time
+    
     if (!isLast) {
-      return `${gentleStep} ... When you are ready, we will move forward together.`;
+      return `${gentleStep} ${generatePause(pauseDuration)} When you are ready, we will move forward together.`;
     } else {
-      return `${gentleStep} ... Take a moment to appreciate what you have just experienced.`;
+      return `${gentleStep} ${generatePause(Math.max(15, pauseDuration - 10))} Take a moment to appreciate what you have just experienced.`;
     }
   });
   
-  const outro = `Your morning ritual is complete. You have given yourself this gift of mindful intention. Carry this energy with you as you step into your day. You are ready.`;
+  const outro = `${generatePause(15)} Your morning ritual is complete. You have given yourself this gift of mindful intention. Carry this energy with you as you step into your day. You are ready.`;
   
-  return [intro, ...stepsWithTimings, outro].join(' ... ');
+  return [intro, ...stepsWithTimings, outro].join(' ');
+}
+
+function generatePause(seconds: number): string {
+  // Generate natural-sounding pauses of specific duration
+  const pauseWords = [
+    'Let yourself breathe deeply.',
+    'Allow this moment to settle within you.',
+    'Feel your body relax and your mind become clear.',
+    'Notice the gentle rhythm of your breath.',
+    'Let peace flow through you.',
+    'Feel grounded and present.',
+    'Allow yourself to be exactly where you are.',
+    'Breathe in calm, breathe out tension.',
+    'Feel the stillness around you.',
+    'Rest in this peaceful moment.'
+  ];
+  
+  // Estimate roughly 3 seconds per pause phrase
+  const phrasesNeeded = Math.max(1, Math.floor(seconds / 3));
+  const selectedPhrases = [];
+  
+  for (let i = 0; i < phrasesNeeded; i++) {
+    const phrase = pauseWords[i % pauseWords.length];
+    selectedPhrases.push(phrase);
+  }
+  
+  return selectedPhrases.join(' ... ');
 } 

@@ -90,13 +90,29 @@ export function useAudioRitual(): AudioRitualHook {
     }
   }, [audioUrl]);
 
-  // Play audio
+  // Play audio with mobile compatibility
   const playAudio = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.play().catch(err => {
-        console.error('Failed to play audio:', err);
-        setError('Failed to play audio');
-      });
+      // Reset to beginning if ended
+      if (audioRef.current.ended) {
+        audioRef.current.currentTime = 0;
+      }
+      
+      // Handle mobile autoplay restrictions
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log('Audio playback started successfully');
+        }).catch(err => {
+          console.error('Failed to play audio:', err);
+          if (err.name === 'NotAllowedError') {
+            setError('Tap to enable audio playback');
+          } else {
+            setError('Failed to play audio - try tapping the play button again');
+          }
+        });
+      }
     }
   }, []);
 
