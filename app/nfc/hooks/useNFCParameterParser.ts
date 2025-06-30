@@ -326,7 +326,15 @@ export function useNFCParameterParser() {
       const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
       console.log('🏆 Calling authenticateWithPINGate...')
       
-      const result = await NFCAccountManager.authenticateWithPINGate(chipUID)
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('PIN gate check timeout')), 5000)
+      )
+      
+      const result = await Promise.race([
+        NFCAccountManager.authenticateWithPINGate(chipUID),
+        timeoutPromise
+      ])
       console.log('🏆 PIN gate result received:', result)
       
       console.log(`🔍 Legacy card PIN gate result:`, {
@@ -366,17 +374,21 @@ export function useNFCParameterParser() {
           setRequiresPIN(false)
           setPinVerificationComplete(true)
           
-          console.log('✅ Legacy card ready - redirecting to profile')
-          
-          // 🚀 Navigate to profile immediately (no PIN needed)
-          const profileUrl = new URL('/profile', window.location.origin)
-          profileUrl.searchParams.set('verified', 'true')
-          profileUrl.searchParams.set('source', 'legacy-card-no-pin')
-          profileUrl.searchParams.set('chipUID', chipUID)
-          profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
-          
-          console.log('🚀 Redirecting to:', profileUrl.toString())
-          router.push(profileUrl.toString())
+                console.log('✅ Legacy card ready - redirecting to profile')
+      
+      // 🚀 Navigate to profile immediately (no PIN needed)
+      const profileUrl = new URL('/profile', window.location.origin)
+      profileUrl.searchParams.set('verified', 'true')
+      profileUrl.searchParams.set('source', 'legacy-card-no-pin')
+      profileUrl.searchParams.set('chipUID', chipUID)
+      profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+      
+      console.log('🚀 Redirecting to:', profileUrl.toString())
+      
+      // Add a small delay to prevent infinite loops
+      setTimeout(() => {
+        router.push(profileUrl.toString())
+      }, 100)
           
         } else {
           // Account creation needed
@@ -393,8 +405,12 @@ export function useNFCParameterParser() {
           profileUrl.searchParams.set('chipUID', chipUID)
           profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
           
-          console.log('🚀 Redirecting new account to:', profileUrl.toString())
-          router.push(profileUrl.toString())
+                console.log('🚀 Redirecting new account to:', profileUrl.toString())
+      
+      // Add a small delay to prevent infinite loops
+      setTimeout(() => {
+        router.push(profileUrl.toString())
+      }, 100)
         }
       }
       
@@ -427,7 +443,11 @@ export function useNFCParameterParser() {
         profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
         
         console.log('🚀 Direct redirect after PIN check failure:', profileUrl.toString())
-        router.push(profileUrl.toString())
+        
+        // Add a small delay to prevent infinite loops
+        setTimeout(() => {
+          router.push(profileUrl.toString())
+        }, 100)
         
       } catch (fallbackError) {
         console.error('🚨 Even fallback failed:', fallbackError)

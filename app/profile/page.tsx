@@ -253,7 +253,7 @@ const ProfilePage = () => {
   const [pinAuthenticatedChipUID, setPinAuthenticatedChipUID] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  const loadProfileData = async () => {
+    const loadProfileData = async () => {
     setIsLoadingProfile(true)
     
     try {
@@ -299,7 +299,7 @@ const ProfilePage = () => {
         return
       }
       
-      if (!chipUID) {
+        if (!chipUID) {
         console.log('⚠️ No chipUID in profile URL - checking session...')
         // Try to get chipUID from current session
         try {
@@ -348,72 +348,72 @@ const ProfilePage = () => {
   const loadUserProfileData = async (chipUID: string) => {
     try {
       // Use privacy-first account manager to get or create profile
-      const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
-      
-      // Get account data for the authenticated user
-      const accountResult = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
-      const currentAccount = accountResult.account
-      
-      console.log(`Account status: ${accountResult.isNewAccount ? 'New' : 'Existing'}, Device: ${accountResult.isNewDevice ? 'New' : 'Familiar'}`)
-      
+            const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+            
+            // Get account data for the authenticated user
+            const accountResult = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
+            const currentAccount = accountResult.account
+            
+            console.log(`Account status: ${accountResult.isNewAccount ? 'New' : 'Existing'}, Device: ${accountResult.isNewDevice ? 'New' : 'Familiar'}`)
+            
       // Show welcome ritual ONLY for truly new accounts
-      if (accountResult.isNewAccount) {
-        console.log('🎉 New account detected - showing welcome ritual')
-        setShowWelcomeRitual(true)
-      }
-      
-      // 🆕 Get persistent verification count from database
-      let persistentVerificationCount = currentAccount.stats.totalSessions || 1
-      try {
-        const response = await fetch('/api/nfc/accounts', {
-          method: 'GET',
-          headers: { 'X-Chip-UID': chipUID }
-        })
-        const dbData = await response.json()
-        if (dbData.success && dbData.account) {
-          persistentVerificationCount = dbData.account.verificationCount || currentAccount.stats.totalSessions || 1
-          console.log(`✅ Using persistent verification count: ${persistentVerificationCount}`)
-        }
-      } catch (error) {
-        console.warn('Failed to fetch database verification count, using local:', error)
-      }
-      
+            if (accountResult.isNewAccount) {
+              console.log('🎉 New account detected - showing welcome ritual')
+              setShowWelcomeRitual(true)
+            }
+            
+            // 🆕 Get persistent verification count from database
+            let persistentVerificationCount = currentAccount.stats.totalSessions || 1
+            try {
+              const response = await fetch('/api/nfc/accounts', {
+                method: 'GET',
+                headers: { 'X-Chip-UID': chipUID }
+              })
+              const dbData = await response.json()
+              if (dbData.success && dbData.account) {
+                persistentVerificationCount = dbData.account.verificationCount || currentAccount.stats.totalSessions || 1
+                console.log(`✅ Using persistent verification count: ${persistentVerificationCount}`)
+              }
+            } catch (error) {
+              console.warn('Failed to fetch database verification count, using local:', error)
+            }
+
       // Create profile object
-      const profile = {
-        chipUID,
+            const profile = {
+              chipUID,
         deviceId: currentAccount.accountId,
-        deviceName: currentAccount.deviceName,
-        username: currentAccount.username,
-        displayName: currentAccount.displayName,
-        publicKey: currentAccount.publicKey,
-        bio: currentAccount.bio,
-        verificationsGiven: persistentVerificationCount,
-        memoriesContributed: currentAccount.stats.totalMoments || 0,
-        momentsWitnessed: currentAccount.moments?.length || 0,
-        totalBonds: 0, // Will be loaded from bond manager
-        joinDate: currentAccount.createdAt,
-        lastSession: {
+              deviceName: currentAccount.deviceName,
+              username: currentAccount.username,
+              displayName: currentAccount.displayName,
+              publicKey: currentAccount.publicKey,
+              bio: currentAccount.bio,
+              verificationsGiven: persistentVerificationCount,
+              memoriesContributed: currentAccount.stats.totalMoments || 0,
+              momentsWitnessed: currentAccount.moments?.length || 0,
+              totalBonds: 0, // Will be loaded from bond manager
+              joinDate: currentAccount.createdAt,
+              lastSession: {
           sessionToken: Date.now().toString(),
-          momentId: `moment_${Date.now()}`,
-          timestamp: new Date().toISOString()
-        },
+                momentId: `moment_${Date.now()}`,
+                timestamp: new Date().toISOString()
+              },
         hasPIN: currentAccount.hasPIN,
         isNewUser: accountResult.isNewAccount
       }
       
-      setHasPIN(currentAccount.hasPIN)
-      
-      // Load user bonds
-      await loadUserBonds(chipUID)
-      
-      // Show PIN setup prompt for new accounts without PIN
-      if (!currentAccount.hasPIN && !currentAccount.pinSetupPrompted) {
-        setShowPINSetup(true)
-      }
-      
+            setHasPIN(currentAccount.hasPIN)
+            
+            // Load user bonds
+            await loadUserBonds(chipUID)
+            
+            // Show PIN setup prompt for new accounts without PIN
+            if (!currentAccount.hasPIN && !currentAccount.pinSetupPrompted) {
+              setShowPINSetup(true)
+            }
+            
       return profile
-      
-    } catch (error) {
+            
+          } catch (error) {
       console.error('❌ Failed to load user profile data:', error)
       throw error
     }
