@@ -470,79 +470,66 @@ export function useNFCParameterParser() {
         format: result.format,
         hasChipUID: !!result.params.chipUID,
         chipUID: result.params.chipUID,
-        hasDID: !!result.params.did,
         hasSignature: !!result.params.signature,
-        hasPublicKey: !!result.params.publicKey
+        hasPublicKey: !!result.params.publicKey,
+        hasDID: !!result.params.did
       })
       
       setParsedParams(result.params)
       setFormat(result.format)
-      setDebugInfo(result.debugInfo)
       
-      // 🔧 Initialize session manager for cross-device functionality
-      SessionManager.initialize()
+      const chipUID = result.params.chipUID
       
-      // 🔐 Handle different card formats with optimized flows
-      if (result.params.chipUID && !accountInitialized) {
+      // 🆕 CHECK FOR NEW CARD FROM CHIP CONFIG
+      // If this is a new card generated from chip-config, go directly to profile
+      const isNewCard = searchParams.get('newCard') === 'true'
+      const skipPINGate = searchParams.get('skipPINGate') === 'true'
+      const isChipConfigTest = searchParams.get('source') === 'chip_config_test'
+      
+      if (isNewCard && skipPINGate && isChipConfigTest && chipUID) {
+        console.log('🆕 New card from chip-config detected - routing to profile for PIN setup')
+        console.log(`   ChipUID: ${chipUID}`)
+        console.log(`   Format: ${result.format}`)
+        console.log('   Skipping PIN gate check - new card needs PIN setup')
         
-        // 🔍 CHECK DATABASE FIRST FOR ALL FORMATS
-        // Don't assume PIN requirements - always check database first
-        console.log(`🔍 Checking PIN requirements for chipUID: ${result.params.chipUID}`)
-        setDebugInfo(prev => [...prev, `🔍 Checking database for PIN requirements`])
-        
-        if (result.format === 'legacy-full') {
-          // 🎯 LEGACY CARD - Check database for PIN requirements
-          console.log('🎯 Legacy card detected - checking database for PIN requirements')
-          console.log('🔍 Legacy card params:', {
-            chipUID: result.params.chipUID,
-            hasDID: !!result.params.did,
-            hasSignature: !!result.params.signature,
-            hasPublicKey: !!result.params.publicKey
-          })
-          setDebugInfo(prev => [...prev, `🎯 Legacy card with chipUID: ${result.params.chipUID}`])
-          
-          try {
-            await checkLegacyCardPINRequirements(result.params.chipUID)
-          } catch (error) {
-            console.error('🚨 checkLegacyCardPINRequirements failed:', error)
-            setDebugInfo(prev => [...prev, `🚨 Legacy card check failed: ${error}`])
-            
-            // Fallback: try to proceed anyway
-            console.log('🔄 Trying fallback authentication...')
-            setRequiresPIN(false)
-            setAccountInitialized(true)
-            setPinVerificationComplete(true)
-            
-            // Direct redirect to profile
-            const profileUrl = new URL('/profile', window.location.origin)
-            profileUrl.searchParams.set('verified', 'true')
-            profileUrl.searchParams.set('source', 'legacy-fallback')
-            profileUrl.searchParams.set('chipUID', result.params.chipUID!)
-            profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
-            
-            console.log('🚀 Fallback redirect to profile:', profileUrl.toString())
-            router.push(profileUrl.toString())
-          }
-        } else {
-          // 🌐 OTHER FORMATS (didkey, optimal, decentralized)
-          // Use the standard session-based authentication flow
-          setPinVerificationComplete(true) // Non-legacy cards are OK to show content
-          await checkSessionAndAuthRequirements(result.params.chipUID)
-        }
-      } else {
-        // No chipUID or already initialized
+        // Set up states for new card
+        setRequiresPIN(false)
+        setAccountInitialized(true)
         setPinVerificationComplete(true)
+        
+        // Redirect directly to profile for PIN setup
+        const profileUrl = new URL('/profile', window.location.origin)
+        profileUrl.searchParams.set('verified', 'true')
+        profileUrl.searchParams.set('source', 'new-card-setup')
+        profileUrl.searchParams.set('chipUID', chipUID)
+        profileUrl.searchParams.set('newCard', 'true')
+        profileUrl.searchParams.set('setupPIN', 'true')
+        profileUrl.searchParams.set('did', result.params.did || '')
+        profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+        
+        console.log('🚀 Redirecting new card to profile:', profileUrl.toString())
+        router.push(profileUrl.toString())
+        return
       }
       
+      if (!chipUID) {
+        console.error('🚨 No chipUID found in URL parameters')
+        setDebugInfo(prev => [...prev, '❌ Missing chipUID in URL'])
+        return
+      }
+      
+      console.log(`🔍 Processing chipUID: ${chipUID} (format: ${result.format})`)
+      
+      // Check if we have an existing session and if this is bonding
+      await handleSessionAndBondingLogic(chipUID)
+      
     } catch (error) {
-      console.error('❌ Parameter parsing failed:', error)
-      setDebugInfo(prev => [...prev, `❌ Parsing error: ${error}`])
-      setFormat('none')
-      setParsedParams({})
+      console.error('🚨 Parameter parsing failed:', error)
+      setDebugInfo(prev => [...prev, `❌ Parse error: ${error}`])
     } finally {
       setIsParsing(false)
     }
-  }, [searchParams, accountInitialized, checkSessionAndAuthRequirements, checkLegacyCardPINRequirements])
+  }, [searchParams, router, handleSessionAndBondingLogic])
 
   /**
    * 🎯 Legacy Card PIN Success Handler
@@ -817,3 +804,72 @@ export function useNFCParameterParser() {
     reparseParameters: parseParameters
   }
 }
+
+/**
+ * 🤝 Session and Bonding Logic Handler
+ * 
+ * Handles the standard authentication flow for existing cards,
+ * including session management and bonding detection.
+ */
+const handleSessionAndBondingLogic = useCallback(async (chipUID: string) => {
+  try {
+    setDebugInfo(prev => [...prev, `🔍 Checking database for PIN requirements`])
+    
+    // 🔧 Initialize session manager for cross-device functionality
+    SessionManager.initialize()
+    
+         // 🔐 Handle different card formats with optimized flows
+     if (format === 'legacy-full') {
+      // 🎯 LEGACY CARD - Check database for PIN requirements
+      console.log('🎯 Legacy card detected - checking database for PIN requirements')
+      console.log('🔍 Legacy card params:', {
+        chipUID,
+        hasDID: !!parsedParams.did,
+        hasSignature: !!parsedParams.signature,
+        hasPublicKey: !!parsedParams.publicKey
+      })
+      setDebugInfo(prev => [...prev, `🎯 Legacy card with chipUID: ${chipUID}`])
+      
+      try {
+        await checkLegacyCardPINRequirements(chipUID)
+      } catch (error) {
+        console.error('🚨 checkLegacyCardPINRequirements failed:', error)
+        setDebugInfo(prev => [...prev, `🚨 Legacy card check failed: ${error}`])
+      
+        // Fallback: try to proceed anyway
+        console.log('🔄 Trying fallback authentication...')
+        setRequiresPIN(false)
+        setAccountInitialized(true)
+        setPinVerificationComplete(true)
+        
+        // Direct redirect to profile
+        const profileUrl = new URL('/profile', window.location.origin)
+        profileUrl.searchParams.set('verified', 'true')
+        profileUrl.searchParams.set('source', 'legacy-fallback')
+        profileUrl.searchParams.set('chipUID', chipUID)
+        profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+        
+        console.log('🚀 Fallback redirect to profile:', profileUrl.toString())
+        router.push(profileUrl.toString())
+      }
+    } else {
+      // 🌐 OTHER FORMATS (didkey, optimal, decentralized)
+      // Use the standard session-based authentication flow
+      setPinVerificationComplete(true) // Non-legacy cards are OK to show content
+      await checkSessionAndAuthRequirements(chipUID)
+    }
+  } catch (error) {
+    console.error('❌ Session/bonding logic failed:', error)
+    setDebugInfo(prev => [...prev, `❌ Session error: ${error}`])
+    
+    // Fallback to requiring PIN
+    setRequiresPIN(true)
+    setPinGateInfo({
+      isNewAccount: true,
+      isNewDevice: true,
+      hasPIN: false,
+      reason: 'Authentication error - fallback to PIN',
+      displayName: `User ${chipUID?.slice(-4).toUpperCase() || 'Unknown'}`
+    })
+  }
+}, [format, parsedParams, checkLegacyCardPINRequirements, checkSessionAndAuthRequirements, router])

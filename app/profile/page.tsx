@@ -253,264 +253,176 @@ const ProfilePage = () => {
   const [pinAuthenticatedChipUID, setPinAuthenticatedChipUID] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  // Check for chipUID in URL parameters
-  useEffect(() => {
-    const loadProfileData = async () => {
-      console.log('🔐 Starting secure profile authentication...');
-      setIsLoadingProfile(true);
+  const loadProfileData = async () => {
+    setIsLoadingProfile(true)
+    
+    try {
+      const urlParams = new URLSearchParams(window.location.search)
+      const chipUID = urlParams.get('chipUID')
+      const verified = urlParams.get('verified') === 'true'
+      const source = urlParams.get('source')
+      const isNewCard = urlParams.get('newCard') === 'true'
+      const setupPIN = urlParams.get('setupPIN') === 'true'
       
-      try {
-        // Import session manager for secure authentication
-        const { SessionManager } = await import('@/lib/nfc/sessionManager');
+      console.log('📱 Profile loading params:', {
+        chipUID,
+        verified,
+        source,
+        isNewCard,
+        setupPIN
+      })
+      
+      // Handle new card setup flow
+      if (isNewCard && setupPIN && chipUID) {
+        console.log('🆕 New card setup detected - showing PIN setup flow')
         
-        // Check for valid active session (not URL parameters!)
-        const session = await SessionManager.getCurrentSession();
-        
-        if (!session.isActive || !session.currentUser) {
-          console.warn('🚫 No active cryptographic session found - redirecting to NFC auth');
-          setIsLoadingProfile(false);
-          window.location.href = '/nfc';
-          return;
+        // Create a basic profile for the new card
+        const newCardProfile = {
+          chipUID,
+          did: urlParams.get('did') || `did:key:z${chipUID}`,
+          displayName: `User ${chipUID.slice(-4).toUpperCase()}`,
+          username: `user_${chipUID.slice(-4).toLowerCase()}`,
+          bio: 'New KairOS user',
+          deviceName: 'New Device',
+          accountType: 'standard',
+          hasPIN: false,
+          isNewUser: true,
+          needsPINSetup: true,
+          source: 'chip-config-new-card',
+          ...generateUserStats(chipUID, true)
         }
         
-        // Check for fresh authentication (from URL params) to allow immediate access
-        const urlSearchParams = new URLSearchParams(window.location.search);
-        const authTimestamp = urlSearchParams.get('auth_timestamp');
-        const isRecentAuth = authTimestamp && (Date.now() - parseInt(authTimestamp)) < 60000; // 1 minute
-        
-        // Additional security: Check if session is recent (but allow fresh auth to bypass)
-        const sessionAge = Date.now() - new Date(session.currentUser?.lastAuthenticated || Date.now()).getTime();
-        const MAX_SESSION_AGE = isRecentAuth ? 60000 : 30 * 60 * 1000; // 1 min for fresh auth, 30 min for normal
-        
-        if (sessionAge > MAX_SESSION_AGE) {
-          console.warn(`🚫 Session too old for profile access (${Math.round(sessionAge/60000)}min) - requiring fresh authentication`);
-          await SessionManager.clearSession();
-          setIsLoadingProfile(false);
-          window.location.href = '/nfc';
-          return;
-        }
-        
-        if (isRecentAuth) {
-          console.log('✅ Fresh authentication detected - allowing immediate profile access');
-        }
-        
-        // Verify the session token cryptographically
-        const isValidSession = await SessionManager.verifySessionToken(session.currentUser?.sessionId || '');
-        if (!isValidSession) {
-          console.warn('🚫 Invalid session token detected - clearing session');
-          await SessionManager.clearSession();
-          setIsLoadingProfile(false);
-          window.location.href = '/nfc';
-          return;
-        }
-        
-        const chipUID = session.currentUser?.chipUID;
-        if (!chipUID) {
-          console.error('❌ No chipUID found in session');
-          setIsLoadingProfile(false);
-          window.location.href = '/nfc';
-          return;
-        }
-        console.log('✅ Valid cryptographic session found for chipUID:', chipUID);
-        
-        // Optional: Check URL parameters for additional context, but don't rely on them for security
-        const additionalParams = new URLSearchParams(window.location.search);
-        const urlChipUID = additionalParams.get('chipUID');
-        
-        // If URL has chipUID, it should match the session (but this is not required for security)
-        if (urlChipUID && urlChipUID !== chipUID) {
-          console.warn('⚠️ URL chipUID doesn\'t match session - possible tampering or stale URL');
-          // Clean up the URL but continue with the valid session
-          const cleanUrl = new URL(window.location.href);
-          cleanUrl.search = '';
-          window.history.replaceState({}, '', cleanUrl.toString());
-        }
-        
-        // Load real user identity from localStorage (from decentralized crypto flow)
+        setUserProfile(newCardProfile)
+        setShowPINSetup(true)
+        setHasPIN(false)
+        setIsLoadingProfile(false)
+        return
+      }
+      
+      if (!chipUID) {
+        console.log('⚠️ No chipUID in profile URL - checking session...')
+        // Try to get chipUID from current session
         try {
-          // Use dynamic import for better Next.js compatibility
-          const { loadLocalIdentity } = await import('@/lib/crypto/decentralizedNFC');
-          const identity = loadLocalIdentity();
+          const { SessionManager } = await import('@/lib/nfc/sessionManager')
+          const session = await SessionManager.getCurrentSession()
           
-          console.log('Loaded local identity:', identity ? 'found' : 'not found');
-          
-          if (!identity) {
-            console.warn('No local identity found - this might be a legacy authentication');
-            
-            // For legacy authentication or first-time users, create a minimal identity
-            const { initializeLocalIdentity } = await import('@/lib/crypto/decentralizedNFC');
-            const newIdentity = initializeLocalIdentity(`User_${chipUID}`);
-            console.log('Created new identity for legacy auth');
-          }
-          
-          // Try to find the device that matches this chipUID
-          const updatedIdentity = loadLocalIdentity();
-          let matchingDevice = null;
-          
-          if (updatedIdentity) {
-            matchingDevice = Object.values(updatedIdentity.devices).find(
-              (device: any) => device.chipUID === chipUID
-            ) as any;
-          }
-          
-          console.log('Matching device found:', matchingDevice ? 'yes' : 'no');
-          
-          if (!matchingDevice) {
-            console.warn('Device not found in local identity registry - creating temporary device entry');
-            // For authenticated sessions without registered devices, create a temporary entry
-            matchingDevice = {
-              deviceId: `temp_${Date.now()}`,
-              deviceName: `Authenticated Device ${chipUID.slice(-4)}`,
-              publicKey: 'temp_public_key', // Placeholder for authenticated session
-              chipUID: chipUID,
-              createdAt: Date.now()
-            };
-          }
-          
-          // Use privacy-first account manager to get or create profile
-          try {
-            const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
-            
-            // Get account data for the authenticated user
-            const accountResult = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
-            const currentAccount = accountResult.account
-            
-            console.log(`Account status: ${accountResult.isNewAccount ? 'New' : 'Existing'}, Device: ${accountResult.isNewDevice ? 'New' : 'Familiar'}`)
-            
-            // Show welcome ritual ONLY for truly new accounts, not returning users on new devices
-            if (accountResult.isNewAccount) {
-              console.log('🎉 New account detected - showing welcome ritual')
-              setShowWelcomeRitual(true)
-            } else {
-              console.log('✅ Returning user - skipping welcome ritual')
-            }
-            
-            // 🆕 Get persistent verification count from database
-            let persistentVerificationCount = currentAccount.stats.totalSessions || 1
-            try {
-              const response = await fetch('/api/nfc/accounts', {
-                method: 'GET',
-                headers: { 'X-Chip-UID': chipUID }
-              })
-              const dbData = await response.json()
-              if (dbData.success && dbData.account) {
-                persistentVerificationCount = dbData.account.verificationCount || currentAccount.stats.totalSessions || 1
-                console.log(`✅ Using persistent verification count: ${persistentVerificationCount}`)
-              }
-            } catch (error) {
-              console.warn('Failed to fetch database verification count, using local:', error)
-            }
-
-            // Use REAL account data instead of mock stats
-            const profile = {
-              chipUID,
-              deviceId: matchingDevice?.deviceId || currentAccount.accountId,
-              deviceName: currentAccount.deviceName,
-              username: currentAccount.username,
-              displayName: currentAccount.displayName,
-              publicKey: currentAccount.publicKey,
-              bio: currentAccount.bio,
-              // Use persistent verification count from database
-              verificationsGiven: persistentVerificationCount,
-              memoriesContributed: currentAccount.stats.totalMoments || 0,
-              momentsWitnessed: currentAccount.moments?.length || 0,
-              totalBonds: 0, // Will be loaded from bond manager
-              joinDate: currentAccount.createdAt,
-              lastSession: {
-                sessionToken: session.currentUser?.sessionId || '',
-                momentId: `moment_${Date.now()}`,
-                timestamp: new Date().toISOString()
-              },
-              cryptographicIdentity: {
-                verified: true,
-                deviceRegistered: !!updatedIdentity,
-                authenticationMethod: updatedIdentity ? 'decentralized-nfc' : 'legacy-nfc',
-                accountId: currentAccount.accountId,
-                totalSessions: currentAccount.stats.totalSessions,
-                totalMoments: currentAccount.stats.totalMoments,
-                isNewAccount: accountResult.isNewAccount,
-                isNewDevice: accountResult.isNewDevice,
-                sessionCreated: session.currentUser?.lastAuthenticated || new Date().toISOString(),
-                sessionExpires: new Date(Date.now() + MAX_SESSION_AGE).toISOString()
-              }
-            }
-            
-            setUserProfile(profile)
-            setHasPIN(currentAccount.hasPIN)
-            
-            // Load user bonds
-            await loadUserBonds(chipUID)
-            
-            // Show PIN setup prompt for new accounts without PIN
-            if (!currentAccount.hasPIN && !currentAccount.pinSetupPrompted) {
-              setShowPINSetup(true)
-            }
-            
-            // Security gate: Require PIN authentication for profile access (unless fresh auth)
-            if (currentAccount.hasPIN && !isRecentAuth) {
-              console.log('🔐 PIN authentication required for profile access')
-              setRequiresPINAuth(true)
-            } else {
-              if (isRecentAuth) {
-                console.log('✅ Fresh authentication detected - skipping profile PIN requirement')
-              } else {
-                console.log('⚠️ No PIN set - allowing access but showing setup prompt')
-              }
-              setPinAuthenticatedChipUID(chipUID)
-            }
-            
-            console.log('✅ Loaded REAL profile data from cryptographically verified session')
-            setIsLoadingProfile(false)
-            
-          } catch (error) {
-            console.error('❌ Failed to load account via NFCAccountManager:', error)
-            setIsLoadingProfile(false)
-            
-            // Show error and redirect - no fallback to mock data
+          if (!session?.currentUser?.chipUID) {
+            console.log('❌ No session found - profile access denied')
             setUserProfile(null)
-            
-            setTimeout(() => {
-              window.location.href = '/nfc'
-            }, 3000)
+            setIsLoadingProfile(false)
             return
           }
           
-          console.log('Profile loaded successfully with cryptographic verification');
-          
+          // Use session chipUID
+          const sessionChipUID = session.currentUser.chipUID
+          console.log(`✅ Using session chipUID: ${sessionChipUID}`)
+          setUserProfile(await loadUserProfileData(sessionChipUID))
         } catch (error) {
-          console.error('Failed to load cryptographic identity:', error);
-          setUserProfile(null);
-          
-          // Only redirect after a delay to allow user to see any error messages
-          setTimeout(() => {
-            window.location.href = '/nfc';
-          }, 3000);
-          return;
+          console.error('Session check failed:', error)
+          setUserProfile(null)
         }
         
-      } catch (error) {
-        console.error('❌ Session verification failed:', error);
-        setUserProfile(null);
-        
-        // Clear any potentially compromised session
-        try {
-          const { SessionManager } = await import('@/lib/nfc/sessionManager');
-          await SessionManager.clearSession();
-        } catch (e) {
-          console.error('Failed to clear session:', e);
-        }
-        
-        // Redirect to NFC authentication
-        setIsLoadingProfile(false);
-        setTimeout(() => {
-          window.location.href = '/nfc';
-        }, 2000);
-        return;
+        setIsLoadingProfile(false)
+        return
       }
-    };
+      
+      if (!verified) {
+        console.log('❌ Profile access requires verification')
+        setUserProfile(null)
+        setIsLoadingProfile(false)
+        return
+      }
+      
+      console.log(`✅ Loading verified profile for chipUID: ${chipUID}`)
+      const profile = await loadUserProfileData(chipUID)
+      setUserProfile(profile)
+      
+    } catch (error) {
+      console.error('Profile loading failed:', error)
+      setUserProfile(null)
+    } finally {
+      setIsLoadingProfile(false)
+    }
+  }
 
-    loadProfileData();
-  }, []);
+  const loadUserProfileData = async (chipUID: string) => {
+    try {
+      // Use privacy-first account manager to get or create profile
+      const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+      
+      // Get account data for the authenticated user
+      const accountResult = await NFCAccountManager.authenticateOrCreateAccount(chipUID)
+      const currentAccount = accountResult.account
+      
+      console.log(`Account status: ${accountResult.isNewAccount ? 'New' : 'Existing'}, Device: ${accountResult.isNewDevice ? 'New' : 'Familiar'}`)
+      
+      // Show welcome ritual ONLY for truly new accounts
+      if (accountResult.isNewAccount) {
+        console.log('🎉 New account detected - showing welcome ritual')
+        setShowWelcomeRitual(true)
+      }
+      
+      // 🆕 Get persistent verification count from database
+      let persistentVerificationCount = currentAccount.stats.totalSessions || 1
+      try {
+        const response = await fetch('/api/nfc/accounts', {
+          method: 'GET',
+          headers: { 'X-Chip-UID': chipUID }
+        })
+        const dbData = await response.json()
+        if (dbData.success && dbData.account) {
+          persistentVerificationCount = dbData.account.verificationCount || currentAccount.stats.totalSessions || 1
+          console.log(`✅ Using persistent verification count: ${persistentVerificationCount}`)
+        }
+      } catch (error) {
+        console.warn('Failed to fetch database verification count, using local:', error)
+      }
+      
+      // Create profile object
+      const profile = {
+        chipUID,
+        deviceId: currentAccount.accountId,
+        deviceName: currentAccount.deviceName,
+        username: currentAccount.username,
+        displayName: currentAccount.displayName,
+        publicKey: currentAccount.publicKey,
+        bio: currentAccount.bio,
+        verificationsGiven: persistentVerificationCount,
+        memoriesContributed: currentAccount.stats.totalMoments || 0,
+        momentsWitnessed: currentAccount.moments?.length || 0,
+        totalBonds: 0, // Will be loaded from bond manager
+        joinDate: currentAccount.createdAt,
+        lastSession: {
+          sessionToken: Date.now().toString(),
+          momentId: `moment_${Date.now()}`,
+          timestamp: new Date().toISOString()
+        },
+        hasPIN: currentAccount.hasPIN,
+        isNewUser: accountResult.isNewAccount
+      }
+      
+      setHasPIN(currentAccount.hasPIN)
+      
+      // Load user bonds
+      await loadUserBonds(chipUID)
+      
+      // Show PIN setup prompt for new accounts without PIN
+      if (!currentAccount.hasPIN && !currentAccount.pinSetupPrompted) {
+        setShowPINSetup(true)
+      }
+      
+      return profile
+      
+    } catch (error) {
+      console.error('❌ Failed to load user profile data:', error)
+      throw error
+    }
+  }
+
+  // Check for chipUID in URL parameters
+  useEffect(() => {
+    loadProfileData()
+  }, [])
 
   const handleWelcomeComplete = () => {
     setShowWelcomeRitual(false)
