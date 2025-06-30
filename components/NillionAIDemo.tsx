@@ -11,7 +11,7 @@ import { Shield, Cpu, Zap, Eye, Lock, CheckCircle } from 'lucide-react'
  * Nillion SecretLLM Demo Component
  * 
  * Demonstrates private AI analysis using Nillion's TEE
- * Perfect for showcasing ESP32 data analysis and user insights
+ * For showcasing ESP32 data analysis and user insights
  */
 
 interface AnalysisResult {
@@ -207,7 +207,7 @@ export default function NillionAIDemo() {
         </div>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Experience private AI analysis using Nillion's Trusted Execution Environment. 
-          Your ESP32 data is processed without ever being exposed - perfect for KairOS!
+                      Your ESP32 data is processed without ever being exposed - ideal for KairOS!
         </p>
         
         {/* Privacy Features */}
@@ -441,13 +441,13 @@ export default function NillionAIDemo() {
                         <h3 className="font-semibold mb-2">Free Tier Available!</h3>
           <p className="text-sm text-gray-600 mb-3">
             This demo uses Nillion's free test API key "Nillion2025" - no setup or registration required. 
-            Perfect for prototyping your privacy-preserving AI applications.
+                          Good for prototyping your privacy-preserving AI applications.
           </p>
           <div className="flex flex-wrap gap-2">
             <Badge>No API Key Needed</Badge>
             <Badge>Instant Setup</Badge>
             <Badge>TEE Protected</Badge>
-            <Badge>Perfect for Prototyping</Badge>
+                          <Badge>Good for Prototyping</Badge>
           </div>
         </CardContent>
       </Card>

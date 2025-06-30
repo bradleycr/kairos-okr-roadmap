@@ -1,6 +1,6 @@
 /**
  * Installation Administration Panel
- * Beautiful interface for creating and managing art installations
+ * Interface for creating and managing art installations
  * Configures subdomain routing, custom auth flows, and theming
  */
 
@@ -376,7 +376,7 @@ ${urls.simulationUrl}
                           NFC Configuration - {installation.name}
                         </DialogTitle>
                         <DialogDescription>
-                          Generate URLs for NFC chips and testing. Perfect for creating physical interactions with your installation.
+                          Generate URLs for NFC chips and testing. Create physical interactions with your installation.
                         </DialogDescription>
                       </DialogHeader>
 
@@ -576,7 +576,7 @@ ${urls.simulationUrl}
                                   </Button>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                  Perfect for demos, development, and testing without NFC hardware.
+                                  For demos, development, and testing without NFC hardware.
                                 </p>
                               </div>
                             </TabsContent>

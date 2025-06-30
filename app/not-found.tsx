@@ -3,7 +3,7 @@
 /**
  * 🌌 KairOS 404 - Lost in the Digital Realm
  * 
- * Beautiful, interactive 404 page with holographic aesthetic
+ * Interactive 404 page with holographic aesthetic
  */
 
 import React, { useState, useEffect } from 'react'

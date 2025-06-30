@@ -1,7 +1,7 @@
 "use client"
 
 // --- ZK Moments: Privacy-Preserving Event Experience ---
-// Beautiful interface for collecting moments and generating ZK proofs
+// Interface for collecting moments and generating ZK proofs
 // Cross-platform design ready for ESP32 companion app
 
 import React, { useState, useEffect } from 'react'
@@ -31,7 +31,7 @@ const SPECIAL_EXPERIENCES = [
     id: 'charlie_birthday',
     title: "Charlie's Birthday",
     subtitle: "Memory Constellation Ritual",
-    description: "Create a beautiful word constellation around Charlie's name. Each friend contributes one word, building a poetic visual representation of memories and associations.",
+    description: "Create a word constellation around Charlie's name. Each friend contributes one word, building a poetic visual representation of memories and associations.",
     href: '/zk-moments/zkbirthday',
     icon: Heart,
     gradient: 'from-pink-500/20 to-purple-500/20',

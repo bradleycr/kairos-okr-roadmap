@@ -1,5 +1,5 @@
-// --- MELD Pendant Selector: Elegant Minimal Design ---
-// Beautiful pendant selection with glass morphism and earth tones
+// --- MELD Pendant Selector: Minimal Design ---
+// Pendant selection with glass morphism and earth tones
 // Supports multiple pendant identities for comprehensive testing
 
 "use client"

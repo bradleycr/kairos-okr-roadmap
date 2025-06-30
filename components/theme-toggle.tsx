@@ -1,5 +1,5 @@
 // KairOS Theme Toggle: Cross-Platform Switch
-// Elegant theme switcher with smooth animations and proper accessibility
+// Theme switcher with smooth animations and proper accessibility
 // Optimized for both mobile and desktop with haptic feedback support
 
 "use client"

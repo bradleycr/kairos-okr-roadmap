@@ -2,7 +2,7 @@
  * Nillion Audio Agent for KairOS
  * 
  * Processes audio transcriptions privately using Nillion's TEE
- * Perfect for voice memos, reflections, and personal insights
+ * For voice memos, reflections, and personal insights
  */
 
 import { nillionAI } from './secretLLM'

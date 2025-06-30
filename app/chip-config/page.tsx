@@ -312,10 +312,10 @@ function generateDIDKeyNFCUrl(
       bytes,
       chars,
       compatibility: {
-        'NTAG213': bytes <= 137 ? 'Perfect' : 'Too Large',
-        'NTAG215': bytes <= 504 ? 'Perfect' : 'Too Large', 
-        'NTAG216': bytes <= 904 ? 'Perfect' : 'Too Large',
-        'NTAG424_DNA': bytes <= 416 ? 'Perfect' : 'Too Large'
+        'NTAG213': bytes <= 137 ? 'Fits' : 'Too Large',
+        'NTAG215': bytes <= 504 ? 'Fits' : 'Too Large', 
+        'NTAG216': bytes <= 904 ? 'Fits' : 'Too Large',
+        'NTAG424_DNA': bytes <= 416 ? 'Fits' : 'Too Large'
       }
     },
     compressionLevel: 'DID:Key (Zero Infrastructure)'
@@ -345,10 +345,10 @@ function generateDecentralizedNFCUrl(
       bytes,
       chars,
       compatibility: {
-        'NTAG213': bytes <= 137 ? 'Perfect' : 'Too Large',
-        'NTAG215': bytes <= 504 ? 'Perfect' : 'Too Large',
-        'NTAG216': bytes <= 904 ? 'Perfect' : 'Too Large',
-        'NTAG424_DNA': bytes <= 416 ? 'Perfect' : 'Too Large'
+        'NTAG213': bytes <= 137 ? 'Fits' : 'Too Large',
+        'NTAG215': bytes <= 504 ? 'Fits' : 'Too Large',
+        'NTAG216': bytes <= 904 ? 'Fits' : 'Too Large',
+        'NTAG424_DNA': bytes <= 416 ? 'Fits' : 'Too Large'
       }
     },
     compressionLevel: 'Decentralized (No Private Keys)'
@@ -380,10 +380,10 @@ function generateOptimalP2PUrl(
   }
   
   const compatibility = {
-    'NTAG213': bytes <= chipLimits.NTAG213 ? '✅ Perfect fit' : '❌ Too large',
-    'NTAG215': bytes <= chipLimits.NTAG215 ? '✅ Perfect fit' : '❌ Too large',
-    'NTAG216': bytes <= chipLimits.NTAG216 ? '✅ Perfect fit' : '❌ Too large',
-    'NTAG424_DNA': bytes <= chipLimits.NTAG424_DNA ? '✅ Perfect fit' : '❌ Too large'
+    'NTAG213': bytes <= chipLimits.NTAG213 ? '✅ Fits' : '❌ Too large',
+    'NTAG215': bytes <= chipLimits.NTAG215 ? '✅ Fits' : '❌ Too large',
+    'NTAG216': bytes <= chipLimits.NTAG216 ? '✅ Fits' : '❌ Too large',
+    'NTAG424_DNA': bytes <= chipLimits.NTAG424_DNA ? '✅ Fits' : '❌ Too large'
   }
   
   return {
@@ -625,7 +625,7 @@ export default function ChipConfigPage() {
     }
 
     try {
-      // Open the beautiful progress dialog
+      // Open the progress dialog
       writeDialog.openDialog()
       
       // Start the write operation with progress tracking
@@ -759,10 +759,10 @@ export default function ChipConfigPage() {
             bytes,
             chars,
             compatibility: {
-              'NTAG213': bytes <= 137 ? 'Perfect' : 'Too Large',
-              'NTAG215': bytes <= 504 ? 'Perfect' : 'Too Large', 
-              'NTAG216': bytes <= 904 ? 'Perfect' : 'Too Large',
-              'NTAG424_DNA': bytes <= 416 ? 'Perfect' : 'Too Large'
+              'NTAG213': bytes <= 137 ? 'Fits' : 'Too Large',
+              'NTAG215': bytes <= 504 ? 'Fits' : 'Too Large', 
+              'NTAG216': bytes <= 904 ? 'Fits' : 'Too Large',
+              'NTAG424_DNA': bytes <= 416 ? 'Fits' : 'Too Large'
             }
           },
           compressionLevel: 'Legacy Format (Complete Crypto)',
@@ -1181,7 +1181,7 @@ Generate Secure NFC URL
                               <AlertTriangleIcon className="h-3 w-3 text-destructive" />
                             )}
                             <span className="text-xs text-muted-foreground">
-                              {utilizationPercent <= 70 ? 'Perfect fit' : 
+                              {utilizationPercent <= 70 ? 'Good fit' : 
                                utilizationPercent <= 90 ? 'Good fit' : 'Tight fit'}
                             </span>
                           </div>
@@ -1353,7 +1353,7 @@ Generate Secure NFC URL
                                     <div className="flex justify-between">
                                       <span>Reliability:</span>
                                       <span className={NFCStatusIndicator.getStatusColor(nfcSupport.estimatedReliability)}>
-                                        {nfcSupport.estimatedReliability === 'high' ? 'Excellent' :
+                                        {nfcSupport.estimatedReliability === 'high' ? 'High' :
                                          nfcSupport.estimatedReliability === 'medium' ? 'Good' :
                                          nfcSupport.estimatedReliability === 'low' ? 'Experimental' : 'Fallback'}
                                       </span>
@@ -1426,7 +1426,7 @@ Generate Secure NFC URL
                             <div className="mt-3 pt-3 border-t border-primary/20">
                               {deviceInfo.isIPhone ? (
                                 <p className="text-xs text-muted-foreground">
-                                  <strong>iPhone:</strong> NFC authentication works perfectly in Safari when you tap programmed chips. Writing requires NFC Tools app.
+                                  <strong>iPhone:</strong> NFC authentication works well in Safari when you tap programmed chips. Writing requires NFC Tools app.
                                 </p>
                               ) : deviceInfo.isAndroid ? (
                                 <p className="text-xs text-muted-foreground">
@@ -1524,7 +1524,7 @@ Generate Secure NFC URL
         </div>
       </div>
 
-      {/* 🚀 Beautiful Web NFC Write Dialog */}
+              {/* 🚀 Web NFC Write Dialog */}
       <NFCWriteDialog
         isOpen={writeDialog.isOpen}
         onClose={writeDialog.closeDialog}

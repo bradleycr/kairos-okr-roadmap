@@ -401,7 +401,7 @@ bool validatePendantData(String pendantDID, String pendantId) {
   return true;
 }
 
-// --- Pixel-Perfect E-Paper Display Functions ---
+// --- E-Paper Display Functions ---
 void clearDisplayBuffer() {
   memset(framebuffer, 0x00, sizeof(framebuffer)); // 0 = white in e-paper
 }

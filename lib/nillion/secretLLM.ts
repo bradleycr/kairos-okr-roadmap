@@ -2,7 +2,7 @@
  * Nillion SecretLLM Integration for KairOS
  * 
  * Uses Nillion's Trusted Execution Environment (TEE) for private AI processing
- * Perfect for analyzing sensitive ESP32 data and user profiles while maintaining privacy
+ * For analyzing sensitive ESP32 data and user profiles while maintaining privacy
  */
 
 export interface NillionSecretLLMConfig {

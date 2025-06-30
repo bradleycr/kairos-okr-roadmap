@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/use-toast'
  * KairOS Main Landing Page
  * 
  * Minimal holographic interface with sophisticated visual effects
- * Elegant entrance to the cryptographic authentication system
+ * Entry point to the cryptographic authentication system
  * Enhanced light mode visibility with cream/off-white aesthetics
  */
 export default function HomePage() {

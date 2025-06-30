@@ -33,7 +33,7 @@ function createDefaultRituals(): Ritual[] {
     {
       id: 'default-moments',
       name: 'Moment Collection',
-      description: 'Save beautiful cryptographic moments at each node',
+      description: 'Save cryptographic moments at each node',
       createdAt: Date.now(),
       version: '1.0.0',
       nodes: currentNodes.map(node => ({
@@ -70,7 +70,7 @@ function getDefaultRituals(): Ritual[] {
       {
         id: 'minimal-moment',
         name: 'Minimal Moment',
-        description: 'Beautiful single-node moment collection',
+        description: 'Single-node moment collection',
         createdAt: Date.now(),
         version: '1.0.0',
         nodes: [{
@@ -752,7 +752,7 @@ export async function executeRitualBehavior(
 
       case 'leave_comment':
         const commentArtworkId = nodeConfig.parameters?.artworkId
-        const comment = nodeConfig.parameters?.comment || 'Beautiful artwork!'
+        const comment = nodeConfig.parameters?.comment || 'Artwork!'
         if (!commentArtworkId) throw new Error('Artwork ID required for leave_comment behavior')
         
         const commentInteraction = recordInteraction({
@@ -844,7 +844,7 @@ export async function executeRitualBehavior(
 
       case 'collect_memory':
         const memoryArtworkId = nodeConfig.parameters?.artworkId
-        const memoryNote = nodeConfig.parameters?.memoryNote || 'A moment with this beautiful artwork'
+        const memoryNote = nodeConfig.parameters?.memoryNote || 'A moment with this artwork'
         if (!memoryArtworkId) throw new Error('Artwork ID required for collect_memory behavior')
         
         const memoryInteraction = recordInteraction({

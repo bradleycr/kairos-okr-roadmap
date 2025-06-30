@@ -234,10 +234,10 @@ export function generateiPhoneNFCUrl(
   // Step 3: Analyze URL efficiency and compatibility
   const bytes = new TextEncoder().encode(nfcUrl).length
   const compatibility = {
-    'NTAG213': bytes <= 137 ? '✅ Fits perfectly' : '❌ Too long',
-    'NTAG215': bytes <= 492 ? '✅ Fits perfectly' : '❌ Too long', 
-    'NTAG216': bytes <= 900 ? '✅ Fits perfectly' : '❌ Too long',
-    'NTAG424_DNA': bytes <= 256 ? '✅ Fits perfectly' : '❌ Too long'
+        'NTAG213': bytes <= 137 ? '✅ Fits well' : '❌ Too long',
+    'NTAG215': bytes <= 492 ? '✅ Fits well' : '❌ Too long',
+    'NTAG216': bytes <= 900 ? '✅ Fits well' : '❌ Too long',
+    'NTAG424_DNA': bytes <= 256 ? '✅ Fits well' : '❌ Too long'
   }
   
   // Step 4: Final URL validation
@@ -292,10 +292,10 @@ export function analyzeiPhoneNFCUrl(url: string) {
     chars,
     efficiency: chars / bytes, // Characters per byte
     nfcCompatibility: {
-      'NTAG213': bytes <= 137 ? '✅ Perfect for NFC programming' : '❌ Too long',
-      'NTAG215': bytes <= 492 ? '✅ Perfect for NFC programming' : '❌ Too long',
-      'NTAG216': bytes <= 900 ? '✅ Perfect for NFC programming' : '❌ Too long',
-      'NTAG424_DNA': bytes <= 256 ? '✅ Perfect for NFC programming' : '❌ Too long'
+          'NTAG213': bytes <= 137 ? '✅ Good for NFC programming' : '❌ Too long',
+    'NTAG215': bytes <= 492 ? '✅ Good for NFC programming' : '❌ Too long',
+    'NTAG216': bytes <= 900 ? '✅ Good for NFC programming' : '❌ Too long',
+    'NTAG424_DNA': bytes <= 256 ? '✅ Good for NFC programming' : '❌ Too long'
     },
     recommendations: bytes > 200 ? [
       'Consider using ultra-compressed format (?u=...&s=...&k=...)',
@@ -366,7 +366,7 @@ export function getiPhoneNFCChipRecommendations(urlLength: number) {
       maxSize: 137,
       fits: urlLength <= 137,
       price: '$0.15',
-      features: ['Ultra cheap', 'Basic NFC', 'Perfect for short URLs'],
+      features: ['Ultra cheap', 'Basic NFC', 'Good for short URLs'],
       limitations: ['Very limited space', 'Single URL only']
     },
     'NTAG215': {
@@ -380,7 +380,7 @@ export function getiPhoneNFCChipRecommendations(urlLength: number) {
       maxSize: 900,
       fits: urlLength <= 900,
       price: '$0.35',
-      features: ['Large size', 'Excellent compatibility', 'Room for full URLs'],
+      features: ['Large size', 'High compatibility', 'Room for full URLs'],
       limitations: ['Larger/more expensive', 'Overkill for simple URLs']
     },
     'NTAG424_DNA': {

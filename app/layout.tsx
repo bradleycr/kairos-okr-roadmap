@@ -72,7 +72,7 @@ const ServiceWorkerScript = () => (
   />
 )
 
-// --- RootLayout: The elegant entrypoint for all pages ---
+// --- RootLayout: The main entrypoint for all pages ---
 export default function RootLayout({
   children,
 }: {

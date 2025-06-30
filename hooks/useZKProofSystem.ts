@@ -1,14 +1,14 @@
 "use client"
 
 // --- React Hook for ZK Proof Generation ---
-// Beautiful, client-side integration with the ZK proof system
+// Client-side integration with the ZK proof system
 import { useState, useCallback, useRef } from 'react'
 import { ZKProofSystem } from '@/lib/zk/zkProofSystem'
 import type { ZKMoment, ZKMomentProof, ZKSession, ProofGenerationResult } from '@/lib/types'
 import type { ZKCircuitConfig } from '@/lib/zk/zkProofSystem'
 
 /**
- * Elegant React hook for zero-knowledge proof generation
+ * React hook for zero-knowledge proof generation
  * Provides stateful interaction with the ZK proof system
  */
 export function useZKProofSystem() {

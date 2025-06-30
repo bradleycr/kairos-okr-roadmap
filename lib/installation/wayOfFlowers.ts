@@ -20,7 +20,7 @@ export interface FlowerPath {
   characteristics: {
     primaryColor: string
     secondaryColor: string
-    bloomType: 'delicate' | 'vibrant' | 'wild' | 'elegant'
+    bloomType: 'delicate' | 'vibrant' | 'wild' | 'refined'
     growthPattern: 'climbing' | 'spreading' | 'upright' | 'cascading'
     seasonality: 'spring' | 'summer' | 'autumn' | 'winter'
   }
@@ -218,7 +218,7 @@ class WayOfFlowersManager {
   
   private generateInitialCharacteristics(): FlowerPath['characteristics'] {
     const colors = ['#E8F5E8', '#F0F8FF', '#FFF8DC', '#F5F5DC']
-    const bloomTypes: FlowerPath['characteristics']['bloomType'][] = ['delicate', 'vibrant', 'wild', 'elegant']
+    const bloomTypes: FlowerPath['characteristics']['bloomType'][] = ['delicate', 'vibrant', 'wild', 'refined']
     const growthPatterns: FlowerPath['characteristics']['growthPattern'][] = ['climbing', 'spreading', 'upright', 'cascading']
     const seasons: FlowerPath['characteristics']['seasonality'][] = ['spring', 'summer', 'autumn', 'winter']
     
@@ -268,7 +268,7 @@ class WayOfFlowersManager {
     const messages = {
       seeding: `Your seed has been planted with ${offering.name}. The journey begins...`,
       sprouting: `Your flower path grows stronger through ${offering.name}. New growth appears!`,
-      blooming: `Beautiful blooms emerge from your support of ${offering.name}. Your impact flourishes!`,
+      blooming: `Blooms emerge from your support of ${offering.name}. Your impact flourishes!`,
       fruiting: `Your dedication to ${offering.name} bears fruit. Your garden inspires others!`
     }
     

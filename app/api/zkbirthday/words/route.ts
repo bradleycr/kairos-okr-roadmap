@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
       
       if (letterWords.length >= MAX_WORDS_PER_LETTER) {
         console.warn(`➕ ADD WORD: 🔒 LOCKED - Letter "${letter}" is full with ${letterWords.length} words`)
-        throw new Error(`Letter "${letter}" is full! Maximum ${MAX_WORDS_PER_LETTER} words per letter to keep the constellation beautiful. ✨`)
+        throw new Error(`Letter "${letter}" is full! Maximum ${MAX_WORDS_PER_LETTER} words per letter to keep the constellation balanced. ✨`)
       }
       
       // Check for duplicates

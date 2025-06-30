@@ -3,7 +3,7 @@
 /**
  * DID:Key NFC Authentication Test - Production Validation Tool
  * 
- * A beautiful, focused interface to test the complete DID:Key authentication flow.
+ * A focused interface to test the complete DID:Key authentication flow.
  * This tool validates the entire production system: DID:Key generation, PIN-based
  * private key derivation, W3C standards compliance, and ESP32-style verification.
  * 

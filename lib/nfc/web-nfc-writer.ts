@@ -1,7 +1,7 @@
 /**
  * ✍️ Web NFC Writer for KairOS Authentication Tags
  * 
- * Provides elegant, reliable Web NFC writing functionality that integrates
+ * Provides reliable Web NFC writing functionality that integrates
  * seamlessly with existing NDEF encoding infrastructure. Features comprehensive
  * error handling, progress tracking, and mobile-optimized user experience.
  * 
@@ -66,9 +66,9 @@ interface NTAG424Config {
 }
 
 /**
- * 🎯 Elegant Web NFC Writer Class
+ * 🎯 Web NFC Writer Class
  * 
- * Handles all aspects of Web NFC writing with beautiful error handling,
+ * Handles all aspects of Web NFC writing with comprehensive error handling,
  * progress tracking, and seamless integration with existing architecture.
  */
 export class WebNFCWriter {
@@ -138,7 +138,7 @@ export class WebNFCWriter {
       }
     }
 
-    // Prevent concurrent writes with elegant state management
+    // Prevent concurrent writes with state management
     if (this.isWriting) {
       return {
         success: false,
@@ -287,7 +287,7 @@ export class WebNFCWriter {
   /**
    * 🎨 Create Optimized NDEF Message
    * 
-   * Uses existing KairOS NDEF encoder to create perfectly optimized
+   * Uses existing KairOS NDEF encoder to create optimized
    * messages for different NFC chip types.
    */
   private createOptimizedNDEFMessage(config: NTAG424Config): NDEFMessage {

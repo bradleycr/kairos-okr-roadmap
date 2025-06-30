@@ -290,7 +290,7 @@ export const truncateHash = (hash: string, length: number = 8): string => {
 
 // --- Initialize Default Configuration ---
 export function initializeDefaultNodes(): void {
-  // Start with a single beautiful minimal node
+  // Start with a single minimal node
   DYNAMIC_MELD_NODES = [NODE_TEMPLATES.minimal]
   eventBus.emit('nodesUpdated', DYNAMIC_MELD_NODES)
 } 

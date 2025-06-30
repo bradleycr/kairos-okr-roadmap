@@ -3,7 +3,7 @@
 /**
  * ⚡ KairOS Error - System Malfunction Detected
  * 
- * Beautiful, interactive error page with diagnostic animations
+ * Interactive error page with diagnostic animations
  */
 
 import React, { useState, useEffect } from 'react'

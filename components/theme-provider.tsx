@@ -1,4 +1,4 @@
-// --- Beautiful Theme Provider for KairOS ---
+// --- Theme Provider for KairOS ---
 // Minimal Dark Theme as Default with Apple-inspired Aesthetics
 
 "use client"

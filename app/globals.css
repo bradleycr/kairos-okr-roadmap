@@ -17,7 +17,7 @@
   --retro-green: 149 189 152;          /* Sage green - muted, sophisticated */
   --retro-cyan: 144 193 196;           /* Dusty teal - complement to orange */
   --retro-orange: 245 181 145;         /* Her-inspired warm peach */
-  --retro-purple: 186 162 195;         /* Lavender - soft and elegant */
+      --retro-purple: 186 162 195;         /* Lavender - soft tone */
   --retro-coral: 237 164 154;          /* Warm coral - extends orange family */
   --retro-sage: 168 184 157;           /* Muted sage - earthy sophistication */
   --retro-rose: 218 170 170;           /* Dusty rose - vintage warmth */
@@ -42,7 +42,7 @@
   --background: 251 248 243;            /* Warm cream background (not pure white) */
   --foreground: 45 42 38;               /* Warm dark text */
   
-  /* Cards and surfaces - Elegant cream depth */
+  /* Cards and surfaces - Cream depth */
   --card: 254 252 249;                  /* Off-white cream cards */
   --card-foreground: 45 42 38;          /* Warm dark text */
   
@@ -62,7 +62,7 @@
   --muted: 248 246 242;                 /* Very light warm gray */
   --muted-foreground: 109 107 102;      /* Medium warm gray */
   
-  /* Accent - Elegant dusty teal (complementary) */
+      /* Accent - Dusty teal (complementary) */
   --accent: 144 193 196;                /* Dusty teal accent */
   --accent-foreground: 45 42 38;        /* Warm dark text */
   
@@ -97,7 +97,7 @@
   --background: 22 20 18;               /* Deep warm dark */
   --foreground: 252 250 247;            /* Warm light text */
   
-  /* Cards and surfaces - Elegant depth */
+      /* Cards and surfaces - Depth */
   --card: 37 33 29;                     /* Warm dark cards */
   --card-foreground: 252 250 247;       /* Warm light text */
   
@@ -117,7 +117,7 @@
   --muted: 52 47 42;
   --muted-foreground: 168 163 156;
   
-  /* Accent - Elegant teal glow */
+      /* Accent - Teal glow */
   --accent: 144 193 196;                /* Dusty teal accent */
   --accent-foreground: 22 20 18;        /* Deep dark */
   
@@ -270,7 +270,7 @@
     );
 }
 
-/* Elegant Grid Background */
+/* Grid Background */
 .pixel-grid {
   background-image: 
     linear-gradient(rgba(168, 184, 157, 0.05) 1px, transparent 1px),
@@ -481,8 +481,8 @@ body {
    📱 MOBILE-FIRST OPTIMIZATIONS
    ======================================== */
 
-/* Perfect mobile centering for landing pages */
-.mobile-center-perfect {
+/* Mobile centering for landing pages */
+.mobile-center-optimal {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -493,7 +493,7 @@ body {
 }
 
 @media (min-width: 640px) {
-  .mobile-center-perfect {
+  .mobile-center-optimal {
     min-height: 50vh;
   }
 }

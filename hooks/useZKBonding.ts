@@ -1,5 +1,5 @@
 // --- React Hook for ZK Bonding System ---
-// Beautiful integration of cryptographic social bonding with KairOS
+// Integration of cryptographic social bonding with KairOS
 
 import { useState, useCallback, useRef } from 'react'
 import { ZKBondingSystem, type ZKBondSignature, type ZKRitualBond, type PrivateSetIntersection } from '@/lib/zk/zkBondingSystem'
@@ -7,7 +7,7 @@ import type { UserBond } from '@/app/api/nfc/bonds/route'
 import { useToast } from '@/components/ui/use-toast'
 
 /**
- * Elegant React hook for zero-knowledge social bonding
+ * React hook for zero-knowledge social bonding
  * Provides stateful interaction with cryptographic bonding protocols
  */
 export function useZKBonding() {

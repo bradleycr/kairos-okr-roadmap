@@ -129,7 +129,7 @@ function InstallationGuideContent() {
         cost: '$15-25',
         link: 'https://www.waveshare.com/2.9inch-e-paper-module.htm',
         required: true,
-        description: 'High-contrast display for beautiful UI'
+        description: 'High-contrast display for clean UI'
       },
       {
         item: 'Passive Buzzer Module',
@@ -256,7 +256,7 @@ GND          Negative       Ground
       },
       {
         name: 'GxEPD2',
-        purpose: 'E-paper display driver for beautiful UI',
+        purpose: 'E-paper display driver for clean UI',
         install: 'Library Manager > Search "GxEPD2" > Install',
         version: '1.5.0+'
       },

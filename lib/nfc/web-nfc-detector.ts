@@ -1,7 +1,7 @@
 /**
  * 🌐 Web NFC Capability Detection for KairOS
  * 
- * Provides elegant detection of Web NFC API support across browsers and devices.
+ * Provides detection of Web NFC API support across browsers and devices.
  * Implements progressive enhancement patterns to gracefully fallback when unsupported.
  * 
  * @author KairOS Team  
@@ -26,7 +26,7 @@ interface NFCCompatibility {
 }
 
 /**
- * 🔍 Elegant Web NFC Capability Detector
+ * 🔍 Web NFC Capability Detector
  * 
  * Provides comprehensive detection of Web NFC support with detailed
  * compatibility information and user-friendly recommendations.
@@ -43,7 +43,7 @@ export class WebNFCDetector {
     const hasNDEFReader = 'NDEFReader' in window
     const isSecureContext = window.isSecureContext
     
-    // Browser detection with elegant pattern matching
+    // Browser detection with pattern matching
     const userAgent = navigator.userAgent.toLowerCase()
     const isSupportedBrowser = this.checkBrowserSupport(userAgent)
     const isSupportedPlatform = this.checkPlatformSupport(userAgent)
@@ -71,7 +71,7 @@ export class WebNFCDetector {
   static async checkCompatibility(): Promise<NFCCompatibility> {
     const support = await this.detectSupport()
     
-    // Perfect support - ready to rock! 🎉
+    // Full support - ready to use! 🎉
     if (support.estimatedReliability === 'high') {
       return {
         supported: true,
@@ -111,7 +111,7 @@ export class WebNFCDetector {
    * 🔐 Permission & Access Verification
    * 
    * Tests actual NFC permissions and hardware availability
-   * with elegant timeout and error handling.
+   * with timeout and error handling.
    */
   static async verifyNFCAccess(timeoutMs: number = 3000): Promise<boolean> {
     try {
@@ -131,7 +131,7 @@ export class WebNFCDetector {
       return true
       
     } catch (error: any) {
-      // Handle specific error types elegantly
+      // Handle specific error types
       if (error.name === 'NotAllowedError') {
         console.warn('🚫 NFC permission denied by user')
       } else if (error.name === 'NotSupportedError') {
@@ -176,7 +176,7 @@ export class WebNFCDetector {
     
     if (!hasAPI || !secureContext) return 'none'
     
-    // Perfect conditions: Chrome/Edge on Android with HTTPS
+          // Optimal conditions: Chrome/Edge on Android with HTTPS
     if (browserOK && platformOK) return 'high'
     
     // Partial support: Right browser but wrong platform, or vice versa
@@ -237,7 +237,7 @@ export class WebNFCDetector {
  * 🎨 NFC Support Status Indicator
  * 
  * Provides visual status indicators for different support levels
- * with beautiful emoji and color coding.
+      * with emoji and color coding.
  */
 export class NFCStatusIndicator {
   
