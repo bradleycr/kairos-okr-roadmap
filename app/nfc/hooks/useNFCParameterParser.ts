@@ -439,14 +439,14 @@ export function useNFCParameterParser() {
         
         // Last resort: show PIN entry
         console.log('🚨 Last resort: requiring PIN for security')
-        setRequiresPIN(true)
-        setPinGateInfo({
-          isNewAccount: true,
-          isNewDevice: true,
-          hasPIN: false,
+      setRequiresPIN(true)
+      setPinGateInfo({
+        isNewAccount: true,
+        isNewDevice: true,
+        hasPIN: false,
           reason: 'Legacy card verification required (last resort)',
           displayName: `User ${chipUID?.slice(-4).toUpperCase() || 'Unknown'}`
-        })
+      })
       }
     }
   }, [toast, router, getDisplayNameForChip])
@@ -491,41 +491,7 @@ export function useNFCParameterParser() {
         setDebugInfo(prev => [...prev, `🔍 Checking database for PIN requirements`])
         
         if (result.format === 'legacy-full') {
-          // 🎯 LEGACY CARD - Direct redirect to profile (bypass complex auth flow)
-          console.log('🎯 Legacy-full format detected - redirecting directly to profile')
-          console.log('🔍 Legacy card params:', {
-            chipUID: result.params.chipUID,
-            hasDID: !!result.params.did,
-            hasSignature: !!result.params.signature,
-            hasPublicKey: !!result.params.publicKey
-          })
-          setDebugInfo(prev => [...prev, `🎯 Legacy-full format: ${result.params.chipUID}`])
-          
-          // For legacy-full format, we have all the crypto proof we need
-          // Redirect directly to profile like the working legacy cards
-          try {
-            console.log('🚀 Direct redirect for legacy-full format')
-            
-            const profileUrl = new URL('/profile', window.location.origin)
-            profileUrl.searchParams.set('verified', 'true')
-            profileUrl.searchParams.set('source', 'legacy-card-auth')
-            profileUrl.searchParams.set('chipUID', result.params.chipUID!)
-            profileUrl.searchParams.set('accountId', 'verified') // We have crypto proof
-            profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
-            profileUrl.searchParams.set('auth_timestamp', Date.now().toString())
-            
-            console.log('🚀 Legacy-full redirect to:', profileUrl.toString())
-            router.push(profileUrl.toString())
-            return
-            
-          } catch (error) {
-            console.error('🚨 Direct redirect failed, falling back to auth flow:', error)
-            // Fall through to the normal authentication flow
-          }
-        }
-        
-        if (result.format === 'legacy-full') {
-          // 🎯 LEGACY CARD - Check database for PIN requirements (fallback)
+          // 🎯 LEGACY CARD - Check database for PIN requirements
           console.log('🎯 Legacy card detected - checking database for PIN requirements')
           console.log('🔍 Legacy card params:', {
             chipUID: result.params.chipUID,

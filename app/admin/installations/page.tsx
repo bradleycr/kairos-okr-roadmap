@@ -34,6 +34,16 @@ export default function InstallationAdmin() {
     }
   }
 
+  const clearAndReload = () => {
+    // Clear localStorage to fix duplicates
+    localStorage.removeItem('kairos-installations')
+    localStorage.removeItem('kairos-installation-interactions')
+    localStorage.removeItem('kairos-installation-stats')
+    
+    // Reload page to reinitialize
+    window.location.reload()
+  }
+
   const copySubdomainUrl = (installationId: string) => {
     const url = `https://${installationId}.kair-os.vercel.app`
     navigator.clipboard.writeText(url)
@@ -52,6 +62,14 @@ export default function InstallationAdmin() {
           <Globe className="h-4 w-4" />
           <AlertDescription>
             Each installation gets its own subdomain with custom auth flows and theming.
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={clearAndReload}
+              className="ml-4 text-xs"
+            >
+              Reset Data
+            </Button>
           </AlertDescription>
         </Alert>
 
@@ -80,9 +98,13 @@ export default function InstallationAdmin() {
                   
                   <div className="flex items-center justify-between">
                     <Badge className="bg-green-100 text-green-800">Ready</Badge>
-                    <Button size="sm" variant="outline">
-                      <Settings className="w-3 h-3 mr-1" />
-                      Configure
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => window.open(`http://${installation.id}.localhost:3001`, '_blank')}
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      Visit
                     </Button>
                   </div>
                 </CardContent>

@@ -1,7 +1,7 @@
 /**
  * KairOS Installation Middleware
- * Handles subdomain routing for specialized art installations
- * Enables custom auth flows and experiences per installation
+ * Handles routing for specialized art installations
+ * Note: Subdomain routing not available for kair-os.vercel.app domain
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,7 +10,12 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone()
   const hostname = request.headers.get('host') || ''
   
-  // Extract subdomain from hostname
+  // For kair-os.vercel.app, all routing happens via paths (no subdomains)
+  if (hostname.includes('kair-os.vercel.app')) {
+    return NextResponse.next()
+  }
+  
+  // For development or other domains, try subdomain extraction
   const subdomain = extractSubdomain(hostname)
   
   // If we have a subdomain (installation), handle it
@@ -23,17 +28,10 @@ export function middleware(request: NextRequest) {
 }
 
 function extractSubdomain(hostname: string): string | null {
-  // Handle different environments
-  const isProduction = hostname.includes('kair-os.vercel.app')
+  // Handle different environments (excluding kair-os.vercel.app)
   const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1')
   
-  if (isProduction) {
-    // Extract subdomain from production: "wof.kair-os.vercel.app" -> "wof"
-    const parts = hostname.split('.')
-    if (parts.length > 3) {
-      return parts[0]
-    }
-  } else if (isLocalhost && hostname.includes('.')) {
+  if (isLocalhost && hostname.includes('.')) {
     // Handle local development: "way-of-flowers.localhost:3000" -> "way-of-flowers"
     const parts = hostname.split('.')
     if (parts.length > 1 && !parts[0].includes(':')) {
@@ -65,13 +63,12 @@ function handleInstallationRouting(
   
   // Root path goes to installation experience
   if (pathname === '/') {
-    url.pathname = `/installation/${installation}`
-    return NextResponse.rewrite(url)
-  }
-  
-  // Handle specific known installations
-  if (installation === 'wof' || installation === 'way-of-flowers') {
-    url.pathname = '/installation/way-of-flowers'
+    // Handle specific known installations
+    if (installation === 'wof' || installation === 'way-of-flowers') {
+      url.pathname = '/installation/way-of-flowers'
+    } else {
+      url.pathname = `/installation/${installation}`
+    }
     return NextResponse.rewrite(url)
   }
   

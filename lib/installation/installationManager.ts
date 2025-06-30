@@ -222,8 +222,11 @@ class InstallationManager {
   }
 
   private async createSampleInstallations(): Promise<void> {
-    // Way of Flowers Installation - using 'way-of-flowers' as the ID for subdomain
-    const wayOfFlowersInstallation = await this.createInstallation({
+    // Way of Flowers Installation - Create directly with the correct ID
+    const wayOfFlowersInstallation: InstallationConfig = {
+      id: 'way-of-flowers',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       name: "Way of Flowers",
       description: "An interactive journey of environmental stewardship where each choice nurtures your digital flower and supports real-world conservation",
       artist: "Environmental Collective",
@@ -282,14 +285,15 @@ class InstallationManager {
       allowsRating: true,
       allowsSharing: true,
       isActive: true
-    })
+    }
     
-    // Override the ID to match subdomain expectations
-    wayOfFlowersInstallation.id = 'way-of-flowers'
     this.installations.set('way-of-flowers', wayOfFlowersInstallation)
 
-    // Civic Portraits Installation
-    await this.createInstallation({
+    // Civic Portraits Installation - Create directly with correct ID
+    const civicPortraitsInstallation: InstallationConfig = {
+      id: 'civic-portraits',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
       name: "Civic Portraits",
       description: "Interactive portraits of community leaders and changemakers throughout history",
       artist: "Democracy Arts Collective",
@@ -348,7 +352,9 @@ class InstallationManager {
       allowsRating: false,
       allowsSharing: true,
       isActive: true
-    })
+    }
+    
+    this.installations.set('civic-portraits', civicPortraitsInstallation)
   }
 }
 

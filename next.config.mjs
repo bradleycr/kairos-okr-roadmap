@@ -19,6 +19,24 @@ const nextConfig = {
   
   // --- Output Configuration ---
   output: 'standalone',
+  
+  // --- Development Configuration for Subdomains ---
+  async headers() {
+    return [
+      {
+        source: '/_next/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*'
+          }
+        ]
+      }
+    ]
+  },
+  
+  // External packages for server components (moved out of experimental in Next.js 15)
+  serverExternalPackages: ['@noble/curves', '@noble/hashes']
 }
 
 export default nextConfig

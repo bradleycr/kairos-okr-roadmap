@@ -5,8 +5,7 @@
   "framework": "nextjs",
   "regions": ["iad1"],
   "alias": [
-    "kairos.new-seks-team.vercel.app",
-    "wof.new-seks-team.vercel.app"
+    "kair-os.vercel.app"
   ],
   "functions": {
     "app/api/zkbirthday/**/*.ts": {

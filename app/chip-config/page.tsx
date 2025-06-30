@@ -234,7 +234,7 @@ async function generateLegacyFormatNFCConfig(chipUID: string): Promise<{
     // Always use production URL for NFC chips
     const baseUrl = 'https://kair-os.vercel.app'
     
-    // Generate legacy format URL (matches your working card format exactly)
+    // Generate legacy format URL (matches working card format exactly - uses 'uid' not 'chipUID')
     const nfcUrl = `${baseUrl}/nfc?did=${encodeURIComponent(did)}&signature=${signature}&publicKey=${publicKey}&uid=${chipUID}`
     
     return {

@@ -72,26 +72,6 @@ function NFCPageContent() {
     }
   }, [hasValidParameters, requiresPIN, accountInitialized, pinVerificationComplete, format, parsedParams, debugInfo, verificationState.status])
 
-  // 🚀 SIMPLE FIX: Direct redirect for legacy-full format URLs
-  useEffect(() => {
-    if (format === 'legacy-full' && parsedParams.chipUID) {
-      console.log('🚀 IMMEDIATE REDIRECT: Legacy-full format detected, redirecting to profile')
-      
-      const profileUrl = new URL('/profile', window.location.origin)
-      profileUrl.searchParams.set('verified', 'true')
-      profileUrl.searchParams.set('source', 'legacy-card-auth')
-      profileUrl.searchParams.set('chipUID', parsedParams.chipUID)
-      profileUrl.searchParams.set('accountId', 'verified')
-      profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
-      profileUrl.searchParams.set('auth_timestamp', Date.now().toString())
-      
-      console.log('🚀 Redirecting to:', profileUrl.toString())
-      
-      // Use replace to avoid back button issues
-      window.location.replace(profileUrl.toString())
-    }
-  }, [format, parsedParams.chipUID])
-
   // Auto-start authentication when valid parameters are detected and no PIN required
   useEffect(() => {
     if (hasValidParameters() && !requiresPIN && accountInitialized && verificationState.status === 'initializing') {
@@ -198,19 +178,12 @@ function NFCPageLoading() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/25 to-secondary/15 animate-pulse"></div>
       </div>
       
-      <div className="h-full w-full flex items-center justify-center px-4 relative z-10" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="text-center space-y-6">
-          <div className="relative p-4 rounded-full bg-primary/10 border border-primary/20 mx-auto w-fit">
-            <LoaderIcon className="h-12 w-12 animate-spin text-primary" />
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative p-3 rounded-full bg-primary/10 border border-primary/20 mx-auto">
+            <NfcIcon className="h-8 w-8 text-primary animate-pulse" />
           </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-mono font-light text-foreground/90">
-              KairOS
-            </h1>
-            <p className="text-muted-foreground font-mono text-sm">
-              Initializing secure gateway...
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground font-mono">Loading KairOS Gateway...</p>
         </div>
       </div>
     </div>
@@ -218,7 +191,7 @@ function NFCPageLoading() {
 }
 
 /**
- * Main Page Export with Suspense Boundary
+ * Main NFC Page Export with Suspense Boundary
  */
 export default function NFCPage() {
   return (
