@@ -332,11 +332,13 @@ export function useNFCParameterParser() {
       console.log(`🔍 Legacy card PIN gate result:`, {
         requiresPIN: result.requiresPIN,
         hasAccount: !result.isNewAccount,
-        hasPIN: result.hasPIN
+        hasPIN: result.hasPIN,
+        reason: result.reason
       })
       
       if (result.requiresPIN) {
         // 🔐 PIN required - set up for single PIN entry
+        console.log('🔐 Setting up PIN requirement for legacy card')
         setRequiresPIN(true)
         setPinGateInfo({
           isNewAccount: result.isNewAccount,
@@ -352,11 +354,14 @@ export function useNFCParameterParser() {
       } else {
         // ✅ No PIN required - account ready for direct access
         console.log('✅ Legacy card access granted without PIN')
+        console.log('🔍 Result account data:', result.account)
         
         if (result.account) {
           // Create session and redirect to profile
+          console.log('🔄 Creating session for existing account...')
           await SessionManager.createSession(chipUID)
           
+          console.log('✅ Setting account as initialized')
           setAccountInitialized(true)
           setRequiresPIN(false)
           setPinVerificationComplete(true)
@@ -370,10 +375,12 @@ export function useNFCParameterParser() {
           profileUrl.searchParams.set('chipUID', chipUID)
           profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
           
+          console.log('🚀 Redirecting to:', profileUrl.toString())
           router.push(profileUrl.toString())
           
         } else {
           // Account creation needed
+          console.log('🆕 No existing account - creating new one')
           setAccountInitialized(true)
           setRequiresPIN(false)
           setPinVerificationComplete(true)
@@ -386,13 +393,18 @@ export function useNFCParameterParser() {
           profileUrl.searchParams.set('chipUID', chipUID)
           profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
           
+          console.log('🚀 Redirecting new account to:', profileUrl.toString())
           router.push(profileUrl.toString())
         }
       }
       
     } catch (error) {
       console.error('❌ Legacy card PIN check failed:', error)
-      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+      console.error('❌ Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      })
       setDebugInfo(prev => [...prev, `⚠️ Legacy PIN check failed: ${error}`])
       
       // 🚨 Instead of fallback to PIN, try direct authentication
@@ -400,6 +412,7 @@ export function useNFCParameterParser() {
       
       try {
         // Try to create a session anyway
+        console.log('🔄 Attempting fallback authentication...')
         setRequiresPIN(false)
         setAccountInitialized(true)
         setPinVerificationComplete(true)
@@ -418,6 +431,11 @@ export function useNFCParameterParser() {
         
       } catch (fallbackError) {
         console.error('🚨 Even fallback failed:', fallbackError)
+        console.error('🚨 Fallback error details:', {
+          name: fallbackError instanceof Error ? fallbackError.name : 'Unknown',
+          message: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+          stack: fallbackError instanceof Error ? fallbackError.stack : 'No stack trace'
+        })
         
         // Last resort: show PIN entry
         console.log('🚨 Last resort: requiring PIN for security')

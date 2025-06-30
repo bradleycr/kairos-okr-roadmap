@@ -42,5 +42,7 @@
       "source": "/zk-moments/zkbirthday/quick-add",
       "destination": "/zk-moments/zkbirthday/quick-add"
     }
-  ]
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 } 

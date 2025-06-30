@@ -48,6 +48,30 @@ function NFCPageContent() {
     executeAuthentication 
   } = useNFCAuthentication()
 
+  // 🔍 DEBUG: Add debugging for legacy-full format URLs
+  useEffect(() => {
+    console.log('🔍 NFC Page Debug Info:', {
+      hasValidParameters: hasValidParameters(),
+      requiresPIN,
+      accountInitialized,
+      pinVerificationComplete,
+      format,
+      chipUID: parsedParams.chipUID,
+      debugInfo: debugInfo.slice(-3) // Last 3 debug messages
+    })
+    
+    if (format === 'legacy-full') {
+      console.log('🎯 Legacy-full format detected:', {
+        parsedParams,
+        hasValidParameters: hasValidParameters(),
+        requiresPIN,
+        accountInitialized,
+        pinVerificationComplete,
+        verificationState: verificationState.status
+      })
+    }
+  }, [hasValidParameters, requiresPIN, accountInitialized, pinVerificationComplete, format, parsedParams, debugInfo, verificationState.status])
+
   // Auto-start authentication when valid parameters are detected and no PIN required
   useEffect(() => {
     if (hasValidParameters() && !requiresPIN && accountInitialized && verificationState.status === 'initializing') {
@@ -114,6 +138,18 @@ function NFCPageContent() {
                   {debugInfo.length > 0 && (
                     <div className="text-xs text-muted-foreground/70 font-mono max-w-xs">
                       {debugInfo[debugInfo.length - 1]}
+                    </div>
+                  )}
+                  {/* 🔍 DEBUG: Show more debugging info for legacy-full format */}
+                  {format === 'legacy-full' && (
+                    <div className="text-xs text-red-400 font-mono max-w-md mt-4 space-y-1">
+                      <div>🎯 Legacy-full format detected</div>
+                      <div>ChipUID: {parsedParams.chipUID}</div>
+                      <div>Has Valid Params: {hasValidParameters() ? '✅' : '❌'}</div>
+                      <div>Requires PIN: {requiresPIN ? '🔒' : '🆓'}</div>
+                      <div>Account Init: {accountInitialized ? '✅' : '❌'}</div>
+                      <div>PIN Verified: {pinVerificationComplete ? '✅' : '❌'}</div>
+                      <div>Verification State: {verificationState.status}</div>
                     </div>
                   )}
                 </div>

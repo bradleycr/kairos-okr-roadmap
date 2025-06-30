@@ -1,24 +1,29 @@
-// --- Enhanced Cryptographic Key Management for KairOS ---
-// This module provides true Ed25519 keypairs using @noble/ed25519
-// Designed for seamless ESP32 porting - replace localStorage with EEPROM/Flash
-// All functions are async to match future hardware I/O patterns
+'use client'
 
-// Import browser setup first to ensure crypto environment is configured
+/**
+ * KairOS Cryptographic Key Management
+ * 
+ * Simple Ed25519 key generation for NFC authentication
+ * Works with Vercel KV database and localStorage architecture
+ */
+
+// Ensure crypto is properly configured for browser environments
 import './browserSetup'
 
-import { getPublicKey, sign, verify } from '@noble/ed25519'
+import { sign as ed25519Sign, verify as ed25519Verify, getPublicKey } from '@noble/ed25519'
+import { sha256 } from '@noble/hashes/sha256'
 import { randomBytes } from '@noble/hashes/utils'
 import { sha512 } from '@noble/hashes/sha512'
 import { useEffect, useState, useCallback } from 'react'
 
-// --- Configure @noble/ed25519 for browser environment ---
-// This is required for @noble/ed25519 to work in browsers
+// Configure @noble/ed25519 for browser environment
 import * as ed25519 from '@noble/ed25519'
-
-// Set up SHA-512 for ed25519 (required for browser environments)
 ed25519.etc.sha512Sync = (...m) => sha512(ed25519.etc.concatBytes(...m))
 
-// --- Types for Enhanced Crypto Identity ---
+// Import the main crypto functions
+export * from './portableCrypto'
+
+// --- Types for Legacy Compatibility ---
 export interface CryptoIdentity {
   privateKey: Uint8Array
   publicKey: Uint8Array
@@ -35,56 +40,41 @@ export interface CryptoKeyManager {
   clearIdentity: () => void
 }
 
-// --- Storage Keys (ESP32: Replace with EEPROM addresses) ---
+// --- Storage Keys ---
 const STORAGE_KEY = 'kairos_crypto_identity'
-
-// --- Core Crypto Functions (ESP32-Ready) ---
 
 /**
  * Generate a new Ed25519 keypair from secure random entropy
- * @note ESP32: Use hardware RNG via esp_random() or mbedTLS
  */
 export async function generateKeypair(): Promise<{ privateKey: Uint8Array; publicKey: Uint8Array }> {
-  // Generate 32 bytes of cryptographically secure random data
   const privateKey = randomBytes(32)
-  
-  // Derive public key from private key
   const publicKey = await getPublicKey(privateKey)
-  
   return { privateKey, publicKey }
 }
 
 /**
  * Create a DID:key from an Ed25519 public key
- * @note ESP32: Same logic, use base58 encoding library
  */
 export function createDIDFromPublicKey(publicKey: Uint8Array): string {
-  // Ed25519 multicodec prefix (0xed01)
   const multicodecPrefix = new Uint8Array([0xed, 0x01])
-  
-  // Combine prefix with public key
   const multicodecKey = new Uint8Array(multicodecPrefix.length + publicKey.length)
   multicodecKey.set(multicodecPrefix)
   multicodecKey.set(publicKey, multicodecPrefix.length)
   
-  // Simple base58 encoding (ESP32: use dedicated base58 library)
   const base58Key = base58Encode(multicodecKey)
-  
   return `did:key:z${base58Key}`
 }
 
 /**
  * Sign a message using Ed25519
- * @note ESP32: Use mbedTLS or libsodium ed25519 signing
  */
 export async function signMessage(message: string | Uint8Array, privateKey: Uint8Array): Promise<Uint8Array> {
   const messageBytes = typeof message === 'string' ? new TextEncoder().encode(message) : message
-  return await sign(messageBytes, privateKey)
+  return await ed25519Sign(messageBytes, privateKey)
 }
 
 /**
  * Verify an Ed25519 signature
- * @note ESP32: Use mbedTLS or libsodium ed25519 verification
  */
 export async function verifySignature(
   message: string | Uint8Array, 
@@ -93,18 +83,13 @@ export async function verifySignature(
 ): Promise<boolean> {
   try {
     const messageBytes = typeof message === 'string' ? new TextEncoder().encode(message) : message
-    return await verify(signature, messageBytes, publicKey)
+    return await ed25519Verify(signature, messageBytes, publicKey)
   } catch {
     return false
   }
 }
 
-// --- Storage Functions (ESP32: Replace with EEPROM/Flash) ---
-
-/**
- * Save identity to localStorage
- * @note ESP32: Save to EEPROM/Flash
- */
+// --- Storage Functions ---
 function saveIdentityToStorage(identity: CryptoIdentity): void {
   if (typeof window === 'undefined') return
   
@@ -116,10 +101,6 @@ function saveIdentityToStorage(identity: CryptoIdentity): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(exported))
 }
 
-/**
- * Load identity from localStorage
- * @note ESP32: Load from EEPROM/Flash
- */
 function loadIdentityFromStorage(): CryptoIdentity | null {
   if (typeof window === 'undefined') return null
   
@@ -139,21 +120,14 @@ function loadIdentityFromStorage(): CryptoIdentity | null {
   }
 }
 
-/**
- * Clear stored identity
- * @note ESP32: Clear EEPROM section
- */
 function clearIdentityFromStorage(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(STORAGE_KEY)
   }
 }
 
-// --- React Hook for Crypto Identity Management ---
-
 /**
  * React hook for managing cryptographic identity
- * @note ESP32: Convert to C++ class with similar interface
  */
 export function useCryptoIdentity(): CryptoKeyManager {
   const [identity, setIdentity] = useState<CryptoIdentity | null>(null)
@@ -238,9 +212,57 @@ export function useCryptoIdentity(): CryptoKeyManager {
   }
 }
 
-// --- Utility Functions ---
+/**
+ * Legacy format key generation (for compatibility with existing cards)
+ * This generates a random key pair and should be used for new chip programming
+ */
+export async function generateKeyPair(): Promise<{
+  privateKey: string
+  publicKey: string
+}> {
+  // Use the existing generateKeypair function and convert to hex strings
+  const keyPair = await generateKeypair()
+  
+  return {
+    privateKey: Array.from(keyPair.privateKey).map(b => b.toString(16).padStart(2, '0')).join(''),
+    publicKey: Array.from(keyPair.publicKey).map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+}
 
-// Simple base58 encoding (Bitcoin alphabet)
+/**
+ * Sign a message with a private key
+ */
+export async function sign(message: string, privateKey: string): Promise<string> {
+  // Convert hex string to Uint8Array
+  const privateKeyBytes = new Uint8Array(privateKey.match(/.{2}/g)?.map(hex => parseInt(hex, 16)) || [])
+  const messageBytes = new TextEncoder().encode(message)
+  
+  // Sign with Ed25519
+  const signature = await ed25519Sign(messageBytes, privateKeyBytes)
+  
+  // Convert signature to hex string
+  return Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Verify a signature
+ */
+export async function verify(message: string, signature: string, publicKey: string): Promise<boolean> {
+  try {
+    // Convert hex strings to Uint8Array
+    const publicKeyBytes = new Uint8Array(publicKey.match(/.{2}/g)?.map(hex => parseInt(hex, 16)) || [])
+    const signatureBytes = new Uint8Array(signature.match(/.{2}/g)?.map(hex => parseInt(hex, 16)) || [])
+    const messageBytes = new TextEncoder().encode(message)
+    
+    // Verify with Ed25519
+    return await ed25519Verify(signatureBytes, messageBytes, publicKeyBytes)
+  } catch (error) {
+    console.error('Signature verification failed:', error)
+    return false
+  }
+}
+
+// --- Utility Functions ---
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 function base58Encode(bytes: Uint8Array): string {

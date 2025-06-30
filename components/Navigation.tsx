@@ -86,6 +86,12 @@ const navItems: NavItemWithChildren[] = [
     description: 'User profile and dashboard'
   },
   {
+    href: '/admin/installations',
+    label: 'Installations',
+    icon: <GlobeIcon className="h-4 w-4" />,
+    description: 'Manage art installations and subdomains'
+  },
+  {
     href: '/cryptoDiagnostics',
     label: 'Diagnostics',
     icon: <SettingsIcon className="h-4 w-4" />,

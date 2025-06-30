@@ -27,10 +27,13 @@ export class NFCParameterParser {
     debugInfo.push(`Raw URL params: ${JSON.stringify(allParams)}`)
 
     // Strategy 1: DID:Key format (did + optional chipUID) - RECOMMENDED
+    // BUT: Only if it's NOT a legacy-full format (which also has did but includes signature/publicKey)
     const didParam = searchParams.get('did')
-    const didChipUID = searchParams.get('chipUID') || searchParams.get('chip') || searchParams.get('c')
+    const didChipUID = searchParams.get('chipUID') || searchParams.get('chip') || searchParams.get('c') || searchParams.get('uid')
+    const hasSignature = searchParams.get('signature')
+    const hasPublicKey = searchParams.get('publicKey')
     
-    if (didParam && didParam.startsWith('did:key:')) {
+    if (didParam && didParam.startsWith('did:key:') && !hasSignature && !hasPublicKey) {
       debugInfo.push('🎯 DID:Key format detected (RECOMMENDED)')
       debugInfo.push(`DID: ${didParam}`)
       debugInfo.push(`Chip UID: ${didChipUID || 'not provided'}`)

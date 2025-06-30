@@ -1,10 +1,25 @@
-# ⚠️ ARCHIVED: P2P IPFS Integration Status - KairOS
+# P2P IPFS Integration Status (Future Architecture)
 
-> **⚠️ ARCHIVAL NOTICE**: This document describes **legacy P2P IPFS implementation** that has been **superseded by DID:Key architecture**. This documentation is preserved for historical reference only.
->
-> **Current System**: KairOS now uses **DID:Key authentication** (see `docs/DID_KEY_ARCHITECTURE_COMPLETE.md`)  
-> **Migration Date**: January 2025  
-> **Reason**: DID:Key provides 10x better performance with zero infrastructure dependencies
+**⚠️ NOTE: This document describes a future P2P IPFS architecture possibility. The current implementation uses simple Vercel KV database + localStorage for cross-device PIN management.**
+
+## Current Implementation (v1.0)
+
+**Actual Architecture:**
+- **Database**: Vercel KV (Redis) for account recognition + encrypted PINs
+- **Local Storage**: Rich profiles per device in browser localStorage  
+- **PIN Management**: Standard AES encryption with salts stored in database
+- **Cross-Device**: PIN verification against encrypted database records
+
+**Files implementing current system:**
+- `lib/nfc/accountManager.ts` - Account management with KV storage
+- `app/api/nfc/accounts/route.ts` - Database API endpoints
+- `lib/crypto/keys.ts` - Simple Ed25519 key generation
+
+## Future P2P IPFS Vision
+
+The following describes a potential future enhancement to enable true decentralization:
+
+- 🌐 **Optimal P2P Authentication**: PIN + chipUID → P2P IPFS registry lookup
 
 ## 📋 **System Status Overview**
 

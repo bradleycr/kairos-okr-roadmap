@@ -216,16 +216,8 @@ export function useNFCAuthentication() {
       
       addDebugLog(`❌ Authentication failed: ${errorMessage}`)
       
-      // Only show error toast for actual authentication failures, not PIN requirements
-      if (!isPINError) {
-        toast({
-          title: "Authentication Failed",
-          description: errorMessage,
-          variant: "destructive"
-        })
-      } else {
-        console.log('🔐 PIN required - not showing error toast')
-      }
+      // ❌ Error logged - no toast needed (clean UX)
+      // PIN errors and authentication failures are handled by the UI state
     }
   }, [addDebugLog, toast, executeDecentralizedFlow, executeLegacyFlow])
 
