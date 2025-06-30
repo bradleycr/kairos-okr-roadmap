@@ -382,5 +382,8 @@ class WayOfFlowersManager {
   }
 }
 
+// Export both the class and singleton instance
+export { WayOfFlowersManager }
+
 // Singleton instance
 export const wayOfFlowersManager = new WayOfFlowersManager() 
