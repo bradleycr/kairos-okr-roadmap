@@ -7,12 +7,13 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon, HeartIcon } from "lucide-react";
+import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon, HeartIcon, User, Heart, Sunrise } from "lucide-react";
 import Link from 'next/link';
 import { PINSetup } from '@/components/ui/pin-setup';
 import { ProfileEditor } from '@/components/ui/profile-editor';
 import PINEntry from '@/components/ui/pin-entry';
-import { MorningEightPanel, NFCGate, useMorningEightNFCGate } from '@/src/features/morningEight';
+import { MorningEightPanel } from '@/src/features/morningEight/components/MorningEightPanel';
+import { NFCGate } from '@/src/features/morningEight/components/NFCGate';
 
 // Welcome Ritual Component
 const WelcomeRitual = ({ onComplete }: { onComplete: () => void }) => {
@@ -724,7 +725,7 @@ const ProfilePage = () => {
       </AnimatePresence>
       
       {/* Morning Eight NFC Gate - runs in background */}
-      <NFCGate chipUID={userProfile?.chipUID} />
+      <NFCGate />
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
         {/* Header */}
@@ -818,46 +819,27 @@ const ProfilePage = () => {
         )}
 
         {/* Tabs */}
-        <ResponsiveTabs value={activeTab} onValueChange={setActiveTab}>
-          <ResponsiveTabsList>
-            <ResponsiveTabsTrigger value="profile">
-              <UserIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline font-mono text-xs">Edit Profile</span>
-              <span className="xs:hidden sm:hidden font-mono text-xs">Edit</span>
-            </ResponsiveTabsTrigger>
-            <ResponsiveTabsTrigger value="companion">
-              <Brain className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline font-mono text-xs">AI Companion</span>
-              <span className="xs:hidden sm:hidden font-mono text-xs">AI</span>
-            </ResponsiveTabsTrigger>
-            <ResponsiveTabsTrigger value="transcriptions">
-              <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline font-mono text-xs">Transcriptions</span>
-              <span className="xs:hidden sm:hidden font-mono text-xs">Text</span>
-            </ResponsiveTabsTrigger>
-            <ResponsiveTabsTrigger value="bonds">
-              <HeartIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline font-mono text-xs">Bonds</span>
-              <span className="xs:hidden sm:hidden font-mono text-xs">Bonds</span>
-            </ResponsiveTabsTrigger>
-            <ResponsiveTabsTrigger value="morning-eight">
-              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline font-mono text-xs">Morning Eight</span>
-              <span className="xs:hidden sm:hidden font-mono text-xs">8AM</span>
-            </ResponsiveTabsTrigger>
-            <ResponsiveTabsTrigger value="community">
-              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline font-mono text-xs">Community</span>
-              <span className="xs:hidden sm:hidden font-mono text-xs">Groups</span>
-            </ResponsiveTabsTrigger>
-            <ResponsiveTabsTrigger value="settings">
-              <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline font-mono text-xs">Security</span>
-              <span className="xs:hidden sm:hidden font-mono text-xs">Keys</span>
-            </ResponsiveTabsTrigger>
-          </ResponsiveTabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="identity" className="flex items-center space-x-2">
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">Identity</span>
+            </TabsTrigger>
+            <TabsTrigger value="memories" className="flex items-center space-x-2">
+              <Heart className="w-4 h-4" />
+              <span className="hidden sm:inline">Bonds</span>
+            </TabsTrigger>
+            <TabsTrigger value="moments" className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">Moments</span>
+            </TabsTrigger>
+            <TabsTrigger value="morning-eight" className="flex items-center space-x-2">
+              <Sunrise className="w-4 h-4" />
+              <span className="hidden sm:inline">Morning</span>
+            </TabsTrigger>
+          </TabsList>
 
-          <TabsContent value="profile" className="mt-4 sm:mt-6">
+          <TabsContent value="identity" className="mt-4 sm:mt-6">
             <ProfileEditor
               currentProfile={{
                 displayName: userProfile.displayName || userProfile.username,
@@ -870,73 +852,7 @@ const ProfilePage = () => {
             />
           </TabsContent>
 
-          <TabsContent value="companion" className="mt-4 sm:mt-6">
-            <Card className="bg-card/50 backdrop-blur-sm border border-primary/20 shadow-minimal">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-primary font-mono text-base sm:text-lg">
-                  <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Your AI Memory Companion
-                  <span className="text-xs bg-warning/20 text-warning px-2 py-1 rounded font-mono">DEMO</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-                <p className="text-foreground text-sm sm:text-base leading-relaxed">
-                  Your personal AI companion enhances civic participation by connecting individual experiences to collective wisdom. 
-                  It's designed to amplify community knowledge and strengthen social bonds.
-                </p>
-                <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg">
-                  <h4 className="font-semibold text-primary mb-2 font-mono text-sm sm:text-base">What your companion remembers:</h4>
-                  <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    <li>• Your civic participation and community engagement</li>
-                    <li>• Connections between personal and shared stories</li>
-                    <li>• Patterns of collective action and coordination</li>
-                    <li>• Questions that strengthen community resilience</li>
-                  </ul>
-                </div>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-sm sm:text-base py-2 sm:py-3" disabled>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Start Conversation (Coming Soon)
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="transcriptions" className="mt-4 sm:mt-6">
-            <Card className="bg-card/50 backdrop-blur-sm border border-accent/20 shadow-minimal">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-accent font-mono text-base sm:text-lg">
-                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Collective Transcriptions
-                  <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded font-mono">COMING SOON</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-                <p className="text-foreground text-sm sm:text-base leading-relaxed">
-                  Transform civic discourse into shared knowledge resources. Good for town halls, 
-                  community forums, and preserving the civic wisdom that emerges through dialogue.
-                </p>
-                <div className="bg-accent/10 border border-accent/20 p-3 sm:p-4 rounded-lg">
-                  <h4 className="font-semibold text-accent mb-2 font-mono text-sm sm:text-base">Collective Sense-Making Features:</h4>
-                  <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    <li>• Real-time transcription of group conversations</li>
-                    <li>• Automatic identification of key insights and patterns</li>
-                    <li>• Connection to related memories and moments</li>
-                    <li>• Privacy-first processing on your device</li>
-                  </ul>
-                </div>
-                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-mono text-sm sm:text-base py-2 sm:py-3" disabled>
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Start Transcription Session (Coming Soon)
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="morning-eight" className="mt-4 sm:mt-6">
-            <MorningEightPanel />
-          </TabsContent>
-
-          <TabsContent value="bonds" className="mt-4 sm:mt-6">
+          <TabsContent value="memories" className="mt-4 sm:mt-6">
             <Card className="bg-card/50 backdrop-blur-sm border border-primary/20 shadow-minimal">
               <CardHeader className="pb-3 sm:pb-4">
                 <CardTitle className="flex items-center gap-2 text-primary font-mono text-base sm:text-lg">
@@ -1001,135 +917,50 @@ const ProfilePage = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="community" className="mt-4 sm:mt-6">
-            <Card className="bg-card/50 backdrop-blur-sm border border-secondary/20 shadow-minimal">
+          <TabsContent value="moments" className="mt-4 sm:mt-6">
+            <Card className="bg-card/50 backdrop-blur-sm border border-accent/20 shadow-minimal">
               <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-secondary font-mono text-base sm:text-lg">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Your Memory Communities
-                  <span className="text-xs bg-secondary/20 text-secondary px-2 py-1 rounded font-mono">DEMO</span>
+                <CardTitle className="flex items-center gap-2 text-accent font-mono text-base sm:text-lg">
+                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Collective Transcriptions
+                  <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded font-mono">COMING SOON</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
                 <p className="text-foreground text-sm sm:text-base leading-relaxed">
-                  Connect with others who share similar experiences, participate in collective rituals, 
-                  and contribute to our shared understanding of the world.
+                  Transform civic discourse into shared knowledge resources. Good for town halls, 
+                  community forums, and preserving the civic wisdom that emerges through dialogue.
                 </p>
-                <div className="space-y-2 sm:space-y-3">
-                  <div className="bg-secondary/10 border border-secondary/20 p-3 rounded-lg">
-                    <h4 className="font-semibold text-secondary font-mono text-sm sm:text-base">Resilience Builders</h4>
-                    <p className="text-xs sm:text-sm text-muted-foreground">42 active members • Building community strength through shared practices</p>
-                  </div>
-                  <div className="bg-warning/10 border border-warning/20 p-3 rounded-lg">
-                    <h4 className="font-semibold text-warning font-mono text-sm sm:text-base">Memory Weavers</h4>
-                    <p className="text-xs sm:text-sm text-muted-foreground">28 active members • Connecting stories across time and space</p>
-                  </div>
-                  <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg">
-                    <h4 className="font-semibold text-primary font-mono text-sm sm:text-base">Ritual Designers</h4>
-                    <p className="text-xs sm:text-sm text-muted-foreground">63 active members • Creating new practices for collective growth</p>
-                  </div>
+                <div className="bg-accent/10 border border-accent/20 p-3 sm:p-4 rounded-lg">
+                  <h4 className="font-semibold text-accent mb-2 font-mono text-sm sm:text-base">Collective Sense-Making Features:</h4>
+                  <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    <li>• Real-time transcription of group conversations</li>
+                    <li>• Automatic identification of key insights and patterns</li>
+                    <li>• Connection to related memories and moments</li>
+                    <li>• Privacy-first processing on your device</li>
+                  </ul>
                 </div>
-                <Button className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground font-mono text-sm sm:text-base py-2 sm:py-3" disabled>
-                  <Users className="w-4 h-4 mr-2" />
-                  Explore Communities (Demo Data)
+                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-mono text-sm sm:text-base py-2 sm:py-3" disabled>
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Start Transcription Session (Coming Soon)
                 </Button>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="settings" className="mt-4 sm:mt-6">
-            <Card className="bg-card/50 backdrop-blur-sm border border-primary/20 shadow-minimal">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-primary font-mono text-base sm:text-lg">
-                  <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Security & Data Portability
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
-                <div>
-                  <h4 className="font-semibold text-primary mb-3 font-mono text-sm sm:text-base">Cryptographic Identity</h4>
-                  
-                  {userProfile.cryptographicIdentity && (
-                    <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                        <span className="text-sm text-primary font-mono">Verified Device: {userProfile.deviceName}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Device ID: {userProfile.deviceId}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Authentication: {userProfile.cryptographicIdentity.authenticationMethod}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs sm:text-sm text-muted-foreground font-mono block mb-1">PUBLIC KEY (Ed25519)</label>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          value={userProfile.publicKey} 
-                          readOnly 
-                          className="bg-muted border-primary/20 text-foreground font-mono text-xs"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleCopyKey(userProfile.publicKey, 'Public')}
-                          className="bg-accent hover:bg-accent/90 text-accent-foreground font-mono text-xs px-3"
-                        >
-                          <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="bg-muted/50 border border-muted p-3 rounded-lg">
-                      <h5 className="text-xs font-mono text-muted-foreground mb-1">Private Key Security</h5>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Your private key is never stored and is derived from your master seed when needed. 
-                        This ensures maximum security - even if someone gains access to your profile, 
-                        they cannot access your private cryptographic material.
-                      </p>
-                    </div>
-                  </div>
-                  {copySuccess && (
-                    <motion.p 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-secondary text-xs sm:text-sm mt-2 font-mono"
-                    >
-                      {copySuccess}
-                    </motion.p>
-                  )}
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-primary mb-3 font-mono text-sm sm:text-base">Data Portability</h4>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-4 leading-relaxed">
-                    Your memories and profile data can be exported as a "data crystal" - 
-                    an encrypted file that allows you to restore your identity on any device.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button
-                      onClick={() => setShowExportModal(true)}
-                      className="bg-accent hover:bg-accent/90 text-accent-foreground flex-1 font-mono text-xs sm:text-sm py-2"
-                    >
-                      <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                      Export Data Crystal
-                    </Button>
-                    <Button
-                      onClick={() => setShowImportModal(true)}
-                      variant="outline"
-                      className="border-primary text-primary hover:bg-primary/10 flex-1 font-mono text-xs sm:text-sm py-2"
-                    >
-                      <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                      Import Crystal
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="morning-eight" className="space-y-6 mt-6">
+            <div className="text-center space-y-2 mb-6">
+              <h2 className="text-2xl font-semibold flex items-center justify-center space-x-2">
+                <Sunrise className="w-6 h-6 text-primary" />
+                <span>Morning Eight</span>
+              </h2>
+              <p className="text-muted-foreground">
+                Your personalized 8-minute morning ritual system
+              </p>
+            </div>
+            <MorningEightPanel />
           </TabsContent>
-        </ResponsiveTabs>
+        </Tabs>
       </div>
 
       {/* Export Modal */}

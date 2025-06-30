@@ -4,27 +4,18 @@
 // Core Components
 export { MorningEightPanel } from './components/MorningEightPanel';
 export { RoutineView } from './components/RoutineView';
-export { NFCGate, useMorningEightNFCGate } from './components/NFCGate';
+export { NFCGate } from './components/NFCGate';
+export { AudioRitualView } from './components/AudioRitualView';
 
 // Hooks
-export { useVoiceDump } from './hooks/useVoiceDump';
 export { useMorningMemory } from './hooks/useMorningMemory';
 export { useMorningEightSettings } from './hooks/useMorningEightSettings';
+export { useVoiceDump } from './hooks/useVoiceDump';
 export { useIndexedDbState } from './hooks/useIndexedDbState';
+export { useAudioRitual } from './hooks/useAudioRitual';
 
 // Types
-export type {
-  VoiceDump,
-  Routine,
-  MemoryDoc,
-  MorningEightSettings,
-  RecordingState,
-  TranscriptionMethod,
-  TranscriptionResult,
-  VoiceDumpHook,
-  MorningMemoryHook,
-  MorningEightSettingsHook,
-} from './types';
+export type * from './types';
 
 // Feature metadata for easy extraction
 export const MORNING_EIGHT_FEATURE = {

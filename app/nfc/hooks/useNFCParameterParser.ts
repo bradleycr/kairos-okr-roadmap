@@ -634,6 +634,19 @@ export function useNFCParameterParser() {
         setDebugInfo(prev => [...prev, '💾 PIN stored for cross-device access'])
       }
       
+      // Emit authentication complete event for Morning Eight auto-routing
+      if (typeof window !== 'undefined') {
+        const authEvent = new CustomEvent('nfc-authentication-complete', {
+          detail: {
+            success: true,
+            chipUID: parsedParams.chipUID,
+            sessionToken: `legacy_session_${Date.now()}`,
+            accountId: account.accountId
+          }
+        });
+        window.dispatchEvent(authEvent);
+      }
+      
       // 🔗 Create session for this device
       await SessionManager.createSession(parsedParams.chipUID!)
       
@@ -726,6 +739,19 @@ export function useNFCParameterParser() {
       console.log('✅ DID:Key authentication successful!')
       console.log(`   DID: ${authResult.did}`)
       console.log(`   Session: ${authResult.sessionToken}`)
+      
+      // Emit authentication complete event for Morning Eight auto-routing
+      if (typeof window !== 'undefined') {
+        const authEvent = new CustomEvent('nfc-authentication-complete', {
+          detail: {
+            success: true,
+            chipUID: parsedParams.chipUID,
+            sessionToken: authResult.sessionToken,
+            did: authResult.did
+          }
+        });
+        window.dispatchEvent(authEvent);
+      }
       
       // Create session with DID:Key identity
       await SessionManager.createSession(parsedParams.chipUID)

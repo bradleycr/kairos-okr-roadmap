@@ -19,14 +19,19 @@ import {
   Trash2, 
   Calendar,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Play
 } from 'lucide-react';
 
 import { useVoiceDump } from '../hooks/useVoiceDump';
 import { useMorningMemory } from '../hooks/useMorningMemory';
 import { useMorningEightSettings } from '../hooks/useMorningEightSettings';
 
-export function MorningEightPanel() {
+interface MorningEightPanelProps {
+  onRoutineSelect?: (routine: Routine) => void;
+}
+
+export function MorningEightPanel({ onRoutineSelect }: MorningEightPanelProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showTranscription, setShowTranscription] = useState(false);
   const { toast } = useToast();
@@ -135,6 +140,15 @@ export function MorningEightPanel() {
       case 'complete': return 'Complete';
       case 'error': return 'Error';
       default: return 'Ready';
+    }
+  };
+
+  const handleRoutineAction = (routine: Routine) => {
+    if (onRoutineSelect) {
+      onRoutineSelect(routine);
+    } else {
+      setSelectedRoutine(routine);
+      setShowRoutineView(true);
     }
   };
 
@@ -377,6 +391,49 @@ export function MorningEightPanel() {
               )}
             </span>
           </div>
+        )}
+
+        {/* Generated Routines */}
+        {memory.memory?.latestRoutine && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="w-5 h-5" />
+                <span>Your Rituals</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Card 
+                  className="cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 border-l-primary/30"
+                  onClick={() => handleRoutineAction(memory.memory.latestRoutine)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium">{memory.memory.latestRoutine.date}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {memory.memory.latestRoutine.steps.length} steps • Based on your voice notes
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Play className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="mt-3 text-sm">
+                      <p className="line-clamp-2 text-muted-foreground">
+                        {memory.memory.latestRoutine.steps[0]}...
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </CardContent>
+          </Card>
         )}
       </CardContent>
     </Card>

@@ -221,6 +221,9 @@ export function useNFCAuthentication() {
     }
   }, [addDebugLog, toast, executeDecentralizedFlow, executeLegacyFlow])
 
+  // This function doesn't exist in the current useNFCAuthentication hook structure
+  // The PIN authentication is handled in the components using different hooks
+
   return {
     verificationState,
     executeAuthentication,

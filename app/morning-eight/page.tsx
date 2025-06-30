@@ -1,128 +1,78 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-
-import { RoutineView } from '@/src/features/morningEight/components/RoutineView';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { MorningEightPanel } from '@/src/features/morningEight/components/MorningEightPanel';
+import { AudioRitualView } from '@/src/features/morningEight/components/AudioRitualView';
 import { useMorningMemory } from '@/src/features/morningEight/hooks/useMorningMemory';
-import { useMorningEightSettings } from '@/src/features/morningEight/hooks/useMorningEightSettings';
+import { PageLoader } from '@/components/ui/page-loader';
+import type { Routine } from '@/src/features/morningEight/types';
 
-export default function MorningEightPage() {
-  const [isClient, setIsClient] = useState(false);
-  const router = useRouter();
-  const memory = useMorningMemory();
-  const settings = useMorningEightSettings();
+function MorningEightContent() {
+  const [currentRoutine, setCurrentRoutine] = useState<Routine | null>(null);
+  const [showAudioRitual, setShowAudioRitual] = useState(false);
+  const [isAuto, setIsAuto] = useState(false);
+  const { generateRoutine, isGenerating } = useMorningMemory();
 
-  // Ensure client-side rendering
   useEffect(() => {
-    setIsClient(true);
+    // Check for auto parameter on client side only
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      setIsAuto(urlParams.get('auto') === 'true');
+    }
   }, []);
 
-  // Check if user should be here
+  // Auto-generate routine if we're in auto mode
   useEffect(() => {
-    if (!isClient) return;
-
-    // If feature is disabled, redirect to profile
-    if (!settings.settings.enabled) {
-      router.push('/profile');
-      return;
+    if (isAuto && !currentRoutine && !isGenerating) {
+      generateRoutine().then(routine => {
+        if (routine) {
+          setCurrentRoutine(routine);
+          setShowAudioRitual(true);
+        }
+      });
     }
+  }, [isAuto, currentRoutine, isGenerating, generateRoutine]);
 
-    // If no routine exists, redirect to profile
-    if (!memory.memory?.latestRoutine) {
-      router.push('/profile');
-      return;
-    }
-  }, [isClient, settings.settings.enabled, memory.memory?.latestRoutine, router]);
-
-  const handleClose = () => {
-    router.push('/profile');
+  // Handle routine selection from panel
+  const handleRoutineSelect = (routine: Routine) => {
+    setCurrentRoutine(routine);
+    setShowAudioRitual(true);
   };
 
-  // Loading state
-  if (!isClient || memory.loading || settings.loading) {
+  // Show audio ritual view directly in auto mode or when routine is selected
+  if (showAudioRitual && currentRoutine) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 flex items-center justify-center p-4">
-        <Card>
-          <CardContent className="flex items-center justify-center py-8">
-            <div className="flex items-center space-x-3">
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium">Morning Eight</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Loading your routine...</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <AudioRitualView
+        routine={currentRoutine}
+        onClose={() => {
+          setShowAudioRitual(false);
+          setCurrentRoutine(null);
+        }}
+        autoStart={isAuto}
+      />
+    );
+  }
+
+  // Show loading if generating routine in auto mode
+  if (isAuto && isGenerating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-primary/5">
+        <div className="text-center space-y-4">
+          <PageLoader />
+          <div className="space-y-2">
+            <h2 className="text-xl font-light text-primary">Preparing Your Morning Ritual</h2>
+            <p className="text-sm text-muted-foreground">Creating your personalized 8-minute experience...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // No routine available
-  if (!memory.memory?.latestRoutine) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardContent className="text-center py-8 space-y-4">
-            <Sparkles className="w-12 h-12 text-muted-foreground mx-auto" />
-            <div className="space-y-2">
-              <h2 className="text-lg font-medium">No Routine Available</h2>
-              <p className="text-sm text-muted-foreground">
-                Create voice dumps and generate your morning routine first.
-              </p>
-            </div>
-            <Button asChild>
-              <Link href="/profile">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Profile
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Default panel view
+  return <MorningEightPanel onRoutineSelect={handleRoutineSelect} />;
+}
 
-  // Feature disabled
-  if (!settings.settings.enabled) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardContent className="text-center py-8 space-y-4">
-            <div className="w-12 h-12 border-2 border-dashed border-muted-foreground rounded-full flex items-center justify-center mx-auto">
-              <Sparkles className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-lg font-medium">Morning Eight Disabled</h2>
-              <p className="text-sm text-muted-foreground">
-                Enable Morning Eight in your profile to access this feature.
-              </p>
-            </div>
-            <Button asChild>
-              <Link href="/profile">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Profile
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Render the routine
-  return (
-    <RoutineView
-      routine={memory.memory.latestRoutine}
-      onClose={handleClose}
-      autoStart={settings.isWithinMorningWindow()}
-    />
-  );
+export default function MorningEightPage() {
+  return <MorningEightContent />;
 } 
