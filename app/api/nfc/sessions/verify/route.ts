@@ -36,8 +36,8 @@ async function getKV() {
   return null
 }
 
-import { getSharedMemoryStorage } from '@/lib/nfc/sharedStorage'
-const getMemoryStorage = () => getSharedMemoryStorage()
+import { getStorageItem } from '@/lib/nfc/sharedStorage'
+// Remove this line as we're using direct storage functions now
 
 async function getSession(sessionId: string): Promise<UserSession | null> {
   try {
@@ -53,8 +53,8 @@ async function getSession(sessionId: string): Promise<UserSession | null> {
       
       return session
     } else {
-      const memoryStorage = getMemoryStorage()
-      const session = memoryStorage.get(`session:${sessionId}`) as UserSession | null
+              // Using direct storage functions now
+      const session = getStorageItem<UserSession>(`session:${sessionId}`) || null
       
       // Check if session is expired
       if (session && new Date(session.expiresAt) < new Date()) {

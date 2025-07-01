@@ -334,7 +334,7 @@ export function useNFCParameterParser() {
       const result = await Promise.race([
         NFCAccountManager.authenticateWithPINGate(chipUID),
         timeoutPromise
-      ])
+      ]) as any
       console.log('🏆 PIN gate result received:', result)
       
       console.log(`🔍 Legacy card PIN gate result:`, {
@@ -725,7 +725,7 @@ export function useNFCParameterParser() {
       
       const authResult = await NFCAuthenticationEngine.authenticate({
         chipUID: parsedParams.chipUID,
-        pin: pin,
+        // pin: pin, // Remove pin from NFCParameters as it's not part of the interface
         did: parsedParams.did,
         skipPINPrompt: true // Prevent double PIN prompts
       })

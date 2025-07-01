@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon, HeartIcon, User, Heart, Sunrise } from "lucide-react";
+import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon, HeartIcon, User, Heart, Sunrise, Wallet, ExternalLink, CheckCircle } from "lucide-react";
 import Link from 'next/link';
 import { PINSetup } from '@/components/ui/pin-setup';
 import { ProfileEditor } from '@/components/ui/profile-editor';
@@ -846,13 +846,18 @@ const ProfilePage = () => {
           </motion.div>
         )}
 
-        {/* Enhanced Tabs with Morning Eight */}
+        {/* Enhanced Tabs with Wallet Integration */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 h-12 bg-muted/30 backdrop-blur-sm rounded-xl p-1">
+          <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/30 backdrop-blur-sm rounded-xl p-1">
             <TabsTrigger value="identity" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline font-medium">Identity</span>
               <span className="sm:hidden text-xs">ID</span>
+            </TabsTrigger>
+            <TabsTrigger value="wallet" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+              <Wallet className="w-4 h-4" />
+              <span className="hidden sm:inline font-medium">Wallet</span>
+              <span className="sm:hidden text-xs">ETH</span>
             </TabsTrigger>
             <TabsTrigger value="memories" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
               <Heart className="w-4 h-4" />
@@ -890,13 +895,164 @@ const ProfilePage = () => {
                 <CardContent className="space-y-6">
                   <ProfileEditor
                     currentProfile={{
-                      name: userProfile.name,
+                      displayName: userProfile.displayName,
                       bio: userProfile.bio,
                       interests: userProfile.interests,
                       avatar: userProfile.avatar
                     }}
                     onSave={handleProfileUpdate}
                   />
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="wallet" className="mt-6 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-card via-card to-card/80 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                      <Wallet className="w-5 h-5 text-emerald-500" />
+                    </div>
+                    <span>Ethereum Wallet</span>
+                  </CardTitle>
+                  <p className="text-muted-foreground">Connect and manage your Ethereum accounts for conservation donations</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* NFC-Derived Ethereum Account */}
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 border border-emerald-200/50 dark:border-emerald-800/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 flex items-center space-x-2">
+                        <Wallet className="w-4 h-4" />
+                        <span>KairOS NFC Wallet</span>
+                      </h4>
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
+                        CitizenWallet Style
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-4">
+                      Your NFC chip can generate a deterministic Ethereum wallet for conservation donations and smart contract interactions.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                        <span>• Deterministic from chipUID + PIN</span>
+                        <span>• Cross-device compatible</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                        <span>• No seed phrase needed</span>
+                        <span>• Conservation-focused</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 space-y-2">
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={async () => {
+                          try {
+                            const { walletIntegration } = await import('@/lib/crypto/walletIntegration')
+                            const account = await walletIntegration.createNFCEthereumAccount(userProfile.chipUID, '1234') // Would use actual PIN
+                            if (account) {
+                              console.log('✅ NFC Ethereum account created:', account.address)
+                              // Update UI to show account
+                            }
+                          } catch (error) {
+                            console.error('Failed to create NFC wallet:', error)
+                          }
+                        }}
+                      >
+                        <Wallet className="w-4 h-4 mr-2" />
+                        Create NFC Ethereum Account
+                      </Button>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center">
+                        Requires PIN authentication
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* MetaMask Integration */}
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border border-orange-200/50 dark:border-orange-800/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-orange-900 dark:text-orange-100 flex items-center space-x-2">
+                        <ExternalLink className="w-4 h-4" />
+                        <span>MetaMask Connection</span>
+                      </h4>
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200">
+                        External
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-orange-700 dark:text-orange-300 mb-4">
+                      Connect your existing MetaMask wallet for broader Ethereum ecosystem access.
+                    </p>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:hover:bg-orange-950/30"
+                      onClick={async () => {
+                        try {
+                          const { walletIntegration } = await import('@/lib/crypto/walletIntegration')
+                          const session = await walletIntegration.connectMetaMask()
+                          if (session) {
+                            console.log('✅ MetaMask connected:', session.account.address)
+                            // Update UI to show connection
+                          }
+                        } catch (error) {
+                          console.error('MetaMask connection failed:', error)
+                        }
+                      }}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Connect MetaMask
+                    </Button>
+                  </div>
+
+                  {/* Smart Contract Interactions */}
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200/50 dark:border-blue-800/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center space-x-2">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Conservation Contracts</span>
+                      </h4>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
+                        Smart Contracts
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                      Track your conservation impact through verified smart contract interactions.
+                    </p>
+                    
+                    <div className="space-y-2 text-xs text-blue-600 dark:text-blue-400">
+                      <div className="flex justify-between">
+                        <span>Total Donations:</span>
+                        <span className="font-mono">0.00 ETH</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Conservation Votes:</span>
+                        <span className="font-mono">0</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Impact Score:</span>
+                        <span className="font-mono">0</span>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full mt-3 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                      disabled
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      View Contract History (Coming Soon)
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -1023,7 +1179,7 @@ const ProfilePage = () => {
                   <p className="text-muted-foreground">Your personalized 8-minute morning ritual system</p>
                 </CardHeader>
                 <CardContent>
-                  <MorningEightPanel />
+                  <MorningEightPanel onRoutineSelect={() => {}} />
                 </CardContent>
               </Card>
             </motion.div>

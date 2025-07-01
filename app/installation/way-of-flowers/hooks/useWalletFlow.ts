@@ -3,8 +3,18 @@
  * Manages wallet connections and donation transactions
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { walletIntegration, type WalletSession } from '@/lib/crypto/walletIntegration'
+
+// Extend window interface for ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>
+      isMetaMask?: boolean
+    }
+  }
+}
 
 export interface WalletFlowState {
   walletSession: WalletSession | null
@@ -14,6 +24,10 @@ export interface WalletFlowState {
   showHybridAuth: boolean
   transactionHash: string | null
   isTransacting: boolean
+  connectionError: string | null
+  lastAttempt: number | null
+  lastSuccessfulConnection: number | null
+  lastFailedConnection: number | null
 }
 
 export function useWalletFlow() {
@@ -24,36 +38,98 @@ export function useWalletFlow() {
     donationAmount: '0.01',
     showHybridAuth: false,
     transactionHash: null,
-    isTransacting: false
+    isTransacting: false,
+    connectionError: null,
+    lastAttempt: null,
+    lastSuccessfulConnection: null,
+    lastFailedConnection: null
   })
 
-  const connectWallet = useCallback(async (method: 'metamask' | 'nfc') => {
-    setState(prev => ({ ...prev, isConnecting: true }))
+  const connectWallet = useCallback(async (method: 'metamask' | 'nfc', retryCount = 0) => {
+    const MAX_RETRIES = 3;
     
     try {
-      let session: WalletSession | null = null
+      setState(prev => ({ 
+        ...prev, 
+        isConnecting: true, 
+        connectionError: null,
+        lastAttempt: Date.now()
+      }));
+      
+      let session: WalletSession | null = null;
       
       if (method === 'metamask') {
-        session = await walletIntegration.connectMetaMask()
+        // Enhanced MetaMask detection and connection
+        if (!window.ethereum) {
+          throw new Error('MetaMask not detected. Please install MetaMask to continue.');
+        }
+        
+        // Check if MetaMask is unlocked
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length === 0) {
+          // Request account access
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+        }
+        
+        session = await walletIntegration.connectMetaMask();
       } else {
-        // For NFC method, we'll need chipUID and PIN from the auth flow
-        setState(prev => ({ ...prev, showHybridAuth: true, isConnecting: false }))
-        return
+        // NFC wallet connection with enhanced error handling
+        setState(prev => ({ ...prev, showHybridAuth: true, isConnecting: false }));
+        return;
       }
       
       if (session) {
+        // Persist connection state with expiration
+        const persistData = {
+          session,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+        };
+        localStorage.setItem('wof-wallet-session', JSON.stringify(persistData));
+        
         setState(prev => ({
           ...prev,
           walletSession: session,
           walletConnected: true,
-          isConnecting: false
-        }))
+          isConnecting: false,
+          connectionError: null,
+          lastSuccessfulConnection: Date.now()
+        }));
+        
+        // Emit success event for other components
+        window.dispatchEvent(new CustomEvent('wallet-connected', { 
+          detail: { session, method } 
+        }));
+        
+        console.log('✅ Wallet connected successfully:', session.account.address);
       } else {
-        setState(prev => ({ ...prev, isConnecting: false }))
+        throw new Error('Failed to establish wallet connection');
       }
-    } catch (error) {
-      console.error('Wallet connection failed:', error)
-      setState(prev => ({ ...prev, isConnecting: false }))
+      
+    } catch (error: any) {
+      console.error(`Wallet connection attempt ${retryCount + 1} failed:`, error);
+      
+      if (retryCount < MAX_RETRIES && !error.message.includes('User rejected') && !error.message.includes('User denied')) {
+        // Auto-retry with exponential backoff (only for technical failures)
+        const delay = Math.pow(2, retryCount) * 1000;
+        console.log(`🔄 Retrying wallet connection in ${delay}ms...`);
+        
+        setTimeout(() => {
+          connectWallet(method, retryCount + 1);
+        }, delay);
+      } else {
+        setState(prev => ({ 
+          ...prev, 
+          isConnecting: false,
+          connectionError: error.message || 'Connection failed. Please try again.',
+          lastFailedConnection: Date.now()
+        }));
+        
+        // Emit error event for other components
+        window.dispatchEvent(new CustomEvent('wallet-connection-failed', { 
+          detail: { error, method, retryCount } 
+        }));
+      }
     }
   }, [])
 
@@ -126,22 +202,63 @@ export function useWalletFlow() {
       await walletIntegration.disconnect()
     }
     
+    // Clear persisted connection state
+    localStorage.removeItem('wof-wallet-session');
+    
     setState(prev => ({
       ...prev,
       walletSession: null,
       walletConnected: false,
-      transactionHash: null
+      transactionHash: null,
+      connectionError: null
     }))
+    
+    // Emit disconnect event
+    window.dispatchEvent(new CustomEvent('wallet-disconnected'))
   }, [state.walletSession])
 
   const closeHybridAuth = useCallback(() => {
     setState(prev => ({ ...prev, showHybridAuth: false }))
   }, [])
 
+  // Auto-restore wallet connection on mount
+  useEffect(() => {
+    const restoreWalletConnection = async () => {
+      try {
+        const stored = localStorage.getItem('wof-wallet-session')
+        if (!stored) return
+
+        const persistData = JSON.parse(stored)
+        
+        // Check if session hasn't expired
+        if (Date.now() > persistData.expiresAt) {
+          localStorage.removeItem('wof-wallet-session')
+          return
+        }
+
+        // Try to verify the connection is still valid
+        const currentSession = walletIntegration.getCurrentSession()
+        if (currentSession && currentSession.account.address === persistData.session.account.address) {
+          setState(prev => ({
+            ...prev,
+            walletSession: currentSession,
+            walletConnected: true,
+            lastSuccessfulConnection: persistData.timestamp
+          }))
+          
+          console.log('✅ Wallet session restored:', currentSession.account.address)
+        }
+      } catch (error) {
+        console.warn('Failed to restore wallet session:', error)
+        localStorage.removeItem('wof-wallet-session')
+      }
+    }
+
+    restoreWalletConnection()
+  }, [])
+
   return {
     ...state,
-    
-    // Actions
     connectWallet,
     handleHybridAuth,
     makeDonation,

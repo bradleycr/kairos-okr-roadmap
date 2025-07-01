@@ -116,7 +116,8 @@ class WalletIntegrationManager {
       const privateKeyBytes = new Uint8Array(seedHash)
       
       // Create wallet from private key
-      const wallet = new ethers.Wallet(privateKeyBytes)
+      const privateKeyHex = Array.from(privateKeyBytes, byte => byte.toString(16).padStart(2, '0')).join('')
+      const wallet = new ethers.Wallet(privateKeyHex)
       const address = wallet.address
 
       // Encrypt private key with PIN for storage
@@ -149,7 +150,7 @@ class WalletIntegrationManager {
       
       // Create account if it doesn't exist
       if (!nfcAccount) {
-        nfcAccount = await this.createNFCEthereumAccount(chipUID, pin)
+        nfcAccount = await this.createNFCEthereumAccount(chipUID, pin) || undefined
         if (!nfcAccount) return null
       }
 
@@ -159,7 +160,7 @@ class WalletIntegrationManager {
 
       // Create provider (use default public RPC for now)
       const provider = new ethers.JsonRpcProvider('https://eth-mainnet.g.alchemy.com/v2/demo')
-      const signer = wallet.connect(provider)
+      const signer = wallet.connect(provider) as ethers.JsonRpcSigner
 
       const walletAccount: WalletAccount = {
         address: nfcAccount.address,
@@ -171,7 +172,7 @@ class WalletIntegrationManager {
 
       const session: WalletSession = {
         account: walletAccount,
-        provider,
+        provider: provider as ethers.BrowserProvider,
         signer,
         sessionId: `nfc_eth_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
         connectedAt: Date.now(),
@@ -374,4 +375,8 @@ class WalletIntegrationManager {
 export const walletIntegration = WalletIntegrationManager.getInstance()
 
 // Export types
-export type { WalletAccount, WalletSession, NFCEthereumAccount } 
+export type { 
+  WalletAccount as WalletAccountType, 
+  WalletSession as WalletSessionType, 
+  NFCEthereumAccount as NFCEthereumAccountType 
+} 

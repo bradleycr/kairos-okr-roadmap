@@ -168,7 +168,7 @@ module.exports = {
         'brass': '0 4px 16px rgba(255 191 0 / 0.3)',
         'cyber': '0 8px 32px rgba(0 255 255 / 0.4)',
         'her-warm': '0 4px 20px rgba(245 181 145 / 0.25), 0 2px 8px rgba(245 181 145 / 0.15)',
-        'her-warm': '0 8px 32px rgba(245 181 145 / 0.2)',
+        'warm-glow': '0 8px 32px rgba(245 181 145 / 0.2)',
         'retro-sophisticated': '0 4px 16px rgba(144 193 196 / 0.15), 0 2px 8px rgba(186 162 195 / 0.1)',
         'retro-warm': '0 6px 24px rgba(237 164 154 / 0.2)',
         'retro-depth': '0 8px 32px rgba(168 184 157 / 0.15)',

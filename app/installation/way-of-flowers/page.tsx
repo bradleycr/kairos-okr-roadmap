@@ -3,8 +3,9 @@
  * A contemplative journey connecting intention with conservation through digital presence
  * 
  * Features clean, modular architecture with:
- * - Separated WoF stage components for clear visual hierarchy
- * - Custom hooks for state management and side effects
+ * - Persistent session management (like Cursive Connections)
+ * - Web NFC API integration for confirmation taps
+ * - Smart contract integration for conservation tracking
  * - Integrated wallet functionality for conservation donations
  * - Smooth transitions between contemplative stages
  */
@@ -14,7 +15,9 @@
 import { Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { Progress } from '@/components/ui/progress'
-import { HybridAuthDialog } from '@/components/ui/hybrid-auth-dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Leaf, Wallet, TouchpadIcon as Tap, Users } from 'lucide-react'
 
 // WoF Hooks
 import { useWoFFlow } from './hooks/useWoFFlow'
@@ -46,8 +49,22 @@ function WayOfFlowersContent() {
     router.push(`?${params.toString()}`)
   }
 
-  const handleConnectWallet = () => {
-    walletFlow.connectWallet('metamask')
+  const handleConnectWallet = async () => {
+    try {
+      await walletFlow.connectWallet('metamask')
+      // Refresh session to update wallet status
+      await wofFlow.checkPersistentSession()
+    } catch (error) {
+      console.error('Wallet connection failed:', error)
+    }
+  }
+
+  const handleGoToProfile = () => {
+    router.push('/profile')
+  }
+
+  const handleGoToNFCAuth = () => {
+    router.push('/nfc')
   }
 
   const handleMakeChoice = async (offering: any) => {
@@ -70,23 +87,20 @@ function WayOfFlowersContent() {
 
   // Render current WoF stage
   const renderCurrentStage = () => {
+    // If we have a persistent session, skip auth and go to interaction
+    if (wofFlow.persistentSession && wofFlow.currentStage === 'welcome') {
+      return renderInteractionStage()
+    }
+
     switch (wofFlow.currentStage) {
       case 'welcome':
-        return <WoFWelcomeStage onSimulateFlow={handleSimulateFlow} />
+        return renderWelcomeStage()
       
       case 'auth':
-        return <WoFAuthStage verificationState={wofFlow.verificationState} />
+        return <WoFAuthStage verificationState={{ status: 'initializing', progress: 0, currentPhase: 'Authenticating...', debugLogs: [] }} />
       
       case 'first-interaction':
-        return (
-          <WoFInteractionStage
-            userPaths={wofFlow.userPaths}
-            isNewUser={wofFlow.userSession?.isNewUser ?? true}
-            isProcessing={wofFlow.isProcessing}
-            onCreateNewPath={wofFlow.createNewPath}
-            onSelectExistingPath={wofFlow.selectExistingPath}
-          />
-        )
+        return renderInteractionStage()
       
       case 'choice':
         if (!wofFlow.selectedPath) return null
@@ -121,9 +135,103 @@ function WayOfFlowersContent() {
         )
       
       default:
-        return <WoFWelcomeStage onSimulateFlow={handleSimulateFlow} />
+        return renderWelcomeStage()
     }
   }
+
+  const renderWelcomeStage = () => (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-6">
+        <div className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+            <Leaf className="w-8 h-8 text-emerald-600" />
+          </div>
+          <h1 className="text-2xl font-medium text-gray-900">Way of Flowers</h1>
+          <p className="text-gray-600">
+            A contemplative journey connecting intention with conservation
+          </p>
+        </div>
+
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            {wofFlow.persistentSession ? (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-2">Welcome back,</p>
+                  <p className="font-medium text-emerald-700">
+                    {wofFlow.persistentSession.currentUser?.displayName}
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => wofFlow.checkPersistentSession()}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <Leaf className="w-4 h-4 mr-2" />
+                    Continue Journey
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={handleGoToProfile}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Profile
+                  </Button>
+                </div>
+
+                {!wofFlow.userSession?.hasWallet && (
+                  <Button
+                    variant="outline"
+                    onClick={handleConnectWallet}
+                    className="w-full"
+                  >
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Connect Wallet for Donations
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600 text-center">
+                  To begin your journey, please authenticate with your KairOS key
+                </p>
+                
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleGoToNFCAuth}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <Tap className="w-4 h-4 mr-2" />
+                    Authenticate with NFC
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={handleSimulateFlow}
+                    className="w-full"
+                  >
+                    Demo Experience
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+
+  const renderInteractionStage = () => (
+    <WoFInteractionStage
+      userPaths={wofFlow.userPaths}
+      isNewUser={wofFlow.userSession?.isNewUser ?? true}
+      isProcessing={wofFlow.isProcessing}
+      onCreateNewPath={wofFlow.createNewPath}
+      onSelectExistingPath={wofFlow.selectExistingPath}
+    />
+  )
 
   return (
     <>
@@ -139,6 +247,13 @@ function WayOfFlowersContent() {
               <span>Way of Flowers</span>
               <span>{Math.round(wofFlow.getStageProgress())}%</span>
             </div>
+            
+            {/* NFC Confirmation Indicator */}
+            {wofFlow.isNFCListening && (
+              <div className="mt-2 text-xs text-emerald-600 text-center animate-pulse">
+                🔊 Listening for NFC confirmation tap...
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -184,7 +299,7 @@ export default function WayOfFlowersInstallation() {
       fallback={
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
           <div className="animate-pulse text-emerald-600">
-            Loading WoF contemplative space...
+            Loading contemplative space...
           </div>
         </div>
       }

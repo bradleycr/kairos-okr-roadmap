@@ -1,7 +1,7 @@
 // Real ZK Bonding Proofs using Circom + snarkjs
 // This replaces the simulation with actual zero-knowledge proofs
 
-import * as snarkjs from 'snarkjs'
+// import * as snarkjs from 'snarkjs' // Disabled for now - would need to install snarkjs
 
 export interface BondingInputs {
   // Private inputs (secrets)

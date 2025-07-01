@@ -1,12 +1,17 @@
 /**
  * WoF (Way of Flowers) Flow State Management Hook
  * Handles the core logic and state for the Way of Flowers installation
+ * 
+ * New Flow:
+ * A. Someone logs in on tap (persistent session like Cursive Connections)
+ * B. Confirmation taps trigger Web NFC API for both Android and iPhone
+ * C. Checks smart contract for interactions (CitizenWallet style)
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import { WayOfFlowersManager, type FlowerPath, type CauseOffering } from '@/lib/installation/wayOfFlowers'
-import { useNFCAuthentication } from '@/app/nfc/hooks/useNFCAuthentication'
-import { useNFCParameterParser } from '@/app/nfc/hooks/useNFCParameterParser'
+import { SessionManager } from '@/lib/nfc/sessionManager'
+import { walletIntegration } from '@/lib/crypto/walletIntegration'
 
 export type WoFStage = 'welcome' | 'auth' | 'first-interaction' | 'choice' | 'evolution' | 'complete'
 
@@ -16,6 +21,7 @@ export interface UserWoFSession {
   sessionStarted: string
   lastInteraction: string
   ethAddress?: string
+  hasWallet: boolean
 }
 
 export interface WoFFlowState {
@@ -27,15 +33,14 @@ export interface WoFFlowState {
   selectedPath: FlowerPath | null
   selectedOffering: CauseOffering | null
   availableOfferings: CauseOffering[]
+  persistentSession: any | null
+  needsNFCConfirmation: boolean
+  isNFCListening: boolean
 }
 
 export function useWoFFlow() {
   // Initialize manager
   const [wofManager] = useState(() => new WayOfFlowersManager())
-  
-  // NFC hooks
-  const { verificationState } = useNFCAuthentication()
-  const { parsedParams } = useNFCParameterParser()
   
   // Core state
   const [state, setState] = useState<WoFFlowState>({
@@ -46,8 +51,55 @@ export function useWoFFlow() {
     userPaths: [],
     selectedPath: null,
     selectedOffering: null,
-    availableOfferings: wofManager.getAllCauseOfferings()
+    availableOfferings: wofManager.getAllCauseOfferings(),
+    persistentSession: null,
+    needsNFCConfirmation: false,
+    isNFCListening: false
   })
+
+  // Check for existing persistent session on mount (like Cursive Connections)
+  useEffect(() => {
+    checkPersistentSession()
+  }, [])
+
+  const checkPersistentSession = useCallback(async () => {
+    try {
+      const currentSession = await SessionManager.getCurrentSession()
+      
+      if (currentSession.isActive && currentSession.currentUser) {
+        console.log('🔄 Found persistent session for:', currentSession.currentUser.displayName)
+        
+        // Create WoF session from persistent KairOS session
+        const wofSession: UserWoFSession = {
+          chipUID: currentSession.currentUser.chipUID,
+          isNewUser: false,
+          sessionStarted: currentSession.currentUser.lastAuthenticated,
+          lastInteraction: new Date().toISOString(),
+          hasWallet: false
+        }
+
+        // Check if user has wallet
+        const walletSession = walletIntegration.getCurrentSession()
+        if (walletSession) {
+          wofSession.ethAddress = walletSession.account.address
+          wofSession.hasWallet = true
+        }
+
+        // Load user's existing paths
+        const existingPaths = wofManager.getUserFlowerPaths(currentSession.currentUser.chipUID)
+        
+        setState(prev => ({
+          ...prev,
+          persistentSession: currentSession,
+          userSession: wofSession,
+          userPaths: existingPaths,
+          currentStage: existingPaths.length > 0 ? 'choice' : 'first-interaction'
+        }))
+      }
+    } catch (error) {
+      console.error('Failed to check persistent session:', error)
+    }
+  }, [wofManager])
 
   // Initialize simulation mode if needed
   useEffect(() => {
@@ -59,7 +111,8 @@ export function useWoFFlow() {
         chipUID: urlParams.get('chipUID') || 'simulation-chip-' + Date.now(),
         isNewUser: true,
         sessionStarted: new Date().toISOString(),
-        lastInteraction: new Date().toISOString()
+        lastInteraction: new Date().toISOString(),
+        hasWallet: false
       }
       
       setState(prev => ({
@@ -71,63 +124,62 @@ export function useWoFFlow() {
     }
   }, [])
 
-  // Handle NFC parameter changes
-  useEffect(() => {
-    if (parsedParams && Object.keys(parsedParams).length > 0 && state.currentStage === 'welcome') {
-      setState(prev => ({ ...prev, currentStage: 'auth' }))
+  // Trigger NFC confirmation when needed (Web NFC API)
+  const requestNFCConfirmation = useCallback(async () => {
+    if (!('NDEFReader' in window)) {
+      console.warn('Web NFC not supported on this device')
+      return false
     }
-  }, [parsedParams, state.currentStage])
 
-  // Handle authentication success
-  useEffect(() => {
-    if (verificationState.status === 'success' && state.currentStage === 'auth' && parsedParams?.chipUID) {
-      handleAuthenticationSuccess()
-    }
-  }, [verificationState.status, state.currentStage, parsedParams?.chipUID])
-
-  // Auto-reset after completion
-  useEffect(() => {
-    if (state.currentStage === 'complete') {
-      const timer = setTimeout(() => {
-        localStorage.removeItem('wayOfFlowers_currentUser')
-        setState(prev => ({
-          ...prev,
-          userSession: null,
-          currentStage: 'welcome',
-          selectedPath: null,
-          selectedOffering: null
-        }))
-      }, 6000)
-      return () => clearTimeout(timer)
-    }
-  }, [state.currentStage])
-
-  const handleAuthenticationSuccess = useCallback(async () => {
-    if (!parsedParams?.chipUID) return
+    setState(prev => ({ ...prev, needsNFCConfirmation: true, isNFCListening: true }))
 
     try {
-      const existingPaths = wofManager.getUserFlowerPaths(parsedParams.chipUID)
-      const isNewUser = existingPaths.length === 0
-
-      const newUserSession: UserWoFSession = {
-        chipUID: parsedParams.chipUID,
-        isNewUser,
-        sessionStarted: new Date().toISOString(),
-        lastInteraction: new Date().toISOString()
-      }
-
-      localStorage.setItem('wayOfFlowers_currentUser', JSON.stringify(newUserSession))
+      const ndef = new (window as any).NDEFReader()
       
-      setState(prev => ({
-        ...prev,
-        userSession: newUserSession,
-        userPaths: existingPaths,
-        currentStage: 'first-interaction'
-      }))
+      // Request permission and start listening
+      await ndef.scan()
+      console.log('🔊 NFC listening started for confirmation...')
+      
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          setState(prev => ({ ...prev, isNFCListening: false, needsNFCConfirmation: false }))
+          resolve(false)
+        }, 10000) // 10 second timeout
+
+        ndef.addEventListener('reading', (event: any) => {
+          console.log('✅ NFC confirmation received')
+          clearTimeout(timeout)
+          setState(prev => ({ ...prev, isNFCListening: false, needsNFCConfirmation: false }))
+          resolve(true)
+        })
+      })
     } catch (error) {
-      console.error('WoF authentication success handler failed:', error)
+      console.error('NFC confirmation failed:', error)
+      setState(prev => ({ ...prev, isNFCListening: false, needsNFCConfirmation: false }))
+      return false
     }
-  }, [parsedParams?.chipUID, wofManager])
+  }, [])
+
+  // Check smart contract for interactions (CitizenWallet style)
+  const checkSmartContractInteractions = useCallback(async (ethAddress: string) => {
+    try {
+      console.log('🔗 Checking smart contract interactions for:', ethAddress)
+      
+      // Use the conservation contract to check real interactions
+      const { ConservationContract } = await import('@/lib/crypto/conservationContract')
+      const conservationContract = ConservationContract.getInstance()
+      const interactions = await conservationContract.getConservationInteractions(ethAddress as any)
+      const metrics = await conservationContract.getConservationMetrics(ethAddress as any)
+      
+      console.log('📊 Conservation metrics:', metrics)
+      console.log('🔗 Recent interactions:', interactions)
+      
+      return { interactions, metrics }
+    } catch (error) {
+      console.error('Smart contract check failed:', error)
+      return { interactions: [], metrics: null }
+    }
+  }, [])
 
   const createNewPath = useCallback(async () => {
     if (!state.userSession?.chipUID) return
@@ -167,6 +219,18 @@ export function useWoFFlow() {
     setState(prev => ({ ...prev, isProcessing: true, selectedOffering: offering }))
     
     try {
+      // Request NFC confirmation if available
+      const confirmed = await requestNFCConfirmation()
+      
+      if (!confirmed && !state.isSimulationMode) {
+        console.log('⚠️ NFC confirmation not received, continuing anyway...')
+      }
+
+      // Check smart contract interactions if wallet is connected
+      if (state.userSession.hasWallet && state.userSession.ethAddress) {
+        await checkSmartContractInteractions(state.userSession.ethAddress)
+      }
+
       const result = await wofManager.makeChoice(
         state.userSession.chipUID,
         state.selectedPath.id,
@@ -189,7 +253,7 @@ export function useWoFFlow() {
       console.error('WoF failed to make choice:', error)
       setState(prev => ({ ...prev, isProcessing: false }))
     }
-  }, [state.userSession?.chipUID, state.selectedPath, wofManager])
+  }, [state.userSession, state.selectedPath, state.isSimulationMode, wofManager, requestNFCConfirmation, checkSmartContractInteractions])
 
   const startOver = useCallback(() => {
     setState(prev => ({
@@ -197,33 +261,49 @@ export function useWoFFlow() {
       currentStage: 'welcome',
       selectedPath: null,
       selectedOffering: null,
-      userSession: null
+      userSession: null,
+      persistentSession: null
     }))
-    localStorage.removeItem('wayOfFlowers_currentUser')
   }, [])
 
-  const getStageProgress = useCallback((): number => {
-    switch (state.currentStage) {
-      case 'welcome': return 0
-      case 'auth': return 20
-      case 'first-interaction': return 40
-      case 'choice': return 60
-      case 'evolution': return 80
-      case 'complete': return 100
-      default: return 0
+  const getStageProgress = useCallback(() => {
+    const stageMap = {
+      'welcome': 0,
+      'auth': 20,
+      'first-interaction': 40,
+      'choice': 60,
+      'evolution': 80,
+      'complete': 100
     }
+    return stageMap[state.currentStage] || 0
   }, [state.currentStage])
+
+  // Auto-reset after completion
+  useEffect(() => {
+    if (state.currentStage === 'complete') {
+      const timer = setTimeout(() => {
+        // Don't clear persistent session, just reset WoF state
+        setState(prev => ({
+          ...prev,
+          currentStage: state.persistentSession ? 'first-interaction' : 'welcome',
+          selectedPath: null,
+          selectedOffering: null,
+          userSession: state.persistentSession ? prev.userSession : null
+        }))
+      }, 6000)
+      return () => clearTimeout(timer)
+    }
+  }, [state.currentStage, state.persistentSession])
 
   return {
     ...state,
-    verificationState,
-    parsedParams,
-    
-    // Actions
     createNewPath,
     selectExistingPath,
     makeChoice,
     startOver,
-    getStageProgress
+    getStageProgress,
+    checkPersistentSession,
+    requestNFCConfirmation,
+    checkSmartContractInteractions
   }
 } 
