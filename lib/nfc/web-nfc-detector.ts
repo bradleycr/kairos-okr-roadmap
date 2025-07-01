@@ -25,6 +25,15 @@ interface NFCCompatibility {
   fallbackRequired: boolean
 }
 
+export interface NFCListeningSession {
+  isListening: boolean
+  startedAt?: number
+  timeout?: NodeJS.Timeout
+  purpose: 'auth' | 'confirmation' | 'transaction'
+  onSuccess?: (chipUID: string) => void
+  onError?: (error: Error) => void
+}
+
 /**
  * 🔍 Web NFC Capability Detector
  * 
@@ -274,6 +283,117 @@ export class NFCStatusIndicator {
     return colorMap[reliability]
   }
 }
+
+class EnhancedNFCDetector {
+  private listeningSession: NFCListeningSession | null = null
+  private static instance: EnhancedNFCDetector
+
+  static getInstance(): EnhancedNFCDetector {
+    if (!EnhancedNFCDetector.instance) {
+      EnhancedNFCDetector.instance = new EnhancedNFCDetector()
+    }
+    return EnhancedNFCDetector.instance
+  }
+
+  // Enhanced method for button-triggered listening
+  async startListeningMode(options: {
+    purpose: 'auth' | 'confirmation' | 'transaction'
+    timeoutMs?: number
+    onSuccess?: (chipUID: string) => void
+    onError?: (error: Error) => void
+  }): Promise<boolean> {
+    try {
+      // Stop any existing listening session
+      await this.stopListening()
+
+      if (!('NDEFReader' in window)) {
+        throw new Error('Web NFC not supported on this device')
+      }
+
+      const reader = new NDEFReader()
+      
+      // Request permission first
+      await reader.scan()
+
+      // Set up listening session
+      this.listeningSession = {
+        isListening: true,
+        startedAt: Date.now(),
+        purpose: options.purpose,
+        onSuccess: options.onSuccess,
+        onError: options.onError
+      }
+
+      // Set timeout (default 40 seconds like Cursive)
+      const timeoutMs = options.timeoutMs || 40000
+      this.listeningSession.timeout = setTimeout(() => {
+        this.stopListening()
+        options.onError?.(new Error('NFC listening timeout'))
+      }, timeoutMs)
+
+      // Listen for readings
+      reader.addEventListener('reading', (event) => {
+        this.handleNFCReading(event)
+      })
+
+      reader.addEventListener('readingerror', (error) => {
+        this.stopListening()
+        options.onError?.(error)
+      })
+
+      console.log(`🎯 NFC listening started for ${options.purpose}`)
+      return true
+
+    } catch (error) {
+      console.error('❌ Failed to start NFC listening:', error)
+      options.onError?.(error as Error)
+      return false
+    }
+  }
+
+  private async handleNFCReading(event: NDEFReadingEvent) {
+    try {
+      const { serialNumber } = event
+      const chipUID = Array.from(new Uint8Array(serialNumber!))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join(':')
+        .toUpperCase()
+
+      console.log(`📱 NFC ${this.listeningSession?.purpose} detected:`, chipUID)
+
+      // Call success handler
+      this.listeningSession?.onSuccess?.(chipUID)
+      
+      // Stop listening after successful read
+      await this.stopListening()
+
+    } catch (error) {
+      console.error('❌ Error processing NFC reading:', error)
+      this.listeningSession?.onError?.(error as Error)
+      await this.stopListening()
+    }
+  }
+
+  async stopListening(): Promise<void> {
+    if (this.listeningSession?.timeout) {
+      clearTimeout(this.listeningSession.timeout)
+    }
+    
+    this.listeningSession = null
+    console.log('🛑 NFC listening stopped')
+  }
+
+  isCurrentlyListening(): boolean {
+    return this.listeningSession?.isListening || false
+  }
+
+  getCurrentListeningPurpose(): string | null {
+    return this.listeningSession?.purpose || null
+  }
+}
+
+// Export enhanced detector
+export const enhancedNFCDetector = EnhancedNFCDetector.getInstance()
 
 // --- Export Types for TypeScript Excellence ---
 export type { NFCSupport, NFCCompatibility } 

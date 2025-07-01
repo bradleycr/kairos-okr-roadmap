@@ -23,12 +23,17 @@ import { NFCAuthFlow } from '@/app/nfc/components/NFCAuthFlow'
 import { useNFCAuthentication } from '@/app/nfc/hooks/useNFCAuthentication'
 import { useNFCParameterParser } from '@/app/nfc/hooks/useNFCParameterParser'
 import { WayOfFlowersManager, type FlowerPath, type CauseOffering } from '@/lib/installation/wayOfFlowers'
+import { HybridAuthDialog } from '@/components/ui/hybrid-auth-dialog'
+import { walletIntegration, type WalletSession } from '@/lib/crypto/walletIntegration'
+import { conservationContract, type ConservationChoice, CauseCategory, ImpactLevel } from '@/lib/crypto/conservationContract'
 
 interface UserFlowerSession {
   chipUID: string
   isNewUser: boolean
   sessionStarted: string
   lastInteraction: string
+  walletSession?: WalletSession | null
+  ethAddress?: string
 }
 
 type FlowStage = 'welcome' | 'auth' | 'first-interaction' | 'choice' | 'evolution' | 'complete'
@@ -51,6 +56,11 @@ function WayOfFlowersContent() {
   const [userPaths, setUserPaths] = useState<FlowerPath[]>([])
   const [selectedPath, setSelectedPath] = useState<FlowerPath | null>(null)
   const [selectedOffering, setSelectedOffering] = useState<CauseOffering | null>(null)
+  
+  // Wallet integration state
+  const [showHybridAuth, setShowHybridAuth] = useState(false)
+  const [walletConnected, setWalletConnected] = useState(false)
+  const [donationAmount, setDonationAmount] = useState<string>('0.01')
   
   // Initialize WayOfFlowersManager
   const [flowerManager] = useState(() => new WayOfFlowersManager())
@@ -191,7 +201,50 @@ function WayOfFlowersContent() {
     }
   }
 
-  // Make environmental choice
+  // Handle hybrid authentication success
+  const handleHybridAuthSuccess = async (authResult: WalletSession | { type: 'nfc', chipUID: string }) => {
+    try {
+      if ('type' in authResult && authResult.type === 'nfc') {
+        // NFC authentication - continue with existing flow
+        const existingUser = localStorage.getItem('wayOfFlowers_currentUser')
+        if (existingUser) {
+          const userData = JSON.parse(existingUser)
+          if (userData.chipUID === authResult.chipUID) {
+            setUserSession({
+              ...userData,
+              walletSession: null
+            })
+          }
+        }
+        
+        const paths = flowerManager.getUserFlowerPaths(authResult.chipUID)
+        setUserPaths(paths)
+        setCurrentStage('first-interaction')
+      } else {
+        // Wallet authentication - create NFC-Ethereum bridge
+        const session = authResult as WalletSession
+        setWalletConnected(true)
+        
+        // Create bridged session
+        const bridgedSession: UserFlowerSession = {
+          chipUID: `wallet_${session.account.address}`,
+          isNewUser: true,
+          sessionStarted: new Date().toISOString(),
+          lastInteraction: new Date().toISOString(),
+          walletSession: session,
+          ethAddress: session.account.address
+        }
+        
+        setUserSession(bridgedSession)
+        localStorage.setItem('wayOfFlowers_currentUser', JSON.stringify(bridgedSession))
+        setCurrentStage('first-interaction')
+      }
+    } catch (error) {
+      console.error('❌ Error handling hybrid auth success:', error)
+    }
+  }
+
+  // Make environmental choice (enhanced with blockchain support)
   const handleMakeChoice = async (offering: CauseOffering) => {
     try {
       if (!selectedPath || !userSession?.chipUID) return
@@ -199,6 +252,12 @@ function WayOfFlowersContent() {
       setIsProcessing(true)
       setSelectedOffering(offering)
       
+      // Determine donation amount based on impact level
+      const impactLevel = Math.min(selectedPath.choices.length, 3) as ImpactLevel
+      const suggestedAmount = conservationContract.getSuggestedDonationAmount(impactLevel)
+      setDonationAmount(suggestedAmount)
+      
+      // Record choice locally first
       const result = await flowerManager.makeChoice(
         userSession.chipUID,
         selectedPath.id,
@@ -207,6 +266,39 @@ function WayOfFlowersContent() {
       
       setSelectedPath(result.updatedPath)
       setUserPaths(prev => prev.map(p => p.id === result.updatedPath.id ? result.updatedPath : p))
+      
+      // If wallet is connected, also record on blockchain
+      if (userSession.walletSession && walletConnected) {
+        const causeMap = {
+          'restoration': CauseCategory.Restoration,
+          'conservation': CauseCategory.Conservation,  
+          'regeneration': CauseCategory.Regeneration,
+          'protection': CauseCategory.Protection
+        }
+        
+        const conservationChoice: ConservationChoice = {
+          chipUID: userSession.chipUID,
+          causeCategory: causeMap[offering.category],
+          impactLevel: impactLevel,
+          offeringId: offering.id,
+          donationAmount: donationAmount,
+          timestamp: Date.now()
+        }
+        
+        console.log('💚 Recording conservation choice on blockchain:', conservationChoice)
+        
+        // Attempt blockchain transaction (non-blocking)
+        conservationContract.recordConservationChoice(conservationChoice)
+          .then(txHash => {
+            if (txHash) {
+              console.log('✅ Blockchain transaction successful:', txHash)
+            }
+          })
+          .catch(error => {
+            console.error('❌ Blockchain transaction failed:', error)
+            // Continue with local flow even if blockchain fails
+          })
+      }
       
       setCurrentStage('evolution')
       
@@ -261,12 +353,19 @@ function WayOfFlowersContent() {
       
       <h1 className="text-3xl font-light text-neutral-900 mb-8">Way of Flowers</h1>
       
-      <div className="w-16 h-16 border-2 border-green-200 rounded-full flex items-center justify-center mb-6 animate-bounce">
-        <Smartphone className="h-6 w-6" />
-      </div>
+      <p className="text-neutral-500 text-lg font-light mb-8">
+        Environmental stewardship through choice
+      </p>
+
+      <Button
+        onClick={() => setShowHybridAuth(true)}
+        className="bg-green-600 hover:bg-green-700 rounded-full px-8 py-6 text-lg font-light mb-6"
+      >
+        Begin Journey
+      </Button>
       
-      <p className="text-neutral-500 text-lg font-light">
-        {isTestMode ? "Test mode - ready to authenticate" : "Tap to begin"}
+      <p className="text-xs text-neutral-400 mb-4">
+        Choose your authentication method to start
       </p>
 
       {/* Development/Testing Controls */}
@@ -502,6 +601,17 @@ function WayOfFlowersContent() {
         {currentStage === 'evolution' && <EvolutionStage />}
         {currentStage === 'complete' && <CompleteStage />}
       </div>
+
+      {/* Hybrid Authentication Dialog */}
+      <HybridAuthDialog
+        isOpen={showHybridAuth}
+        onOpenChange={setShowHybridAuth}
+        onSuccess={handleHybridAuthSuccess}
+        title="Join Way of Flowers"
+        description="Choose your path to environmental stewardship"
+        requireDonation={true}
+        allowNFCOnly={true}
+      />
     </div>
   )
 }
