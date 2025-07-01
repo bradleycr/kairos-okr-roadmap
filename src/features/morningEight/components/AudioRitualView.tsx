@@ -178,6 +178,67 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                   </Alert>
                 )}
 
+                {/* Voice Selection & Audio Generation */}
+                {!audioUrl && !isGeneratingAudio && !error && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="space-y-6"
+                  >
+                    <div className="text-center space-y-4">
+                      <h3 className="text-lg font-medium">Generate Audio Ritual</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Choose a voice to guide you through your 8-minute morning ritual
+                      </p>
+                      
+                      {/* Voice Selection */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-lg mx-auto">
+                        {voices.map((voice) => (
+                          <Button
+                            key={voice.id}
+                            variant={selectedVoice === voice.id ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedVoice(voice.id)}
+                            className="flex flex-col h-auto p-3"
+                          >
+                            <span className="font-medium">{voice.name}</span>
+                            <span className="text-xs text-muted-foreground">{voice.description}</span>
+                          </Button>
+                        ))}
+                      </div>
+                      
+                      {/* Generate Button */}
+                      <Button
+                        onClick={() => generateAudio(routine, selectedVoice)}
+                        size="lg"
+                        className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-3"
+                      >
+                        <Volume2 className="w-5 h-5 mr-2" />
+                        Generate Audio Ritual
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Loading State */}
+                {isGeneratingAudio && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center space-y-4"
+                  >
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center">
+                      <Waves className="w-8 h-8 text-white animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium">Creating Your Audio Ritual</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Using {voices.find(v => v.id === selectedVoice)?.name} voice • This may take 30-60 seconds
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Audio Controls */}
                 {audioUrl && !error && (
                   <motion.div
@@ -277,8 +338,8 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                       </Button>
                     </div>
 
-                    {/* Download Button */}
-                    <div className="flex justify-center">
+                    {/* Download & Voice Change Buttons */}
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <Button
                         variant="outline"
                         size="sm"
@@ -287,6 +348,16 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download Audio
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearAudio}
+                        className="text-primary hover:bg-primary/10"
+                      >
+                        <Volume2 className="w-4 h-4 mr-2" />
+                        Change Voice
                       </Button>
                     </div>
                   </motion.div>
