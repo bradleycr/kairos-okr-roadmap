@@ -24,7 +24,7 @@ body:
       description: Steps to reproduce the behavior
       placeholder: |
         1. Go to '...'
-        2. Tap on '...'
+        2. Tap NFC card or use simulator
         3. Enter PIN '...'
         4. See error
     validations:
@@ -73,12 +73,27 @@ body:
     id: nfc-availability
     attributes:
       label: NFC Testing
-      description: NFC testing information
+      description: How did you test this?
       options:
         - label: I have an NFC-capable device
         - label: I'm using the simulator
         - label: This issue occurs with real NFC cards
         - label: This issue occurs in simulation mode
+
+  - type: dropdown
+    id: authentication-stage
+    attributes:
+      label: Authentication Stage
+      description: At what stage does the issue occur?
+      options:
+        - label: NFC card reading
+        - label: PIN entry
+        - label: Key derivation
+        - label: Profile access
+        - label: Way of Flowers installation
+        - label: Other/Not applicable
+    validations:
+      required: false
 
   - type: textarea
     id: additional-context
