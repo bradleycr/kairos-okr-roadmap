@@ -19,9 +19,9 @@ export class NFCAuthenticationEngine {
   /**
    * Main authentication flow - DID:Key based
    */
-  public static async authenticate(params: NFCParameters): Promise<AuthenticationResult> {
+  public static async authenticate(params: NFCParameters & { pin?: string }): Promise<AuthenticationResult> {
     try {
-      console.log('Starting authentication...', params)
+      console.log('🔐 Starting authentication with PIN support...', { chipUID: params.chipUID, hasPIN: !!params.pin })
 
       // First validate parameters
       const validation = this.validateParameters(params)
@@ -31,6 +31,8 @@ export class NFCAuthenticationEngine {
           error: `Invalid parameters: ${validation.errors.join(', ')}`
         }
       }
+
+      console.log(`✅ Parameters validated - Format: ${validation.format}`)
 
       // Handle different authentication formats
       switch (validation.format) {
@@ -52,7 +54,7 @@ export class NFCAuthenticationEngine {
       }
 
     } catch (error) {
-      console.error('Authentication error:', error)
+      console.error('❌ Authentication error:', error)
       return {
         verified: false,
         error: error instanceof Error ? error.message : 'Authentication failed'
