@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Play, 
   Pause, 
@@ -15,8 +16,10 @@ import {
   Waves,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertCircle
 } from 'lucide-react';
+import { SkipBack, SkipForward, Sunrise } from 'lucide-react';
 
 import type { Routine } from '../types';
 import { useAudioRitual } from '../hooks/useAudioRitual';
@@ -31,7 +34,20 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
   const [selectedVoice, setSelectedVoice] = useState('nova');
   const [showSteps, setShowSteps] = useState(true); // Show by default
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const audioRitual = useAudioRitual();
+  const {
+    isGeneratingAudio,
+    isPlaying,
+    audioUrl,
+    currentTime,
+    duration,
+    error,
+    generateAudio,
+    playAudio,
+    pauseAudio,
+    seekTo,
+    clearAudio,
+    downloadAudio,
+  } = useAudioRitual();
 
   const voices = [
     { id: 'nova', name: 'Nova', description: 'Warm and engaging' },
@@ -43,38 +59,38 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
   ];
 
   useEffect(() => {
-    if (autoStart && !audioRitual.audioUrl && !audioRitual.isGeneratingAudio) {
-      audioRitual.generateAudio(routine, selectedVoice);
+    if (autoStart && !audioUrl && !isGeneratingAudio) {
+      generateAudio(routine, selectedVoice);
     }
-  }, [autoStart, routine, selectedVoice, audioRitual]);
+  }, [autoStart, routine, selectedVoice, generateAudio]);
 
   useEffect(() => {
-    if (autoStart && audioRitual.audioUrl && !audioRitual.isPlaying) {
+    if (autoStart && audioUrl && !isPlaying) {
       const timer = setTimeout(() => {
-        audioRitual.playAudio();
+        playAudio();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [autoStart, audioRitual.audioUrl, audioRitual.isPlaying, audioRitual]);
+  }, [autoStart, audioUrl, isPlaying, playAudio]);
 
   // Calculate current step based on audio progress
   useEffect(() => {
-    if (audioRitual.duration > 0 && audioRitual.currentTime > 0) {
+    if (duration > 0 && currentTime > 0) {
       // Rough calculation: intro (30s) + steps evenly distributed + outro (30s)
       const introTime = 30;
       const outroTime = 30;
-      const stepTime = (audioRitual.duration - introTime - outroTime) / routine.steps.length;
+      const stepTime = (duration - introTime - outroTime) / routine.steps.length;
       
-      if (audioRitual.currentTime < introTime) {
+      if (currentTime < introTime) {
         setCurrentStepIndex(-1); // Intro
-      } else if (audioRitual.currentTime > audioRitual.duration - outroTime) {
+      } else if (currentTime > duration - outroTime) {
         setCurrentStepIndex(routine.steps.length); // Outro
       } else {
-        const stepIndex = Math.floor((audioRitual.currentTime - introTime) / stepTime);
+        const stepIndex = Math.floor((currentTime - introTime) / stepTime);
         setCurrentStepIndex(Math.min(stepIndex, routine.steps.length - 1));
       }
     }
-  }, [audioRitual.currentTime, audioRitual.duration, routine.steps.length]);
+  }, [currentTime, duration, routine.steps.length]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -82,16 +98,16 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progressPercentage = audioRitual.duration > 0 
-    ? (audioRitual.currentTime / audioRitual.duration) * 100 
+  const progressPercentage = duration > 0 
+    ? (currentTime / duration) * 100 
     : 0;
 
   // Handle mobile play button with user gesture
   const handlePlayClick = () => {
-    if (!audioRitual.isPlaying) {
-      audioRitual.playAudio();
+    if (!isPlaying) {
+      playAudio();
     } else {
-      audioRitual.pauseAudio();
+      pauseAudio();
     }
   };
 
@@ -117,8 +133,8 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <motion.div
-              animate={{ rotate: audioRitual.isPlaying ? 360 : 0 }}
-              transition={{ duration: 8, repeat: audioRitual.isPlaying ? Infinity : 0, ease: "linear" }}
+              animate={{ rotate: isPlaying ? 360 : 0 }}
+              transition={{ duration: 8, repeat: isPlaying ? Infinity : 0, ease: "linear" }}
             >
               <Sparkles className="w-8 h-8 text-primary" />
             </motion.div>
@@ -142,151 +158,139 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
             <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-6">
                 
-                {/* Audio Visualization */}
-                <motion.div 
-                  className="relative w-48 h-48 mx-auto"
-                  animate={{ scale: audioRitual.isPlaying ? [1, 1.05, 1] : 1 }}
-                  transition={{ duration: 2, repeat: audioRitual.isPlaying ? Infinity : 0 }}
-                >
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 backdrop-blur-sm border border-primary/30" />
-                  <div className="absolute inset-4 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm" />
-                  <div className="absolute inset-8 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center">
-                    <motion.div
-                      animate={{ scale: audioRitual.isPlaying ? [1, 1.2, 1] : 1 }}
-                      transition={{ duration: 1.5, repeat: audioRitual.isPlaying ? Infinity : 0 }}
-                    >
-                      <Waves className="w-16 h-16 text-primary" />
-                    </motion.div>
-                  </div>
-                  
-                  <AnimatePresence>
-                    {audioRitual.isPlaying && (
-                      <>
-                        <motion.div
-                          className="absolute inset-0 rounded-full border border-primary/30"
-                          initial={{ scale: 1, opacity: 0.5 }}
-                          animate={{ scale: 1.5, opacity: 0 }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        />
-                        <motion.div
-                          className="absolute inset-0 rounded-full border border-accent/30"
-                          initial={{ scale: 1, opacity: 0.5 }}
-                          animate={{ scale: 1.8, opacity: 0 }}
-                          transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                        />
-                      </>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-
-                {/* Status and Progress */}
-                <div className="space-y-3">
-                  {audioRitual.isGeneratingAudio && (
-                    <div className="space-y-3">
-                      <motion.div
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        <Badge variant="secondary">Generating your 8-minute guided ritual...</Badge>
-                      </motion.div>
-                      <Progress value={undefined} className="h-2" />
-                    </div>
-                  )}
-
-                  {audioRitual.audioUrl && (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Progress value={progressPercentage} className="h-3" />
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>{formatTime(audioRitual.currentTime)}</span>
-                          <span>{formatTime(audioRitual.duration)}</span>
-                        </div>
-                      </div>
-                      <Badge variant={audioRitual.isPlaying ? "default" : "outline"}>
-                        {audioRitual.isPlaying ? 'Playing your ritual' : 'Ready to begin'}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {audioRitual.error && (
-                    <Badge variant="destructive">{audioRitual.error}</Badge>
-                  )}
-                </div>
-
-                {/* Controls */}
-                <div className="flex items-center justify-center space-x-4">
-                  {!audioRitual.audioUrl ? (
-                    <div className="space-y-4">
-                      <Button
-                        onClick={() => audioRitual.generateAudio(routine, selectedVoice)}
-                        disabled={audioRitual.isGeneratingAudio}
-                        size="lg"
-                        className="px-8"
-                      >
-                        {audioRitual.isGeneratingAudio ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Volume2 className="w-5 h-5 mr-2" />
-                            Create 8-Minute Audio Ritual
-                          </>
-                        )}
-                      </Button>
-                      
-                      {!audioRitual.isGeneratingAudio && (
-                        <div className="space-y-3">
-                          <p className="text-sm text-muted-foreground">Choose your guide's voice:</p>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {voices.map((voice) => (
-                              <Button
-                                key={voice.id}
-                                variant={selectedVoice === voice.id ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setSelectedVoice(voice.id)}
-                                className="text-xs"
-                              >
-                                {voice.name}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
+                {/* Error Display */}
+                {error && (
+                  <Alert className="mb-6 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <AlertDescription className="text-red-800 dark:text-red-200">
+                      {error}
+                      {error.includes('regenerating') && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="ml-2 h-auto p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          onClick={() => generateAudio(routine, selectedVoice)}
+                        >
+                          Try Again
+                        </Button>
                       )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Audio Controls */}
+                {audioUrl && !error && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="space-y-6"
+                  >
+                    {/* Audio Visualization */}
+                    <div className="relative h-32 bg-gradient-to-r from-orange-100/50 via-amber-100/50 to-yellow-100/50 dark:from-orange-950/20 dark:via-amber-950/20 dark:to-yellow-950/20 rounded-xl overflow-hidden">
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-amber-400/20"
+                        animate={{
+                          scale: isPlaying ? [1, 1.02, 1] : 1,
+                          opacity: isPlaying ? [0.3, 0.6, 0.3] : 0.3,
+                        }}
+                        transition={{
+                          duration: 3,
+                          repeat: isPlaying ? Infinity : 0,
+                          ease: "easeInOut"
+                        }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <motion.div
+                          animate={{
+                            rotate: isPlaying ? 360 : 0,
+                          }}
+                          transition={{
+                            duration: 20,
+                            repeat: isPlaying ? Infinity : 0,
+                            ease: "linear"
+                          }}
+                        >
+                          <Sunrise className="w-12 h-12 text-orange-500" />
+                        </motion.div>
+                      </div>
                     </div>
-                  ) : (
-                    <>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{formatTime(currentTime)}</span>
+                        <span>{formatTime(duration)}</span>
+                      </div>
+                      <div className="relative">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-orange-400 to-amber-400"
+                            style={{
+                              width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%'
+                            }}
+                            transition={{ duration: 0.1 }}
+                          />
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max={duration || 0}
+                          value={currentTime}
+                          onChange={(e) => seekTo(Number(e.target.value))}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Control Buttons */}
+                    <div className="flex items-center justify-center space-x-4">
                       <Button
                         variant="outline"
-                        size="icon"
-                        onClick={() => audioRitual.seekTo(Math.max(0, audioRitual.currentTime - 30))}
+                        size="sm"
+                        onClick={() => seekTo(Math.max(0, currentTime - 30))}
+                        className="rounded-full"
                       >
-                        -30s
+                        <SkipBack className="w-4 h-4" />
+                        <span className="ml-1 text-xs">30s</span>
                       </Button>
-                      
+
                       <Button
-                        onClick={handlePlayClick}
+                        onClick={isPlaying ? pauseAudio : playAudio}
                         size="lg"
-                        className="w-16 h-16 rounded-full"
+                        className="rounded-full w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
                       >
-                        {audioRitual.isPlaying ? (
+                        {isPlaying ? (
                           <Pause className="w-6 h-6" />
                         ) : (
-                          <Play className="w-6 h-6" />
+                          <Play className="w-6 h-6 ml-1" />
                         )}
                       </Button>
-                      
+
                       <Button
                         variant="outline"
-                        size="icon"
-                        onClick={() => audioRitual.seekTo(Math.min(audioRitual.duration, audioRitual.currentTime + 30))}
+                        size="sm"
+                        onClick={() => seekTo(Math.min(duration, currentTime + 30))}
+                        className="rounded-full"
                       >
-                        +30s
+                        <SkipForward className="w-4 h-4" />
+                        <span className="ml-1 text-xs">30s</span>
                       </Button>
-                    </>
-                  )}
-                </div>
+                    </div>
+
+                    {/* Download Button */}
+                    <div className="flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={downloadAudio}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Audio
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
               </CardContent>
             </Card>
 
@@ -299,21 +303,6 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                 {showSteps ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                 {showSteps ? 'Hide Steps' : 'Show Steps'}
               </Button>
-              
-              {audioRitual.audioUrl && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const a = document.createElement('a');
-                    a.href = audioRitual.audioUrl;
-                    a.download = 'morning-ritual.mp3';
-                    a.click();
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </Button>
-              )}
             </div>
           </div>
 
@@ -324,7 +313,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium">Your Ritual Steps</h3>
-                    {audioRitual.isPlaying && (
+                    {isPlaying && (
                       <Badge variant="outline" className="text-xs">
                         {currentStepIndex === -1 ? 'Introduction' : 
                          currentStepIndex >= routine.steps.length ? 'Closing' :
@@ -337,7 +326,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                     {/* Introduction */}
                     <motion.div
                       className={`p-3 rounded-lg transition-all duration-300 ${
-                        currentStepIndex === -1 && audioRitual.isPlaying 
+                        currentStepIndex === -1 && isPlaying 
                           ? 'bg-primary/20 border border-primary/30' 
                           : 'bg-muted/30'
                       }`}
@@ -358,7 +347,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                       <motion.div
                         key={index}
                         className={`p-3 rounded-lg transition-all duration-300 ${
-                          index === currentStepIndex && audioRitual.isPlaying 
+                          index === currentStepIndex && isPlaying 
                             ? 'bg-primary/20 border border-primary/30' 
                             : 'bg-muted/30'
                         }`}
@@ -368,7 +357,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                       >
                         <div className="flex items-start space-x-3">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${
-                            index === currentStepIndex && audioRitual.isPlaying
+                            index === currentStepIndex && isPlaying
                               ? 'bg-primary/30 animate-pulse'
                               : 'bg-primary/20'
                           }`}>
@@ -382,7 +371,7 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                     {/* Closing */}
                     <motion.div
                       className={`p-3 rounded-lg transition-all duration-300 ${
-                        currentStepIndex >= routine.steps.length && audioRitual.isPlaying 
+                        currentStepIndex >= routine.steps.length && isPlaying 
                           ? 'bg-primary/20 border border-primary/30' 
                           : 'bg-muted/30'
                       }`}

@@ -14,6 +14,7 @@ import { ProfileEditor } from '@/components/ui/profile-editor';
 import PINEntry from '@/components/ui/pin-entry';
 import { MorningEightPanel } from '@/src/features/morningEight/components/MorningEightPanel';
 import { NFCGate } from '@/src/features/morningEight/components/NFCGate';
+import { Badge } from "@/components/ui/badge";
 
 // Welcome Ritual Component
 const WelcomeRitual = ({ onComplete }: { onComplete: () => void }) => {
@@ -818,147 +819,187 @@ const ProfilePage = () => {
           </motion.div>
         )}
 
-        {/* Tabs */}
+        {/* Enhanced Tabs with Morning Eight */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="identity" className="flex items-center space-x-2">
+          <TabsList className="grid w-full grid-cols-4 h-12 bg-muted/30 backdrop-blur-sm rounded-xl p-1">
+            <TabsTrigger value="identity" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
               <User className="w-4 h-4" />
-              <span className="hidden sm:inline">Identity</span>
+              <span className="hidden sm:inline font-medium">Identity</span>
+              <span className="sm:hidden text-xs">ID</span>
             </TabsTrigger>
-            <TabsTrigger value="memories" className="flex items-center space-x-2">
+            <TabsTrigger value="memories" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
               <Heart className="w-4 h-4" />
-              <span className="hidden sm:inline">Bonds</span>
+              <span className="hidden sm:inline font-medium">Bonds</span>
+              <span className="sm:hidden text-xs">Bonds</span>
             </TabsTrigger>
-            <TabsTrigger value="moments" className="flex items-center space-x-2">
+            <TabsTrigger value="moments" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
               <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">Moments</span>
+              <span className="hidden sm:inline font-medium">Moments</span>
+              <span className="sm:hidden text-xs">Moments</span>
             </TabsTrigger>
-            <TabsTrigger value="morning-eight" className="flex items-center space-x-2">
+            <TabsTrigger value="morning-eight" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
               <Sunrise className="w-4 h-4" />
-              <span className="hidden sm:inline">Morning</span>
+              <span className="hidden sm:inline font-medium">Morning</span>
+              <span className="sm:hidden text-xs">8min</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="identity" className="mt-4 sm:mt-6">
-            <ProfileEditor
-              currentProfile={{
-                displayName: userProfile.displayName || userProfile.username,
-                username: userProfile.username,
-                bio: userProfile.bio,
-                deviceName: userProfile.deviceName,
-                chipUID: userProfile.chipUID
-              }}
-              onSave={handleProfileUpdate}
-            />
-          </TabsContent>
-
-          <TabsContent value="memories" className="mt-4 sm:mt-6">
-            <Card className="bg-card/50 backdrop-blur-sm border border-primary/20 shadow-minimal">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-primary font-mono text-base sm:text-lg">
-                  <HeartIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Your Bonds
-                  {userBonds.length > 0 && (
-                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded font-mono">
-                      {userBonds.length}
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-                {userBonds.length > 0 ? (
-                  <>
-                    <p className="text-foreground text-sm sm:text-base leading-relaxed">
-                      Your meaningful connections with other memory keepers. These bonds represent shared moments and mutual recognition.
-                    </p>
-                    <div className="space-y-2 sm:space-y-3">
-                      {userBonds.map((bond, index) => (
-                        <motion.div
-                          key={bond.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="bg-primary/5 border border-primary/10 p-3 rounded-lg"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xl">{bond.emoji}</span>
-                              <div>
-                                <h4 className="font-semibold text-primary font-mono text-sm sm:text-base">
-                                  {bond.name}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                  {bond.type} • Connected {bond.duration}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-xs text-muted-foreground text-right">
-                              Last interaction<br />
-                              {bond.lastInteraction}
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
+          <TabsContent value="identity" className="mt-6 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-card via-card to-card/80 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
                     </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <HeartIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-foreground text-sm sm:text-base mb-2">
-                      No bonds yet
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Bonds are created when you tap your NFC chip to a device where someone else is already logged in. 
-                      They represent meaningful connections in the physical world.
-                    </p>
+                    <span>Your Digital Identity</span>
+                  </CardTitle>
+                  <p className="text-muted-foreground">Manage your profile and personal information</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <ProfileEditor
+                    currentProfile={{
+                      name: userProfile.name,
+                      bio: userProfile.bio,
+                      interests: userProfile.interests,
+                      avatar: userProfile.avatar
+                    }}
+                    onSave={handleProfileUpdate}
+                  />
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="memories" className="mt-6 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-card via-card to-card/80 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                      <Heart className="w-5 h-5 text-red-500" />
+                    </div>
+                    <span>Memory Bonds</span>
+                  </CardTitle>
+                  <p className="text-muted-foreground">Connect with others through shared experiences</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4">
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/20 dark:to-pink-950/20 border border-red-200/50 dark:border-red-800/30">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-red-900 dark:text-red-100 flex items-center space-x-2">
+                          <Heart className="w-4 h-4" />
+                          <span>Shared Moments</span>
+                        </h4>
+                        <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200">
+                          3 Active
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-red-700 dark:text-red-300 mb-3">
+                        Create lasting connections through meaningful shared experiences and memories.
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/30"
+                        disabled
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Explore Bonds (Coming Soon)
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
-          <TabsContent value="moments" className="mt-4 sm:mt-6">
-            <Card className="bg-card/50 backdrop-blur-sm border border-accent/20 shadow-minimal">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-accent font-mono text-base sm:text-lg">
-                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Collective Transcriptions
-                  <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded font-mono">COMING SOON</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-                <p className="text-foreground text-sm sm:text-base leading-relaxed">
-                  Transform civic discourse into shared knowledge resources. Good for town halls, 
-                  community forums, and preserving the civic wisdom that emerges through dialogue.
-                </p>
-                <div className="bg-accent/10 border border-accent/20 p-3 sm:p-4 rounded-lg">
-                  <h4 className="font-semibold text-accent mb-2 font-mono text-sm sm:text-base">Collective Sense-Making Features:</h4>
-                  <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    <li>• Real-time transcription of group conversations</li>
-                    <li>• Automatic identification of key insights and patterns</li>
-                    <li>• Connection to related memories and moments</li>
-                    <li>• Privacy-first processing on your device</li>
-                  </ul>
-                </div>
-                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-mono text-sm sm:text-base py-2 sm:py-3" disabled>
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Start Transcription Session (Coming Soon)
-                </Button>
-              </CardContent>
-            </Card>
+          <TabsContent value="moments" className="mt-6 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-card via-card to-card/80 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-purple-500" />
+                    </div>
+                    <span>Collective Moments</span>
+                  </CardTitle>
+                  <p className="text-muted-foreground">Transform conversations into shared knowledge</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4">
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200/50 dark:border-purple-800/30">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-purple-900 dark:text-purple-100 flex items-center space-x-2">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>Live Transcription</span>
+                        </h4>
+                        <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200">
+                          Beta
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-purple-700 dark:text-purple-300 mb-4">
+                        Real-time transcription for group conversations, town halls, and community forums.
+                      </p>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400">
+                          <span>• Privacy-first processing</span>
+                          <span>• Pattern recognition</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400">
+                          <span>• Memory connection</span>
+                          <span>• Collective wisdom</span>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full mt-4 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950/30"
+                        disabled
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Start Session (Coming Soon)
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
-          <TabsContent value="morning-eight" className="space-y-6 mt-6">
-            <div className="text-center space-y-2 mb-6">
-              <h2 className="text-2xl font-semibold flex items-center justify-center space-x-2">
-                <Sunrise className="w-6 h-6 text-primary" />
-                <span>Morning Eight</span>
-              </h2>
-              <p className="text-muted-foreground">
-                Your personalized 8-minute morning ritual system
-              </p>
-            </div>
-            <MorningEightPanel />
+          <TabsContent value="morning-eight" className="mt-6 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-card via-card to-card/80 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center space-x-3 text-xl">
+                    <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
+                      <Sunrise className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <span>Morning Eight</span>
+                  </CardTitle>
+                  <p className="text-muted-foreground">Your personalized 8-minute morning ritual system</p>
+                </CardHeader>
+                <CardContent>
+                  <MorningEightPanel />
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
         </Tabs>
       </div>

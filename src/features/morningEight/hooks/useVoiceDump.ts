@@ -6,9 +6,46 @@ export function useVoiceDump(): VoiceDumpHook {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [lastTranscription, setLastTranscription] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [waveformData, setWaveformData] = useState<number[]>([]);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Constants for recording limits
+  const MAX_RECORDING_DURATION = 90; // 90 seconds max for good transcription
+  const WAVEFORM_SAMPLES = 50; // Number of waveform bars
+
+  // Audio level monitoring for waveform
+  const monitorAudioLevel = useCallback(() => {
+    if (!analyserRef.current || !dataArrayRef.current) return;
+
+    const analyser = analyserRef.current;
+    const dataArray = dataArrayRef.current;
+    
+    analyser.getByteFrequencyData(dataArray);
+    
+    // Calculate average audio level
+    const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
+    const normalizedLevel = Math.min(100, (average / 255) * 100);
+    setAudioLevel(normalizedLevel);
+    
+    // Update waveform data
+    setWaveformData(prev => {
+      const newData = [...prev, normalizedLevel];
+      return newData.slice(-WAVEFORM_SAMPLES); // Keep only recent samples
+    });
+
+    if (isRecording) {
+      animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
+    }
+  }, [isRecording]);
 
   // Transcribe audio using Whisper WASM (with API fallback)
   const transcribeAudio = useCallback(async (audioBlob: Blob): Promise<TranscriptionResult> => {
@@ -54,11 +91,13 @@ export function useVoiceDump(): VoiceDumpHook {
     }
   }, []);
 
-  // Start recording
+  // Start recording with enhanced feedback
   const record = useCallback(async (): Promise<string | null> => {
     try {
       setError(null);
       setRecordingState('recording');
+      setRecordingDuration(0);
+      setWaveformData([]);
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -67,6 +106,23 @@ export function useVoiceDump(): VoiceDumpHook {
           sampleRate: 16000,
         }
       });
+      
+      streamRef.current = stream;
+      
+      // Set up audio analysis for waveform
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+      
+      analyserRef.current = analyser;
+      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
+      
+      // Start monitoring audio level
+      monitorAudioLevel();
       
       // Try different MIME types for better mobile compatibility
       let mediaRecorderOptions = {};
@@ -94,6 +150,18 @@ export function useVoiceDump(): VoiceDumpHook {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       
+      // Duration tracking with auto-stop at limit
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => {
+          const newDuration = prev + 1;
+          if (newDuration >= MAX_RECORDING_DURATION) {
+            console.log('Auto-stopping recording at max duration');
+            stop();
+          }
+          return newDuration;
+        });
+      }, 1000);
+      
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
@@ -103,10 +171,23 @@ export function useVoiceDump(): VoiceDumpHook {
       mediaRecorder.onstop = async () => {
         setRecordingState('processing');
         
+        // Cleanup
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+        
         try {
           // Use the MIME type that was supported, or fallback
           const mimeType = (mediaRecorderOptions as any).mimeType || 'audio/webm';
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          
+          console.log(`🎤 Transcribing ${audioBlob.size} bytes of audio (${recordingDuration}s)`);
+          
           const transcriptionResult = await transcribeAudio(audioBlob);
           
           setLastTranscription(transcriptionResult.text);
@@ -141,14 +222,30 @@ export function useVoiceDump(): VoiceDumpHook {
       setRecordingState('error');
       return null;
     }
-  }, [transcribeAudio]);
+  }, [monitorAudioLevel]);
 
-  // Stop recording
+  // Stop recording with cleanup
   const stop = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
+    
+    // Cleanup audio monitoring
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    setAudioLevel(0);
   }, [isRecording]);
 
   // Clear state
@@ -156,6 +253,9 @@ export function useVoiceDump(): VoiceDumpHook {
     setRecordingState('idle');
     setError(null);
     setLastTranscription(null);
+    setRecordingDuration(0);
+    setAudioLevel(0);
+    setWaveformData([]);
     if (mediaRecorderRef.current && isRecording) {
       stop();
     }
@@ -166,6 +266,10 @@ export function useVoiceDump(): VoiceDumpHook {
     recordingState,
     error,
     lastTranscription,
+    recordingDuration,
+    audioLevel,
+    waveformData,
+    maxDuration: MAX_RECORDING_DURATION,
     record,
     stop,
     clear,

@@ -43,7 +43,7 @@ export function useMorningMemory(): MorningMemoryHook {
   }, [memory, save]);
 
   // Generate a new morning routine
-  const generateRoutine = useCallback(async () => {
+  const generateRoutine = useCallback(async (): Promise<Routine> => {
     if (!memory || memory.dumps.length === 0) {
       throw new Error('No voice dumps available to generate routine');
     }
@@ -83,6 +83,7 @@ export function useMorningMemory(): MorningMemoryHook {
       };
 
       await save(updatedMemory);
+      return newRoutine;
     } finally {
       setIsGeneratingRoutine(false);
     }
@@ -101,5 +102,9 @@ export function useMorningMemory(): MorningMemoryHook {
     generateRoutine,
     clearMemory,
     isGeneratingRoutine,
+    // Convenience getter for current routine
+    currentRoutine: memory?.latestRoutine || null,
+    // Alias for consistency
+    generating: isGeneratingRoutine,
   };
 } 

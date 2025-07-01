@@ -49,6 +49,10 @@ export interface VoiceDumpHook {
   recordingState: RecordingState;
   error: string | null;
   lastTranscription: string | null;
+  recordingDuration?: number;
+  audioLevel?: number;
+  waveformData?: number[];
+  maxDuration?: number;
   record: () => Promise<string | null>;
   stop: () => void;
   clear: () => void;
@@ -59,9 +63,11 @@ export interface MorningMemoryHook {
   loading: boolean;
   error: string | null;
   addDump: (text: string) => Promise<void>;
-  generateRoutine: () => Promise<void>;
+  generateRoutine: () => Promise<Routine>;
   clearMemory: () => Promise<void>;
   isGeneratingRoutine: boolean;
+  currentRoutine: Routine | null;
+  generating: boolean;
 }
 
 export interface MorningEightSettingsHook {

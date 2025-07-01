@@ -12,7 +12,9 @@
 
 KairOS implements **deterministic NFC authentication** using PIN-based key derivation. Your private keys are computed on-demand from your PIN + chip ID, never stored anywhere. Think of it like a password manager that generates your password from your master password + website name.
 
-**Production-ready web application deployed on Vercel.**
+**🌍 Solving the key distribution problem that makes WebAuthn/Passkeys impractical** - where those systems lock keys to devices or require corporate platforms (Google/Apple) for syncing, KairOS enables true cross-device access through deterministic cryptography.
+
+**Production-ready web application deployed on Vercel • Contributing to the data commons through open standards**
 
 ---
 
@@ -96,6 +98,37 @@ graph LR
     E -->|account recognition| F[Profile Access]
     F -->|rich data| G[localStorage]
 ```
+
+---
+
+## 🆚 **Why Not WebAuthn/Passkeys?**
+
+WebAuthn/Passkeys and KairOS both use public-key cryptography for authentication, but **KairOS solves the critical key distribution problem**:
+
+| Challenge | WebAuthn/Passkeys | KairOS DID:Key |
+|-----------|-------------------|----------------|
+| **Cross-Device Access** | Requires Apple/Google sync | Deterministic: Same PIN + chipUID = same keys |
+| **Platform Independence** | Locked to vendor ecosystems | Works on any device, any browser |
+| **New Device Setup** | Complex QR codes, emails, waiting | 15 seconds: tap NFC, enter PIN |
+| **Infrastructure Dependency** | Corporate sync services | Zero infrastructure needed |
+| **Recovery Process** | Hours/days if sync fails | Instant: enter PIN on any device |
+
+**The breakthrough**: Mathematical determinism means users can access their cryptographic identity anywhere without depending on corporate platforms or awkward recovery flows.
+
+**See detailed comparison**: [`docs/WEBAUTHN_PASSKEYS_COMPARISON.md`](docs/WEBAUTHN_PASSKEYS_COMPARISON.md)
+
+---
+
+## 🌍 **Data Commons & Research Benefits**
+
+KairOS contributes to the **digital commons** by providing:
+
+- **🔓 Open Standards**: W3C DID Core compliant, vendor-neutral
+- **🔬 Research Platform**: Privacy-preserving social computing testbed  
+- **🏛️ Democratic Access**: Free cryptographic tools, no platform fees
+- **📚 Educational**: Real-world teaching platform for digital rights
+
+**For grant applications**: See [`docs/DATA_COMMONS_GRANT_CASE.md`](docs/DATA_COMMONS_GRANT_CASE.md)
 
 ---
 

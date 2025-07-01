@@ -35,8 +35,25 @@ const nextConfig = {
     ]
   },
   
-  // External packages for server components (moved out of experimental in Next.js 15)
-  serverExternalPackages: ['@noble/curves', '@noble/hashes']
+  // --- Error Handling for Production ---
+  experimental: {
+    // Better error handling in production
+    optimizePackageImports: ['@/components', '@/lib', '@/src'],
+  },
+  
+  // --- Webpack optimizations for minification ---
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      // Optimize for production builds
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      };
+    }
+    return config;
+  },
 }
 
 export default nextConfig
