@@ -302,43 +302,70 @@ const ProfilePage = () => {
         return
       }
       
-        if (!chipUID) {
-        console.log('⚠️ No chipUID in profile URL - checking session...')
-        // Try to get chipUID from current session
-        try {
-          const { SessionManager } = await import('@/lib/nfc/sessionManager')
-          const session = await SessionManager.getCurrentSession()
+      // 🔐 SECURITY FIX: Always validate session before trusting URL parameters
+      console.log('🔐 Validating session before profile access...')
+      
+      try {
+        const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
+        const { SessionManager } = await import('@/lib/nfc/sessionManager')
+        
+        // Get current session
+        const session = await SessionManager.getCurrentSession()
+        console.log('🔍 Session check result:', {
+          hasSession: !!session,
+          isActive: session?.isActive,
+          sessionChipUID: session?.currentUser?.chipUID?.slice(-4) || 'none',
+          urlChipUID: chipUID?.slice(-4) || 'none'
+        })
+        
+        // If chipUID provided in URL, validate it matches current session
+        if (chipUID) {
+          if (!session?.isActive || session.currentUser?.chipUID !== chipUID) {
+            console.log('🚫 SECURITY: URL chipUID does not match authenticated session')
+            console.log('   Session chipUID:', session?.currentUser?.chipUID || 'none')
+            console.log('   URL chipUID:', chipUID)
+            
+                         // Check if user has PIN authorization for this chipUID through PIN gate
+             const authCheck = await NFCAccountManager.authenticateWithPINGate(chipUID)
+             if (authCheck.requiresPIN) {
+               console.log('🔒 PIN authentication required for profile access')
+               setUserProfile(null)
+               setIsLoadingProfile(false)
+               
+               // Redirect to NFC authentication with proper PIN flow
+               window.location.href = `/nfc?chipUID=${encodeURIComponent(chipUID)}&returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`
+               return
+             }
+            
+                         console.log('✅ Valid session found - proceeding with chipUID from URL')
+          }
           
+          // Proceed with validated chipUID
+          console.log(`✅ Loading verified profile for authenticated chipUID: ${chipUID}`)
+          const profile = await loadUserProfileData(chipUID)
+          setUserProfile(profile)
+          
+        } else {
+          // No chipUID in URL - use session chipUID
           if (!session?.currentUser?.chipUID) {
-            console.log('❌ No session found - profile access denied')
+            console.log('❌ No session found and no chipUID provided - profile access denied')
             setUserProfile(null)
             setIsLoadingProfile(false)
             return
           }
           
-          // Use session chipUID
           const sessionChipUID = session.currentUser.chipUID
-          console.log(`✅ Using session chipUID: ${sessionChipUID}`)
-          setUserProfile(await loadUserProfileData(sessionChipUID))
-        } catch (error) {
-          console.error('Session check failed:', error)
-          setUserProfile(null)
+          console.log(`✅ Using authenticated session chipUID: ${sessionChipUID}`)
+          const profile = await loadUserProfileData(sessionChipUID)
+          setUserProfile(profile)
         }
         
-        setIsLoadingProfile(false)
-        return
-      }
-      
-      if (!verified) {
-        console.log('❌ Profile access requires verification')
+      } catch (error) {
+        console.error('❌ Session validation failed:', error)
         setUserProfile(null)
         setIsLoadingProfile(false)
         return
       }
-      
-      console.log(`✅ Loading verified profile for chipUID: ${chipUID}`)
-      const profile = await loadUserProfileData(chipUID)
-      setUserProfile(profile)
       
     } catch (error) {
       console.error('Profile loading failed:', error)
