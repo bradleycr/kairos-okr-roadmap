@@ -163,14 +163,27 @@ export class SimpleDecentralizedAuth {
   /**
    * 🎯 Generate authentication challenge
    */
-  generateChallenge(chipUID: string): AuthChallenge {
+  generateChallenge(chipUID: string, relyingParty?: string): AuthChallenge {
     const timestamp = Date.now()
-    const nonce = Array.from({ length: 16 }, () => 
+    const nonce = Array.from({ length: 32 }, () => 
       Math.floor(Math.random() * 16).toString(16)
     ).join('')
     
+    // DID Auth compliant challenge format
+    const challengeData = {
+      typ: "DIDAuth",
+      alg: "Ed25519",
+      iss: relyingParty || "did:web:kair-os.vercel.app", 
+      sub: chipUID,
+      aud: "did:key:", // Will be filled with actual DID
+      iat: Math.floor(timestamp / 1000),
+      exp: Math.floor((timestamp + 60 * 1000) / 1000), // 60 seconds
+      nonce,
+      challenge: `KairOS-DIDAuth-${chipUID}-${timestamp}-${nonce}`
+    }
+    
     return {
-      challenge: `KairOS-DIDKey-${chipUID}-${timestamp}-${nonce}`,
+      challenge: JSON.stringify(challengeData),
       nonce,
       timestamp,
       expiresAt: timestamp + 60 * 1000 // 60 seconds
@@ -178,7 +191,7 @@ export class SimpleDecentralizedAuth {
   }
 
   /**
-   * 🔐 Sign challenge with identity
+   * 🔐 Sign DID Auth challenge with identity
    */
   async signChallenge(
     chipUID: string, 
@@ -191,15 +204,34 @@ export class SimpleDecentralizedAuth {
     const hash2 = sha256(hash1)
     const privateKey = hash2.slice(0, 32)
 
-    // Sign challenge
-    const challengeBytes = new TextEncoder().encode(challenge)
+    // Parse challenge to get the actual message to sign
+    let challengeMessage = challenge
+    if (challenge.startsWith('{')) {
+      try {
+        const challengeData = JSON.parse(challenge)
+        
+        // For DID Auth, we sign the inner challenge message
+        challengeMessage = challengeData.challenge || challenge
+        
+        // Verify this challenge is still valid
+        if (challengeData.exp && challengeData.exp < Math.floor(Date.now() / 1000)) {
+          throw new Error('Challenge has expired')
+        }
+      } catch (e) {
+        // If JSON parsing fails, use original challenge
+        challengeMessage = challenge
+      }
+    }
+
+    // Sign challenge message
+    const challengeBytes = new TextEncoder().encode(challengeMessage)
     const signature = await sign(challengeBytes, privateKey)
     
     return Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join('')
   }
 
   /**
-   * ✅ Verify signature against challenge
+   * ✅ Verify signature against DID Auth challenge
    */
   async verifyChallenge(
     did: string,
@@ -211,8 +243,40 @@ export class SimpleDecentralizedAuth {
       const publicKey = DIDKeyRegistry.parsePublicKeyFromDID(did)
       if (!publicKey) return false
 
+      // Parse structured challenge if it's JSON format
+      let challengeMessage = challenge
+      if (challenge.startsWith('{')) {
+        try {
+          const challengeData = JSON.parse(challenge)
+          
+          // Verify challenge hasn't expired
+          if (challengeData.exp && challengeData.exp < Math.floor(Date.now() / 1000)) {
+            console.warn('Challenge has expired')
+            return false
+          }
+          
+          // Verify challenge is for correct DID
+          if (challengeData.aud && !challengeData.aud.startsWith('did:key:') && challengeData.aud !== did) {
+            console.warn('Challenge audience mismatch')
+            return false
+          }
+          
+          // Verify algorithm matches
+          if (challengeData.alg && challengeData.alg !== 'Ed25519') {
+            console.warn('Challenge algorithm mismatch')
+            return false
+          }
+          
+          // Use the inner challenge message for signature verification
+          challengeMessage = challengeData.challenge || challenge
+        } catch (e) {
+          // If JSON parsing fails, use original challenge
+          challengeMessage = challenge
+        }
+      }
+
       // Verify signature
-      const challengeBytes = new TextEncoder().encode(challenge)
+      const challengeBytes = new TextEncoder().encode(challengeMessage)
       const signatureBytes = new Uint8Array(
         signature.match(/.{2}/g)!.map(hex => parseInt(hex, 16))
       )
@@ -303,6 +367,86 @@ export class SimpleDecentralizedAuth {
    */
   generateDIDDocument(identity: DIDKeyIdentity): any {
     return this.didRegistry.generateDIDDocument(identity)
+  }
+
+  /**
+   * 🚪 Single Logout - End all sessions for a DID
+   * As specified in DID Auth spec section "Single Log-out"
+   */
+  async singleLogout(did: string): Promise<{
+    success: boolean
+    sessionsCleared: number
+    error?: string
+  }> {
+    try {
+      let sessionsCleared = 0
+      
+      // Clear local cache
+      for (const [chipUID, identity] of this.localCache.entries()) {
+        if (identity.did === did) {
+          this.localCache.delete(chipUID)
+          sessionsCleared++
+        }
+      }
+      
+      // Clear browser storage if available
+      if (typeof window !== 'undefined') {
+        const keysToRemove: string[] = []
+        
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (
+            key.includes(did) || 
+            key.startsWith('kairos:session:') || 
+            key.startsWith('kairos:account:')
+          )) {
+            keysToRemove.push(key)
+          }
+        }
+        
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        sessionsCleared += keysToRemove.length
+      }
+      
+      // Notify relying parties (in production, maintain list of active sessions)
+      try {
+        const response = await fetch('/api/nfc/sessions/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ did, action: 'single_logout' })
+        })
+        
+        if (response.ok) {
+          const result = await response.json()
+          sessionsCleared += result.sessionsCleared || 0
+        }
+      } catch (error) {
+        console.warn('Failed to notify server sessions for logout:', error)
+      }
+      
+      // Emit logout event for components to react
+      if (typeof window !== 'undefined') {
+        const logoutEvent = new CustomEvent('did-single-logout', {
+          detail: { did, sessionsCleared }
+        })
+        window.dispatchEvent(logoutEvent)
+      }
+      
+      console.log(`✅ Single logout completed for ${did}, cleared ${sessionsCleared} sessions`)
+      
+      return {
+        success: true,
+        sessionsCleared
+      }
+      
+    } catch (error) {
+      console.error('Single logout failed:', error)
+      return {
+        success: false,
+        sessionsCleared: 0,
+        error: error instanceof Error ? error.message : 'Logout failed'
+      }
+    }
   }
 }
 

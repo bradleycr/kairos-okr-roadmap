@@ -99,33 +99,51 @@ export class DIDKeyRegistry {
   }
   
   /**
-   * 📋 Generate W3C-compliant DID Document
+   * 📋 Generate W3C-compliant DID Document for DID Auth
    */
   generateDIDDocument(identity: DIDKeyIdentity): any {
+    const keyId = `${identity.did}#${identity.chipUID.replace(/:/g, '')}`
+    
     return {
       "@context": [
         "https://www.w3.org/ns/did/v1",
-        "https://w3id.org/security/multikey/v1"
+        "https://w3id.org/security/multikey/v1",
+        "https://w3id.org/security/suites/ed25519-2020/v1"
       ],
       "id": identity.did,
       "controller": identity.did,
       "verificationMethod": [{
-        "id": `${identity.did}#key-1`,
-        "type": "Multikey",
+        "id": keyId,
+        "type": "Ed25519VerificationKey2020",
         "controller": identity.did,
         "publicKeyMultibase": identity.did.slice(8) // Remove "did:key:"
       }],
-      "assertionMethod": [`${identity.did}#key-1`],
-      "authentication": [`${identity.did}#key-1`],
-      // KairOS extensions
+      // DID Auth Authentication Methods
+      "authentication": [{
+        "type": "Ed25519SignatureAuthentication2020",
+        "publicKey": keyId
+      }],
+      "assertionMethod": [keyId],
+      "keyAgreement": [keyId],
+      "capabilityInvocation": [keyId],
+      "capabilityDelegation": [keyId],
+      // DID Auth Service Endpoints
       "service": [{
-        "id": `${identity.did}#kairos`,
+        "id": `${identity.did}#kairos-pendant`,
         "type": "KairOSPendant", 
         "serviceEndpoint": {
           "chipUID": identity.chipUID,
           "deviceID": identity.deviceID,
           "registeredAt": identity.registeredAt
         }
+      }, {
+        "id": `${identity.did}#did-auth`,
+        "type": "DIDAuthService",
+        "serviceEndpoint": `https://kair-os.vercel.app/api/nfc/verify?did=${encodeURIComponent(identity.did)}`
+      }, {
+        "id": `${identity.did}#credential-repository`,
+        "type": "CredentialRepositoryService", 
+        "serviceEndpoint": `https://kair-os.vercel.app/api/credentials?did=${encodeURIComponent(identity.did)}`
       }]
     }
   }
