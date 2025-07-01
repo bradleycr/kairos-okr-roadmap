@@ -95,94 +95,26 @@ export async function POST(request: NextRequest) {
 }
 
 function createGuidedMeditationScript(steps: string[]): string {
-  // Calculate timing for exactly 8 minutes (480 seconds)
-  const totalDuration = 480; // 8 minutes in seconds
-  const introTime = 35; // Slightly longer intro for better pacing
-  const outroTime = 25; // Shorter outro
-  const availableStepTime = totalDuration - introTime - outroTime; // 420 seconds for steps
-  const timePerStep = Math.floor(availableStepTime / steps.length); // Even distribution
-  
-  const intro = `Welcome to your personalized morning ritual. This is your time, your space, your eight minutes of intentional presence. 
+  // Calculate timing for exactly 8 minutes (480 seconds) - much more concise
+  const intro = `Good morning. This is your 8-minute personalized morning routine. Let's get started.
 
-Find a comfortable position, close your eyes if that feels right, and take three deep breaths with me. 
-
-Breathe in slowly... hold for a moment... and release completely. 
-
-Again, breathe in... feel your body settling... and breathe out any tension. 
-
-One more time, a deep breath in... and let everything go as you exhale. 
-
-Perfect. Let us begin your journey together. ${generatePause(20)}`;
+Take a deep breath and let's begin your day with intention.`;
   
   const stepsWithTimings = steps.map((step, index) => {
     const stepNumber = index + 1;
-    const isFirst = index === 0;
-    const isLast = index === steps.length - 1;
     
-    let timing = '';
-    if (isFirst) {
-      timing = 'For your first step today, ';
-    } else if (isLast) {
-      timing = 'And for your final step, ';
-    } else {
-      timing = `Now, moving to step ${stepNumber}, `;
-    }
-    
-    // Add gentle pacing and breath cues
-    const gentleStep = `${timing}${step}. 
+    // Much more direct and concise
+    return `Step ${stepNumber}: ${step}
 
-Take a moment to really feel this intention in your body. Breathe with it. Let it become part of you.`;
-    
-    // Calculate pause duration for this step
-    const basePauseDuration = Math.max(20, timePerStep - Math.floor(gentleStep.length / 12)); 
-    
-    if (!isLast) {
-      return `${gentleStep} ${generatePause(basePauseDuration)} 
-
-When you feel ready, we will continue together.`;
-    } else {
-      return `${gentleStep} ${generatePause(Math.max(20, basePauseDuration - 5))} 
-
-Take this final moment to appreciate what you have created for yourself.`;
-    }
+Take a moment with this, then we'll continue.`;
   });
   
-  const outro = `Your morning ritual is complete. 
-
-You have given yourself the gift of intentional presence, of mindful beginnings, of purposeful energy. 
-
-As you open your eyes and step into your day, carry this clarity with you. You are grounded, you are ready, you are exactly where you need to be.
-
-Your day begins now.`;
+  const outro = `Great work. Your morning routine is complete. You're ready for your day.`;
   
-  return [intro, ...stepsWithTimings, outro].join(' ');
+  return [intro, ...stepsWithTimings, outro].join('\n\n');
 }
 
 function generatePause(seconds: number): string {
-  // Generate natural meditation phrases for pause periods
-  const meditationPhrases = [
-    'Let yourself breathe naturally and deeply.',
-    'Feel your body relax with each breath.',
-    'Allow this intention to settle into your being.',
-    'Notice the peace that comes with stillness.',
-    'Let go of any thoughts that arise, returning to this moment.',
-    'Feel the quiet strength growing within you.',
-    'Breathe in calm, breathe out anything you do not need.',
-    'Rest in this space of gentle awareness.',
-    'Allow yourself to be exactly as you are right now.',
-    'Feel the connection between your breath and your intention.',
-    'Let this moment hold you with kindness.',
-    'Notice how present and peaceful you can be.'
-  ];
-  
-  // Estimate roughly 4 seconds per meditation phrase (slower, more deliberate)
-  const phrasesNeeded = Math.max(1, Math.floor(seconds / 4));
-  const selectedPhrases = [];
-  
-  for (let i = 0; i < phrasesNeeded; i++) {
-    const phrase = meditationPhrases[i % meditationPhrases.length];
-    selectedPhrases.push(phrase);
-  }
-  
-  return selectedPhrases.join(' ... ');
+  // Much simpler pause generation
+  return `Take ${Math.max(5, Math.floor(seconds / 2))} seconds here.`;
 } 
