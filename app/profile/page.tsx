@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon, HeartIcon, User, Heart, Sunrise, Wallet, ExternalLink, CheckCircle } from "lucide-react";
+import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon, HeartIcon, User, Heart, Sunrise, Wallet, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
 import Link from 'next/link';
 import { PINSetup } from '@/components/ui/pin-setup';
 import { ProfileEditor } from '@/components/ui/profile-editor';
@@ -15,6 +15,8 @@ import PINEntry from '@/components/ui/pin-entry';
 import { MorningEightPanel } from '@/src/features/morningEight/components/MorningEightPanel';
 import { NFCGate } from '@/src/features/morningEight/components/NFCGate';
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { walletIntegration, type WalletSession } from '@/lib/crypto/walletIntegration';
 
 // Welcome Ritual Component
 const WelcomeRitual = ({ onComplete }: { onComplete: () => void }) => {
@@ -255,6 +257,12 @@ const ProfilePage = () => {
   const [requiresPINAuth, setRequiresPINAuth] = useState(false);
   const [pinAuthenticatedChipUID, setPinAuthenticatedChipUID] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  
+  // Wallet integration state
+  const [walletSession, setWalletSession] = useState<WalletSession | null>(null);
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  const [nfcEthereumAccount, setNfcEthereumAccount] = useState<any>(null);
 
     const loadProfileData = async () => {
     setIsLoadingProfile(true)
@@ -593,35 +601,98 @@ const ProfilePage = () => {
   }
 
   const handleLogout = async () => {
-    if (userProfile) {
-      try {
-        // Clear session first
-        const { SessionManager } = await import('@/lib/nfc/sessionManager')
-        await SessionManager.clearSession()
-        
-        // Import and use the NFCAccountManager logout method
-        const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
-        
-        // Clear session for this specific chipUID
-        NFCAccountManager.logout(userProfile.chipUID)
-        
-        // Also clear legacy profile data
-        localStorage.removeItem(`kairos_profile_${userProfile.chipUID}`)
-        localStorage.removeItem(`kairos_visited_${userProfile.chipUID}`)
-        
-        console.log(`🚪 Logged out chipUID: ${userProfile.chipUID}`)
-        
-        // Redirect to home page
-        window.location.href = '/'
-      } catch (error) {
-        console.error('Logout failed:', error)
-        // Fallback to basic localStorage clearing
-        localStorage.removeItem(`kairos_profile_${userProfile.chipUID}`)
-        localStorage.removeItem(`kairos_visited_${userProfile.chipUID}`)
-        window.location.href = '/'
-      }
+    try {
+      const { SessionManager } = await import('@/lib/nfc/sessionManager')
+      await SessionManager.clearSession()
+      
+      // Clear local state
+      setUserProfile(null)
+      setPinAuthenticatedChipUID(null)
+      setRequiresPINAuth(false)
+      
+      // Redirect to home
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Logout failed:', error)
     }
   }
+
+  // Wallet Integration Functions
+  const connectMetaMask = async () => {
+    setIsConnectingWallet(true);
+    setWalletError(null);
+    
+    try {
+      const session = await walletIntegration.connectMetaMask();
+      if (session) {
+        setWalletSession(session);
+        console.log('🦊 MetaMask connected:', session.account.address);
+      } else {
+        setWalletError('Failed to connect MetaMask. Please try again.');
+      }
+    } catch (error) {
+      console.error('MetaMask connection failed:', error);
+      setWalletError(error instanceof Error ? error.message : 'MetaMask connection failed');
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  };
+
+  const connectNFCWallet = async () => {
+    if (!userProfile?.chipUID) {
+      setWalletError('Profile not loaded. Please refresh the page.');
+      return;
+    }
+
+    setIsConnectingWallet(true);
+    setWalletError(null);
+    
+    try {
+      // For NFC wallet, we need the user's PIN
+      const pin = prompt('Enter your PIN to create/connect NFC Ethereum wallet:');
+      if (!pin) {
+        setIsConnectingWallet(false);
+        return;
+      }
+
+      const session = await walletIntegration.connectNFCEthereumAccount(userProfile.chipUID, pin);
+      if (session) {
+        setWalletSession(session);
+        setNfcEthereumAccount(session.account);
+        console.log('🏷️ NFC Ethereum wallet connected:', session.account.address);
+      } else {
+        setWalletError('Failed to create/connect NFC wallet. Please try again.');
+      }
+    } catch (error) {
+      console.error('NFC wallet connection failed:', error);
+      setWalletError(error instanceof Error ? error.message : 'NFC wallet connection failed');
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  };
+
+  const disconnectWallet = async () => {
+    try {
+      await walletIntegration.disconnect();
+      setWalletSession(null);
+      setNfcEthereumAccount(null);
+      setWalletError(null);
+      console.log('👋 Wallet disconnected');
+    } catch (error) {
+      console.error('Wallet disconnection failed:', error);
+    }
+  };
+
+  // Load wallet session on mount
+  useEffect(() => {
+    const currentSession = walletIntegration.getCurrentSession();
+    if (currentSession && currentSession.account.isConnected) {
+      setWalletSession(currentSession);
+      if (currentSession.account.type === 'nfc-ethereum') {
+        setNfcEthereumAccount(currentSession.account);
+      }
+    }
+  }, []);
 
   // Show loading spinner while profile is loading
   if (isLoadingProfile) {
@@ -873,6 +944,10 @@ const ProfilePage = () => {
               <Sunrise className="w-4 h-4" />
               <span className="hidden sm:inline font-medium">Morning</span>
               <span className="sm:hidden text-xs">8min</span>
+            </TabsTrigger>
+            <TabsTrigger value="wallet" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+              <Wallet className="w-4 h-4" />
+              <span className="hidden sm:inline ml-2">Wallet</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1180,6 +1255,207 @@ const ProfilePage = () => {
                 </CardHeader>
                 <CardContent>
                   <MorningEightPanel onRoutineSelect={() => {}} />
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="wallet" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="border-primary/20 bg-gradient-to-br from-card via-card to-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-primary">
+                    <Wallet className="h-5 w-5" />
+                    Web3 Wallet Integration
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Connect traditional or NFC-derived Ethereum wallets for Web3 interactions
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Wallet Error Display */}
+                  {walletError && (
+                    <Alert className="border-destructive/50 bg-destructive/10">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-destructive">
+                        {walletError}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Current Wallet Status */}
+                  {walletSession ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border border-primary/20 rounded-lg bg-primary/5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="font-medium text-green-700">Wallet Connected</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {walletSession.account.type === 'metamask' ? 'MetaMask' : 'NFC Ethereum'} Wallet
+                          </p>
+                          <p className="text-xs font-mono text-muted-foreground">
+                            {walletSession.account.address}
+                          </p>
+                          {walletSession.account.ensName && (
+                            <p className="text-xs text-primary">
+                              ENS: {walletSession.account.ensName}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          onClick={disconnectWallet}
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                        >
+                          Disconnect
+                        </Button>
+                      </div>
+
+                      {/* Wallet Actions */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Card className="p-4">
+                          <div className="space-y-2">
+                            <h4 className="font-medium flex items-center gap-2">
+                              <ExternalLink className="h-4 w-4" />
+                              View on Explorer
+                            </h4>
+                            <Button
+                              onClick={() => window.open(`https://etherscan.io/address/${walletSession.account.address}`, '_blank')}
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                            >
+                              Etherscan
+                            </Button>
+                          </div>
+                        </Card>
+                        
+                        <Card className="p-4">
+                          <div className="space-y-2">
+                            <h4 className="font-medium flex items-center gap-2">
+                              <Copy className="h-4 w-4" />
+                              Copy Address
+                            </h4>
+                            <Button
+                              onClick={() => handleCopyKey(walletSession.account.address, 'Wallet address')}
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                            >
+                              Copy Address
+                            </Button>
+                          </div>
+                        </Card>
+                      </div>
+
+                      {/* NFC Wallet Info */}
+                      {walletSession.account.type === 'nfc-ethereum' && (
+                        <Alert className="border-primary/50 bg-primary/10">
+                          <Shield className="h-4 w-4" />
+                          <AlertDescription className="text-primary">
+                            <strong>NFC Ethereum Wallet:</strong> This wallet is deterministically derived from your NFC chip + PIN. 
+                            Use the same PIN on any device to access this wallet.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  ) : (
+                    /* Wallet Connection Options */
+                    <div className="space-y-4">
+                      <div className="text-center py-6">
+                        <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                          No Wallet Connected
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Connect a wallet to enable Web3 features and transactions
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* MetaMask Option */}
+                        <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer" onClick={connectMetaMask}>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                                <Wallet className="w-5 h-5 text-orange-600" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium">MetaMask</h4>
+                                <p className="text-xs text-muted-foreground">Browser extension</p>
+                              </div>
+                            </div>
+                            <Button 
+                              disabled={isConnectingWallet}
+                              className="w-full"
+                              size="sm"
+                            >
+                              {isConnectingWallet ? 'Connecting...' : 'Connect MetaMask'}
+                            </Button>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-600" />
+                                <span>Universal compatibility</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-600" />
+                                <span>Full DeFi ecosystem</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+
+                        {/* NFC Ethereum Option */}
+                        <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer" onClick={connectNFCWallet}>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                                <Shield className="w-5 h-5 text-primary" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium">NFC Ethereum</h4>
+                                <p className="text-xs text-muted-foreground">Chip-derived wallet</p>
+                              </div>
+                            </div>
+                            <Button 
+                              disabled={isConnectingWallet}
+                              variant="outline"
+                              className="w-full"
+                              size="sm"
+                            >
+                              {isConnectingWallet ? 'Creating...' : 'Create NFC Wallet'}
+                            </Button>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-600" />
+                                <span>Cross-device access</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-600" />
+                                <span>PIN-based security</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+
+                      {/* Web3 2025 Best Practices Info */}
+                      <Alert className="border-primary/50 bg-primary/10">
+                        <Sparkles className="h-4 w-4" />
+                        <AlertDescription className="text-primary">
+                          <strong>Web3 2025 Standards:</strong> Both options support EIP-6963 wallet discovery, 
+                          account abstraction compatibility, and modern security practices.
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>

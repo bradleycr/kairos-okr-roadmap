@@ -1425,38 +1425,19 @@ export class NFCAccountManager {
    */
   private static async saveSessionToIndexedDB(chipUID: string, session: DeviceSession): Promise<void> {
     if (typeof window === 'undefined' || !window.indexedDB) return
-    
     try {
-      const dbName = 'kairos-sessions'
       const storeName = 'device-sessions'
-      
-      const request = indexedDB.open(dbName, 1)
-      
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result
-        if (!db.objectStoreNames.contains(storeName)) {
-          const store = db.createObjectStore(storeName, { keyPath: 'chipUID' })
-          store.createIndex('lastAuthenticated', 'lastAuthenticated', { unique: false })
-        }
-      }
-      
-      request.onsuccess = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result
-        const transaction = db.transaction([storeName], 'readwrite')
-        const store = transaction.objectStore(storeName)
-        
-        store.put({
-          chipUID,
-          ...session,
-          savedAt: new Date().toISOString()
-        })
-        
-        console.log(`💾 Session backed up to IndexedDB for ${chipUID}`)
-      }
-      
-      request.onerror = (error) => {
-        console.warn('Failed to save session to IndexedDB:', error)
-      }
+      const db = await openKairosSessionDB()
+      const transaction = db.transaction([storeName], 'readwrite')
+      const store = transaction.objectStore(storeName)
+      store.put({
+        chipUID,
+        ...session,
+        savedAt: new Date().toISOString()
+      })
+      transaction.oncomplete = () => db.close()
+      transaction.onerror = () => db.close()
+      console.log(`💾 Session backed up to IndexedDB for ${chipUID}`)
     } catch (error) {
       console.warn('IndexedDB session backup failed:', error)
     }
@@ -1464,35 +1445,28 @@ export class NFCAccountManager {
 
   private static async loadSessionFromIndexedDB(chipUID: string): Promise<DeviceSession | null> {
     if (typeof window === 'undefined' || !window.indexedDB) return null
-    
     try {
-      const dbName = 'kairos-sessions'
       const storeName = 'device-sessions'
-      
+      const db = await openKairosSessionDB()
       return new Promise<DeviceSession | null>((resolve) => {
-        const request = indexedDB.open(dbName, 1)
-        
-        request.onsuccess = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result
-          const transaction = db.transaction([storeName], 'readonly')
-          const store = transaction.objectStore(storeName)
-          const getRequest = store.get(chipUID)
-          
-          getRequest.onsuccess = () => {
-            const result = getRequest.result
-            if (result) {
-              const { savedAt, ...session } = result
-              console.log(`💾 Session restored from IndexedDB for ${chipUID}`)
-              resolve(session as DeviceSession)
-            } else {
-              resolve(null)
-            }
+        const transaction = db.transaction([storeName], 'readonly')
+        const store = transaction.objectStore(storeName)
+        const getRequest = store.get(chipUID)
+        getRequest.onsuccess = () => {
+          const result = getRequest.result
+          if (result) {
+            const { savedAt, ...session } = result
+            console.log(`💾 Session restored from IndexedDB for ${chipUID}`)
+            resolve(session as DeviceSession)
+          } else {
+            resolve(null)
           }
-          
-          getRequest.onerror = () => resolve(null)
+          db.close()
         }
-        
-        request.onerror = () => resolve(null)
+        getRequest.onerror = () => {
+          resolve(null)
+          db.close()
+        }
       })
     } catch (error) {
       console.warn('IndexedDB session restore failed:', error)
@@ -1657,5 +1631,32 @@ export class NFCAccountManager {
     URL.revokeObjectURL(url)
     
     console.log(`💾 Data crystal downloaded for ${chipUID}`)
+  }
+
+  // --- IndexedDB Helper ---
+  /**
+   * Ensures the IndexedDB database and object store exist before any transaction.
+   * Returns a Promise that resolves to the open database instance.
+   */
+  private static openKairosSessionDB(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const dbName = 'kairos-sessions'
+      const storeName = 'device-sessions'
+      const request = indexedDB.open(dbName, 1)
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result
+        if (!db.objectStoreNames.contains(storeName)) {
+          db.createObjectStore(storeName, { keyPath: 'chipUID' })
+          db.createIndex('lastAuthenticated', 'lastAuthenticated', { unique: false })
+        }
+      }
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result
+        resolve(db)
+      }
+      request.onerror = (event) => {
+        reject(request.error)
+      }
+    })
   }
 } 
