@@ -9,16 +9,13 @@
   ],
   "functions": {
     "app/api/zkbirthday/**/*.ts": {
-      "maxDuration": 10,
-      "memory": 512
+      "maxDuration": 10
     },
     "app/api/health/**/*.ts": {
-      "maxDuration": 5,
-      "memory": 128
+      "maxDuration": 5
     },
     "app/api/**/*.ts": {
-      "maxDuration": 30,
-      "memory": 1024
+      "maxDuration": 30
     }
   },
   "headers": [
