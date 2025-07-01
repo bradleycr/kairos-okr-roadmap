@@ -33,9 +33,11 @@ KairOS is a **web application** that demonstrates **decentralized NFC authentica
 - **Highlights**: Holographic design system
 
 ### **💾 Account & Session Management**
-- **Status**: ✅ **Working**
-- **Tech**: Encrypted localStorage, device fingerprinting
-- **Features**: PIN-based encryption, secure sessions, profile management
+- **Status**: ✅ **Working** (Recently Enhanced)
+- **Tech**: Encrypted localStorage + IndexedDB backup, device fingerprinting
+- **Features**: PIN-based encryption, 365-day sessions, profile management, data crystal export/import
+- **Recent Improvements**: Fixed profile persistence, enhanced cross-device access, added comprehensive session restoration
+- **Security**: Fixed URL parameter validation, added mandatory session checks, zero-trust authentication
 - **Location**: `lib/nfc/accountManager.ts`, `lib/nfc/sessionManager.ts`
 
 ### **🧪 Testing & Development Tools**

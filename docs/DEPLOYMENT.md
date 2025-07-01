@@ -21,7 +21,7 @@ KairOS currently deploys as a **web application** on Vercel's edge network for g
                            │
                            ▼
 ┌─ Local Networks - 🚧 IN DEVELOPMENT ─────────────┐
-│  ESP32 MELD Nodes: 192.168.1.XXX:8080           │
+│  ESP32 MELD Nodes: Local WiFi:8080              │
 │  ├─ Audio Transcription Devices (planned)        │
 │  ├─ Local File Servers (planned)                 │
 │  ├─ AI Inference Nodes (planned)                 │

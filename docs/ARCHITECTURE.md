@@ -119,7 +119,7 @@ interface DIDKeyIdentity {
 ```
 ┌─ ESP32 Node Configuration ─────────────────┐
 │                                            │
-│  IP Address: 192.168.1.XXX                │
+│  Network: Local WiFi (dynamic IP)         │
 │  Web Server: Port 8080                    │
 │  Local Content: Audio files, documents    │
 │  DID Resolution: Local W3C DID resolver   │
@@ -222,11 +222,11 @@ async function authenticateWithDIDKey(
 
 ### **Local Network Topology**
 ```
-📱 User's Phone (192.168.1.50)
-├── 🤖 Audio Transcriber (192.168.1.100:8080)
-├── 🤖 File Server (192.168.1.101:3000)
-├── 🤖 AI Inference (192.168.1.102:8080)
-└── 🤖 MELD Node N (192.168.1.XXX:8080)
+📱 User's Phone (Local WiFi)
+├── 🤖 Audio Transcriber (Local WiFi:8080)
+├── 🤖 File Server (Local WiFi:3000)
+├── 🤖 AI Inference (Local WiFi:8080)
+└── 🤖 MELD Node N (Local WiFi:8080)
 
 All nodes support DID:Key authentication
 No central server or database required
@@ -234,7 +234,7 @@ No central server or database required
 
 ### **DID:Key Authentication Protocol**
 ```http
-POST http://192.168.1.100:8080/auth
+POST http://local-esp32:8080/auth
 Content-Type: application/json
 
 {
@@ -248,7 +248,7 @@ Response:
 {
   "verified": true,
   "sessionToken": "local_session_1704067200000",
-  "contentEndpoint": "http://192.168.1.100:8080/content"
+  "contentEndpoint": "http://local-esp32:8080/content"
 }
 ```
 

@@ -197,10 +197,12 @@ pnpm lint
 **⚠️ Do NOT open public issues for security vulnerabilities**
 
 Instead:
-1. Email: [security contact - TBD]
-2. Include detailed vulnerability information
-3. Allow time for coordinated disclosure
-4. We'll acknowledge receipt within 48 hours
+1. Email: security@kair-os.org (or create GitHub security advisory)
+2. Provide detailed information about the vulnerability
+3. Allow reasonable time for response before public disclosure
+4. We'll work with you to understand and address the issue
+
+**Response Time**: We aim to respond to security reports within 48 hours.
 
 ---
 
