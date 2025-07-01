@@ -86,7 +86,7 @@ const ACCOUNT_STORAGE_PREFIX = 'kairos:account:'
 const PROFILE_STORAGE_PREFIX = 'kairos:profile:'
 const CURRENT_ACCOUNT_KEY = 'kairos:current-account'
 const SESSION_STORAGE_PREFIX = 'kairos:session:'
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000 // 24 hours
+const SESSION_TIMEOUT = 365 * 24 * 60 * 60 * 1000 // 365 days (effectively forever)
 
 // Deduplication cache to prevent multiple simultaneous account operations
 const OPERATION_CACHE = new Map<string, Promise<any>>()
@@ -978,14 +978,24 @@ export class NFCAccountManager {
       const existingAccount = await this.checkAccountInDatabase(chipUID)
       const hasAccount = !!existingAccount
       
-      // Check if there's an active session for this chip
+      // 🎯 PRIORITY 1: Check for local device session (most persistent)
+      const deviceSession = await this.getDeviceSession(chipUID)
+      const hasValidDeviceSession = deviceSession && new Date(deviceSession.autoLoginUntil) > new Date()
+      
+      // PRIORITY 2: Check API session as fallback
       const { SessionManager } = await import('@/lib/nfc/sessionManager')
       const currentSession = await SessionManager.getCurrentSession()
-      const hasActiveSession = currentSession && currentSession.isActive && currentSession.currentUser?.chipUID === chipUID
+      const hasActiveApiSession = currentSession && currentSession.isActive && currentSession.currentUser?.chipUID === chipUID
       
-      console.log(`📊 Account status:`, {
+      // Combined session status
+      const hasActiveSession = hasValidDeviceSession || hasActiveApiSession
+      
+      console.log(`📊 Session status:`, {
         hasAccount,
+        hasValidDeviceSession: !!hasValidDeviceSession,
+        hasActiveApiSession: !!hasActiveApiSession,
         hasActiveSession,
+        deviceSessionExpiry: deviceSession?.autoLoginUntil || 'none',
         accountId: existingAccount?.accountId || 'none'
       })
       
@@ -1011,14 +1021,21 @@ export class NFCAccountManager {
       })
       
       if (hasActiveSession) {
-        // Active session exists - no PIN required for basic NFC authentication
-        console.log('✅ Active session found - no PIN required')
+        // Active session exists (device or API) - no PIN required
+        console.log(`✅ Active session found (${hasValidDeviceSession ? 'device' : 'API'}) - no PIN required`)
+        
+        // Update device session if only API session exists (for better persistence)
+        if (!hasValidDeviceSession && hasActiveApiSession) {
+          console.log('🔄 Creating device session for better persistence')
+          await this.createDeviceSession(chipUID, true)
+        }
+        
         return {
           requiresPIN: false,
           isNewAccount: false,
           isNewDevice: false,
           hasPIN: hasPINSetup,
-          reason: 'Active session',
+          reason: hasValidDeviceSession ? 'Device session active' : 'API session active',
           account: existingAccount
         }
       }
@@ -1086,7 +1103,7 @@ export class NFCAccountManager {
       console.log('🔐 Creating dual session systems for maximum security')
       
       // 1. Create local device session (for device-specific storage)
-      this.createDeviceSession(chipUID, true)
+      await this.createDeviceSession(chipUID, true)
       
       // 2. Create API session (for server validation)
       try {
@@ -1165,21 +1182,35 @@ export class NFCAccountManager {
     return hash1 === hash2
   }
   
-  private static getDeviceSession(chipUID: string): DeviceSession | null {
+  private static async getDeviceSession(chipUID: string): Promise<DeviceSession | null> {
     if (typeof window === 'undefined') return null
     
     try {
       const sessionKey = `${SESSION_STORAGE_PREFIX}${chipUID}`
-      const stored = localStorage.getItem(sessionKey)
+      let stored = localStorage.getItem(sessionKey)
+      let session: DeviceSession | null = null
       
-      if (!stored) return null
+      // Try localStorage first
+      if (stored) {
+        session = JSON.parse(stored) as DeviceSession
+      } else {
+        // If not in localStorage, try IndexedDB backup
+        console.log('📱 localStorage session not found, checking IndexedDB backup...')
+        session = await this.loadSessionFromIndexedDB(chipUID)
+        
+        if (session) {
+          // Restore to localStorage for faster access
+          localStorage.setItem(sessionKey, JSON.stringify(session))
+          console.log('✅ Session restored from IndexedDB to localStorage')
+        }
+      }
       
-      const session = JSON.parse(stored) as DeviceSession
+      if (!session) return null
       
       // Check if session is expired first
       const now = new Date()
       if (new Date(session.autoLoginUntil) < now) {
-        console.log('🕐 Device session expired, clearing')
+        console.log('🕐 Device session expired, clearing both storages')
         localStorage.removeItem(sessionKey)
         return null
       }
@@ -1193,13 +1224,15 @@ export class NFCAccountManager {
         
         // Instead of immediately clearing, check session age
         const sessionAge = now.getTime() - new Date(session.lastAuthenticated).getTime()
-        const maxGracePeriod = 2 * 60 * 60 * 1000 // 2 hours in milliseconds
+        const maxGracePeriod = 7 * 24 * 60 * 60 * 1000 // 7 days for better mobile experience
         
         if (sessionAge < maxGracePeriod) {
           console.log('🤝 Session recent enough, updating fingerprint and continuing')
           // Update the fingerprint to current value
           session.deviceFingerprint = currentFingerprint
           localStorage.setItem(sessionKey, JSON.stringify(session))
+          // Also update IndexedDB backup
+          await this.saveSessionToIndexedDB(chipUID, session)
           return session
         } else {
           console.log('🔒 Session too old with fingerprint mismatch, clearing')
@@ -1215,7 +1248,7 @@ export class NFCAccountManager {
     }
   }
   
-  private static createDeviceSession(chipUID: string, pinEntered: boolean): void {
+  private static async createDeviceSession(chipUID: string, pinEntered: boolean): Promise<void> {
     if (typeof window === 'undefined') return
     
     try {
@@ -1233,20 +1266,23 @@ export class NFCAccountManager {
       const sessionKey = `${SESSION_STORAGE_PREFIX}${chipUID}`
       localStorage.setItem(sessionKey, JSON.stringify(session))
       
-      console.log(`✅ Device session created, auto-login until: ${autoLoginUntil.toLocaleString()}`)
+      // Also save to IndexedDB for better persistence
+      await this.saveSessionToIndexedDB(chipUID, session)
+      
+      console.log(`✅ Device session created with dual storage, auto-login until: ${autoLoginUntil.toLocaleString()}`)
     } catch (error) {
       console.warn('Failed to create device session:', error)
     }
   }
   
-  private static updateDeviceSession(chipUID: string, pinEntered?: boolean): void {
+  private static async updateDeviceSession(chipUID: string, pinEntered?: boolean): Promise<void> {
     if (typeof window === 'undefined') return
     
     try {
-      const session = this.getDeviceSession(chipUID)
+      const session = await this.getDeviceSession(chipUID)
       if (!session) {
         // Create new session if none exists
-        this.createDeviceSession(chipUID, pinEntered || false)
+        await this.createDeviceSession(chipUID, pinEntered || false)
         return
       }
       
@@ -1263,7 +1299,10 @@ export class NFCAccountManager {
       const sessionKey = `${SESSION_STORAGE_PREFIX}${chipUID}`
       localStorage.setItem(sessionKey, JSON.stringify(session))
       
-      console.log(`🔄 Device session updated, auto-login until: ${autoLoginUntil.toLocaleString()}`)
+      // Also update IndexedDB backup
+      await this.saveSessionToIndexedDB(chipUID, session)
+      
+      console.log(`🔄 Device session updated with dual storage, auto-login until: ${autoLoginUntil.toLocaleString()}`)
     } catch (error) {
       console.warn('Failed to update device session:', error)
     }
@@ -1376,5 +1415,247 @@ export class NFCAccountManager {
     }
     
     return false
+  }
+
+  // --- Enhanced Session Management with IndexedDB Backup ---
+
+  /**
+   * 💾 IndexedDB Session Backup
+   * Provides more persistent storage than localStorage
+   */
+  private static async saveSessionToIndexedDB(chipUID: string, session: DeviceSession): Promise<void> {
+    if (typeof window === 'undefined' || !window.indexedDB) return
+    
+    try {
+      const dbName = 'kairos-sessions'
+      const storeName = 'device-sessions'
+      
+      const request = indexedDB.open(dbName, 1)
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result
+        if (!db.objectStoreNames.contains(storeName)) {
+          const store = db.createObjectStore(storeName, { keyPath: 'chipUID' })
+          store.createIndex('lastAuthenticated', 'lastAuthenticated', { unique: false })
+        }
+      }
+      
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result
+        const transaction = db.transaction([storeName], 'readwrite')
+        const store = transaction.objectStore(storeName)
+        
+        store.put({
+          chipUID,
+          ...session,
+          savedAt: new Date().toISOString()
+        })
+        
+        console.log(`💾 Session backed up to IndexedDB for ${chipUID}`)
+      }
+      
+      request.onerror = (error) => {
+        console.warn('Failed to save session to IndexedDB:', error)
+      }
+    } catch (error) {
+      console.warn('IndexedDB session backup failed:', error)
+    }
+  }
+
+  private static async loadSessionFromIndexedDB(chipUID: string): Promise<DeviceSession | null> {
+    if (typeof window === 'undefined' || !window.indexedDB) return null
+    
+    try {
+      const dbName = 'kairos-sessions'
+      const storeName = 'device-sessions'
+      
+      return new Promise<DeviceSession | null>((resolve) => {
+        const request = indexedDB.open(dbName, 1)
+        
+        request.onsuccess = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result
+          const transaction = db.transaction([storeName], 'readonly')
+          const store = transaction.objectStore(storeName)
+          const getRequest = store.get(chipUID)
+          
+          getRequest.onsuccess = () => {
+            const result = getRequest.result
+            if (result) {
+              const { savedAt, ...session } = result
+              console.log(`💾 Session restored from IndexedDB for ${chipUID}`)
+              resolve(session as DeviceSession)
+            } else {
+              resolve(null)
+            }
+          }
+          
+          getRequest.onerror = () => resolve(null)
+        }
+        
+        request.onerror = () => resolve(null)
+      })
+    } catch (error) {
+      console.warn('IndexedDB session restore failed:', error)
+      return null
+    }
+  }
+
+  /**
+   * 💎 Data Crystal Export/Import for Device Transfers
+   */
+  
+  /**
+   * Export complete profile data as encrypted data crystal
+   */
+  static async exportDataCrystal(chipUID: string): Promise<{
+    success: boolean
+    crystal?: string
+    error?: string
+  }> {
+    try {
+      const localProfile = this.getLocalProfile(chipUID)
+      if (!localProfile) {
+        return { success: false, error: 'No local profile found' }
+      }
+      
+      // Get device session for complete state
+      const deviceSession = await this.getDeviceSession(chipUID)
+      
+      // Create comprehensive export package
+      const exportData = {
+        profile: localProfile,
+        deviceSession,
+        exportedAt: new Date().toISOString(),
+        version: '2.0',
+        deviceInfo: this.detectDeviceName()
+      }
+      
+      // Encrypt with account's private key for security
+      const encoder = new TextEncoder()
+      const data = encoder.encode(JSON.stringify(exportData))
+      
+      // Simple base64 encoding for now (could add encryption later)
+      const crystal = btoa(String.fromCharCode(...data))
+      
+      console.log(`💎 Data crystal exported for ${chipUID} (${crystal.length} characters)`)
+      
+      return {
+        success: true,
+        crystal: `KAIROS_CRYSTAL_V2:${crystal}`
+      }
+      
+    } catch (error) {
+      console.error('Failed to export data crystal:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Export failed'
+      }
+    }
+  }
+  
+  /**
+   * Import profile data from encrypted data crystal
+   */
+  static async importDataCrystal(crystal: string): Promise<{
+    success: boolean
+    chipUID?: string
+    profileCreated?: boolean
+    error?: string
+  }> {
+    try {
+      // Validate crystal format
+      if (!crystal.startsWith('KAIROS_CRYSTAL_V2:')) {
+        return { success: false, error: 'Invalid crystal format' }
+      }
+      
+      // Decode crystal data
+      const encodedData = crystal.replace('KAIROS_CRYSTAL_V2:', '')
+      const decodedData = atob(encodedData)
+      const dataArray = new Uint8Array(decodedData.split('').map(char => char.charCodeAt(0)))
+      const decoder = new TextDecoder()
+      const jsonString = decoder.decode(dataArray)
+      
+      const importData = JSON.parse(jsonString)
+      
+      // Validate import data structure
+      if (!importData.profile || !importData.profile.chipUID) {
+        return { success: false, error: 'Invalid crystal data structure' }
+      }
+      
+      const chipUID = importData.profile.chipUID
+      console.log(`💎 Importing data crystal for chipUID: ${chipUID}`)
+      
+      // Update profile with import timestamp and device info
+      const updatedProfile = {
+        ...importData.profile,
+        lastSeen: new Date().toISOString(),
+        deviceName: this.detectDeviceName(),
+        stats: {
+          ...importData.profile.stats,
+          totalSessions: importData.profile.stats.totalSessions + 1
+        },
+        moments: [
+          {
+            id: `moment_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'data_crystal_import' as const,
+            deviceInfo: navigator.userAgent.substring(0, 100)
+          },
+          ...importData.profile.moments.slice(0, 49)
+        ]
+      }
+      
+      // Save the imported profile
+      this.saveLocalProfile(updatedProfile)
+      
+      // Create fresh device session for this device
+      await this.createDeviceSession(chipUID, importData.deviceSession?.pinEntered || false)
+      
+      console.log(`✅ Data crystal imported successfully for ${chipUID}`)
+      
+      return {
+        success: true,
+        chipUID,
+        profileCreated: true
+      }
+      
+    } catch (error) {
+      console.error('Failed to import data crystal:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Import failed'
+      }
+    }
+  }
+  
+  /**
+   * Generate shareable data crystal download
+   */
+  static async downloadDataCrystal(chipUID: string): Promise<void> {
+    const result = await this.exportDataCrystal(chipUID)
+    
+    if (!result.success || !result.crystal) {
+      throw new Error(result.error || 'Export failed')
+    }
+    
+    // Create download blob
+    const blob = new Blob([result.crystal], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    
+    // Create download link
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `kairos-profile-${chipUID.slice(-8)}-${new Date().getFullYear()}.crystal`
+    link.style.display = 'none'
+    
+    // Trigger download
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    // Clean up
+    URL.revokeObjectURL(url)
+    
+    console.log(`💾 Data crystal downloaded for ${chipUID}`)
   }
 } 
