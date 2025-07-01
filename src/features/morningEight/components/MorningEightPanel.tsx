@@ -403,7 +403,32 @@ export function MorningEightPanel({ onRoutineSelect }: MorningEightPanelProps) {
             <div className="flex items-center space-x-2">
               <Switch
                 checked={settings.settings.enabled}
-                onCheckedChange={(enabled) => settings.updateSettings({ enabled })}
+                onCheckedChange={(enabled) => {
+                  // Smart toggle logic - only allow enabling if there's a routine
+                  if (enabled && !memory.currentRoutine) {
+                    toast({
+                      title: "No Ritual Available",
+                      description: "Generate an audio ritual first to enable NFC auto-play",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  settings.updateSettings({ enabled });
+                  
+                  // Provide feedback when toggling
+                  if (enabled) {
+                    toast({
+                      title: "NFC Auto-Play Enabled",
+                      description: `Tap your NFC card between ${settings.settings.startTime}-${settings.settings.endTime} to auto-play ritual`,
+                    });
+                  } else {
+                    toast({
+                      title: "NFC Auto-Play Disabled",
+                      description: "Manual start required for morning rituals",
+                    });
+                  }
+                }}
+                disabled={!memory.currentRoutine} // Disable toggle if no routine
               />
               <Button
                 variant="ghost"
@@ -513,6 +538,83 @@ export function MorningEightPanel({ onRoutineSelect }: MorningEightPanelProps) {
                   >
                     Discard
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Panel */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <Card className="border-accent/30 bg-gradient-to-br from-accent/5 to-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center space-x-2">
+                  <Settings className="w-5 h-5" />
+                  <span>NFC Auto-Play Settings</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Start Time</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={settings.settings.startTime}
+                      onChange={(e) => settings.updateSettings({ startTime: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime">End Time</Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={settings.settings.endTime}
+                      onChange={(e) => settings.updateSettings({ endTime: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Auto-Play Status</p>
+                      <p className="text-xs text-muted-foreground">
+                        {settings.settings.enabled 
+                          ? `Active from ${settings.settings.startTime} to ${settings.settings.endTime}`
+                          : 'Disabled - Generate a ritual to enable'
+                        }
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {memory.currentRoutine ? (
+                        <Badge variant="outline" className="text-green-600 border-green-200">
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          Ritual Ready
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-orange-600 border-orange-200">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Need Ritual
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Tap your NFC card during the time window to auto-play your ritual</p>
+                  <p>• Make sure you have generated an audio ritual first</p>
+                  <p>• The system will work with your regular NFC card from your profile</p>
                 </div>
               </CardContent>
             </Card>

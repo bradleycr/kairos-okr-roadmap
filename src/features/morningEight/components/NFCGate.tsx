@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMorningEightSettings } from '../hooks/useMorningEightSettings';
+import { useMorningMemory } from '../hooks/useMorningMemory';
 
 interface NFCGateProps {
   className?: string;
@@ -10,25 +11,52 @@ interface NFCGateProps {
 
 export function NFCGate({ className }: NFCGateProps) {
   const router = useRouter();
-  const { settings, isInTimeWindow } = useMorningEightSettings();
+  const { settings, isWithinMorningWindow } = useMorningEightSettings();
+  const { currentRoutine, generateRoutine } = useMorningMemory();
 
   useEffect(() => {
     // Only set up auto-routing if feature is enabled and we're in time window
-    if (!settings.enabled || !isInTimeWindow) {
+    if (!settings.enabled || !isWithinMorningWindow()) {
       return;
     }
 
     // Listen for successful NFC authentication events
-    const handleNFCAuthentication = (event: CustomEvent) => {
+    const handleNFCAuthentication = async (event: CustomEvent) => {
       const { success, chipUID } = event.detail;
       
       if (success && chipUID) {
-        console.log('NFC authentication successful during morning window, auto-routing to ritual');
+        console.log('🌅 NFC authentication successful during morning window, checking for ritual...');
         
-        // Small delay to allow normal authentication flow to complete
-        setTimeout(() => {
-          router.push('/morning-eight?auto=true');
-        }, 1000);
+        // Check if we have a routine
+        if (currentRoutine) {
+          console.log('✅ Cached ritual found, auto-routing to morning eight');
+          setTimeout(() => {
+            router.push('/morning-eight?auto=true');
+          }, 1000);
+        } else {
+          console.log('⚡ No ritual found, checking if we can generate one...');
+          // Try to generate a routine if we don't have one
+          try {
+            const newRoutine = await generateRoutine();
+            if (newRoutine) {
+              console.log('✅ Generated new ritual, auto-routing to morning eight');
+              setTimeout(() => {
+                router.push('/morning-eight?auto=true');
+              }, 1000);
+            } else {
+              console.log('❌ Could not generate ritual - no voice dumps available');
+              // Show user friendly message about needing voice dumps
+              setTimeout(() => {
+                router.push('/morning-eight?message=need-dumps');
+              }, 1000);
+            }
+          } catch (error) {
+            console.log('❌ Failed to generate ritual:', error);
+            setTimeout(() => {
+              router.push('/morning-eight?message=generation-failed');
+            }, 1000);
+          }
+        }
       }
     };
 
@@ -38,7 +66,7 @@ export function NFCGate({ className }: NFCGateProps) {
     return () => {
       window.removeEventListener('nfc-authentication-complete', handleNFCAuthentication as EventListener);
     };
-  }, [settings.enabled, isInTimeWindow, router]);
+  }, [settings.enabled, isWithinMorningWindow, router, currentRoutine, generateRoutine]);
 
   // This component is invisible - it just listens for events
   return null;
@@ -52,11 +80,11 @@ export function useMorningEightNFCGate(chipUID?: string) {
 
   const checkAutoRoute = useCallback(() => {
     if (!settings.settings.enabled) return false;
-    if (!memory.memory?.latestRoutine) return false;
+    if (!memory.currentRoutine) return false;
     if (!settings.isWithinMorningWindow()) return false;
     if (settings.settings.requireNFC && !chipUID) return false;
     return true;
-  }, [settings.settings, memory.memory, chipUID]);
+  }, [settings.settings, memory.currentRoutine, chipUID, settings.isWithinMorningWindow]);
 
   useEffect(() => {
     setShouldRedirect(checkAutoRoute());
@@ -65,7 +93,7 @@ export function useMorningEightNFCGate(chipUID?: string) {
   return {
     shouldRedirect,
     isWithinMorningWindow: settings.isWithinMorningWindow(),
-    hasRoutine: !!memory.memory?.latestRoutine,
+    hasRoutine: !!memory.currentRoutine,
     isEnabled: settings.settings.enabled,
     requiresNFC: settings.settings.requireNFC,
   };

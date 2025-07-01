@@ -7,6 +7,7 @@ import { AudioRitualView } from '@/src/features/morningEight/components/AudioRit
 import { useMorningMemory } from '@/src/features/morningEight/hooks/useMorningMemory';
 import { PageLoader } from '@/components/ui/page-loader';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, Sparkles, Brain, Mic2 } from 'lucide-react';
 import type { Routine } from '@/src/features/morningEight/types';
 
@@ -111,6 +112,7 @@ function MorningEightLoading() {
 // Safe URL parameter hook
 function useAutoMode() {
   const [isAuto, setIsAuto] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -118,18 +120,45 @@ function useAutoMode() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       setIsAuto(urlParams.get('auto') === 'true');
+      setMessage(urlParams.get('message'));
     }
   }, []);
 
-  return { isAuto: isClient ? isAuto : false, isClient };
+  return { isAuto: isClient ? isAuto : false, message, isClient };
 }
 
 // Main content component
 function MorningEightContent() {
   const [currentRoutine, setCurrentRoutine] = useState<Routine | null>(null);
   const [showAudioRitual, setShowAudioRitual] = useState(false);
-  const { isAuto } = useAutoMode();
+  const { isAuto, message } = useAutoMode();
   const { generateRoutine, generating } = useMorningMemory();
+  const { toast } = useToast();
+
+  // Handle message parameters from NFC auto-trigger
+  useEffect(() => {
+    if (message) {
+      if (message === 'need-dumps') {
+        toast({
+          title: "Voice Dumps Required",
+          description: "Record some voice reflections first to generate your morning ritual",
+          variant: "destructive",
+        });
+      } else if (message === 'generation-failed') {
+        toast({
+          title: "Generation Failed",
+          description: "Unable to create your ritual. Please try again manually",
+          variant: "destructive",
+        });
+      }
+      // Clear the message from URL to prevent repeated toasts
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('message');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [message, toast]);
 
   // Auto-generate routine if we're in auto mode
   useEffect(() => {
