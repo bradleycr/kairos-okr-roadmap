@@ -63,11 +63,12 @@ export class NFCAuthenticationEngine {
   /**
    * DID:Key authentication (modern and optimal legacy)
    */
-  private static async authenticateWithDIDKey(params: NFCParameters): Promise<AuthenticationResult> {
+  private static async authenticateWithDIDKey(params: NFCParameters & { pin?: string }): Promise<AuthenticationResult> {
     // Extract chipUID and PIN from parameters
     const { chipUID, pin } = this.extractAuthParams(params)
     
     if (!chipUID || !pin) {
+      console.error('❌ DID:Key authentication missing required parameters:', { chipUID: !!chipUID, pin: !!pin })
       return {
         verified: false,
         error: 'Missing chipUID or PIN for DID:Key authentication'
@@ -265,17 +266,17 @@ export class NFCAuthenticationEngine {
   /**
    * Extract authentication parameters from various URL formats
    */
-  private static extractAuthParams(params: NFCParameters): { chipUID?: string } {
+  private static extractAuthParams(params: NFCParameters & { pin?: string }): { chipUID?: string; pin?: string } {
     // Priority 1: Direct DID:Key format
     if (params.did) {
       // Extract chipUID from DID or use provided chipUID
       const chipUID = params.chipUID || this.extractChipUIDFromDID(params.did)
-      return { chipUID }
+      return { chipUID, pin: params.pin }
     }
 
     // Priority 2: Direct chipUID
     if (params.chipUID) {
-      return { chipUID: params.chipUID }
+      return { chipUID: params.chipUID, pin: params.pin }
     }
 
     return {}

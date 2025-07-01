@@ -726,10 +726,10 @@ export function useNFCParameterParser() {
       
       const authResult = await NFCAuthenticationEngine.authenticate({
         chipUID: parsedParams.chipUID,
-        // pin: pin, // Remove pin from NFCParameters as it's not part of the interface
+        pin: pin, // CRITICAL FIX: Pass the PIN to the authentication engine
         did: parsedParams.did,
         skipPINPrompt: true // Prevent double PIN prompts
-      })
+      } as any)
       
       if (!authResult.verified) {
         console.error('DID:Key authentication failed:', authResult.error)
