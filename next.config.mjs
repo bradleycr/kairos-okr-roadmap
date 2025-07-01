@@ -8,12 +8,17 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
+  // --- Development Performance Optimizations ---
+  ...(process.env.NODE_ENV === 'development' && {
+    // Note: lucide-react already has tree-shaking built-in, no modular imports needed
+  }),
+  
   // --- External Packages (moved from experimental in Next.js 15) ---
-  serverExternalPackages: ['@noble/curves', '@noble/hashes'],
+  serverExternalPackages: ['@noble/curves', '@noble/hashes', 'snarkjs', 'circomlibjs'],
   
   // --- Build Optimizations ---
   compiler: {
-    // Remove console logs in production
+    // Remove console logs in production only
     removeConsole: process.env.NODE_ENV === 'production',
   },
   
@@ -29,22 +34,63 @@ const nextConfig = {
           {
             key: 'Access-Control-Allow-Origin',
             value: '*'
-          }
+          },
+          // Cache static assets in development for faster reloads
+          ...(process.env.NODE_ENV === 'development' ? [{
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }] : [])
         ]
       }
     ]
   },
   
-  // --- Error Handling for Production ---
+  // --- Enhanced Experimental Features ---
   experimental: {
     // Better error handling in production
     optimizePackageImports: ['@/components', '@/lib', '@/src'],
+    // Turbopack optimizations
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+    // Enable faster development builds
+    ...(process.env.NODE_ENV === 'development' && {
+      optimizeCss: false,
+      craCompat: false,
+    }),
   },
   
-  // --- Webpack optimizations for minification ---
+  // --- Enhanced Webpack Configuration ---
   webpack: (config, { dev, isServer }) => {
+    // Development optimizations
+    if (dev) {
+      // Faster source maps for development
+      config.devtool = 'eval-cheap-module-source-map';
+      
+      // Optimize for faster rebuilds
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false,
+      };
+      
+      // Reduce bundle size in development
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        // Use development builds of React
+        'react': 'react/index.js',
+        'react-dom': 'react-dom/index.js',
+      };
+    }
+    
+    // Production optimizations
     if (!dev && !isServer) {
-      // Optimize for production builds
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -52,6 +98,13 @@ const nextConfig = {
         crypto: false,
       };
     }
+    
+    // Optimize for large dependencies
+    config.optimization = {
+      ...config.optimization,
+      moduleIds: dev ? 'named' : 'deterministic',
+    };
+    
     return config;
   },
 }

@@ -265,39 +265,17 @@ export class NFCAuthenticationEngine {
   /**
    * Extract authentication parameters from various URL formats
    */
-  private static extractAuthParams(params: NFCParameters): { chipUID?: string, pin?: string } {
+  private static extractAuthParams(params: NFCParameters): { chipUID?: string } {
     // Priority 1: Direct DID:Key format
-    if (params.did && params.pin) {
+    if (params.did) {
       // Extract chipUID from DID or use provided chipUID
       const chipUID = params.chipUID || this.extractChipUIDFromDID(params.did)
-      return { chipUID, pin: params.pin }
+      return { chipUID }
     }
 
-    // Priority 2: Legacy optimal format
-    if (params.chipUID && params.pin) {
-      return { chipUID: params.chipUID, pin: params.pin }
-    }
-
-    // Priority 3: Legacy decentralized format (try with or without PIN)
+    // Priority 2: Direct chipUID
     if (params.chipUID) {
-      return { chipUID: params.chipUID, pin: params.pin }
-    }
-
-    // Legacy support: Try alternative parameter names
-    // Some legacy cards might use different parameter naming
-    const alternativeChipUID = params.chipUID || 
-                              params.chip_uid || 
-                              params.chipId || 
-                              params.uid ||
-                              params.id
-                              
-    const alternativePin = params.pin || 
-                          params.PIN || 
-                          params.passcode ||
-                          params.password
-
-    if (alternativeChipUID) {
-      return { chipUID: alternativeChipUID, pin: alternativePin }
+      return { chipUID: params.chipUID }
     }
 
     return {}
@@ -400,8 +378,7 @@ export class NFCAuthenticationEngine {
 
     // Legacy signature format FIRST
     // Legacy cards might have both DID and signature parameters
-    // Accept either chipUID or uid parameter
-    const chipUID = params.chipUID || params.uid || params.id
+    const chipUID = params.chipUID
     if (chipUID && params.signature && params.publicKey) {
       console.warn('Legacy signature format detected (with DID) - using signature authentication')
       
@@ -414,26 +391,25 @@ export class NFCAuthenticationEngine {
 
     // Check for DID:Key format (only if not legacy signature)
     if (params.did && params.did.startsWith('did:key:')) {
-      if (!params.pin) {
-        errors.push('PIN required for DID:Key authentication')
-      }
+      // PIN is handled separately in the UI, not through URL parameters
+      // DID:Key format is valid
       
       return {
-        valid: errors.length === 0,
+        valid: true,
         errors,
-        format: errors.length === 0 ? 'didkey' : 'invalid'
+        format: 'didkey'
       }
     }
 
     // Check for optimal format (legacy support)
-    if (params.chipUID && params.pin) {
+    if (params.chipUID) {
       if (!this.isValidChipUID(params.chipUID)) {
         // Legacy chipUID format detected, allowing with relaxed validation
         console.warn('⚠️ Legacy chipUID format detected, allowing with relaxed validation')
       }
       
       return {
-        valid: true, // Always allow if chipUID and PIN present
+        valid: true, // Always allow if chipUID present
         errors,
         format: 'optimal'
       }

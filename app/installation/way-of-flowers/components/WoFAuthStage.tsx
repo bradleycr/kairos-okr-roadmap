@@ -7,12 +7,19 @@
 
 import { NFCAuthFlow } from '@/app/nfc/components/NFCAuthFlow'
 import { Card, CardContent } from '@/components/ui/card'
+import type { NFCVerificationState, NFCParameters } from '@/app/nfc/types/nfc.types'
 
 interface WoFAuthStageProps {
-  verificationState: any
+  verificationState: NFCVerificationState
+  nfcParams?: NFCParameters
+  format?: string
 }
 
-export function WoFAuthStage({ verificationState }: WoFAuthStageProps) {
+export function WoFAuthStage({ 
+  verificationState, 
+  nfcParams = {}, 
+  format = 'optimal' 
+}: WoFAuthStageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white/70 backdrop-blur-sm border-0 shadow-2xl">
@@ -27,7 +34,11 @@ export function WoFAuthStage({ verificationState }: WoFAuthStageProps) {
               </p>
             </div>
             
-            <NFCAuthFlow />
+            <NFCAuthFlow 
+              verificationState={verificationState}
+              nfcParams={nfcParams}
+              format={format}
+            />
             
             {verificationState?.status === 'error' && (
               <div className="text-center">

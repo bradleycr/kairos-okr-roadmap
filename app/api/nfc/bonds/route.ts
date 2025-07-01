@@ -54,8 +54,8 @@ async function getKV() {
 }
 
 // Import shared storage for consistency
-import { getSharedMemoryStorage } from '@/lib/nfc/sharedStorage'
-const getMemoryStorage = () => getSharedMemoryStorage()
+import { getStorageItem, setStorageItem } from '@/lib/nfc/sharedStorage'
+// Remove this line as we're using direct storage functions now
 
 // --- Storage Functions ---
 async function saveBond(bond: UserBond): Promise<boolean> {
@@ -84,17 +84,16 @@ async function saveBond(bond: UserBond): Promise<boolean> {
       return true
     } else {
       // Fallback to memory storage
-      const memoryStorage = getMemoryStorage()
-      memoryStorage.set(`bond:${bond.id}`, bond)
+      setStorageItem(`bond:${bond.id}`, bond)
       
-      const fromBonds = memoryStorage.get(`bonds:${bond.fromChipUID}`) as string[] || []
-      const toBonds = memoryStorage.get(`bonds:${bond.toChipUID}`) as string[] || []
+      const fromBonds = getStorageItem<string[]>(`bonds:${bond.fromChipUID}`) || []
+      const toBonds = getStorageItem<string[]>(`bonds:${bond.toChipUID}`) || []
       
       if (!fromBonds.includes(bond.id)) fromBonds.push(bond.id)
       if (!toBonds.includes(bond.id)) toBonds.push(bond.id)
       
-      memoryStorage.set(`bonds:${bond.fromChipUID}`, fromBonds)
-      memoryStorage.set(`bonds:${bond.toChipUID}`, toBonds)
+      setStorageItem(`bonds:${bond.fromChipUID}`, fromBonds)
+      setStorageItem(`bonds:${bond.toChipUID}`, toBonds)
       
       return true
     }
@@ -124,11 +123,11 @@ async function getUserBonds(chipUID: string): Promise<UserBond[]> {
     } else {
       // Fallback to memory storage
       const memoryStorage = getMemoryStorage()
-      const bondIds = memoryStorage.get(`bonds:${chipUID}`) as string[] || []
+      const bondIds = getStorageItem<string[]>(`bonds:${chipUID}`) || []
       const bonds: UserBond[] = []
       
       for (const bondId of bondIds) {
-        const bond = memoryStorage.get(`bond:${bondId}`) as UserBond | null
+        const bond = getStorageItem<UserBond>(`bond:${bondId}`)
         if (bond && bond.isActive) {
           bonds.push(bond)
         }
@@ -147,10 +146,9 @@ async function getBond(bondId: string): Promise<UserBond | null> {
     const kv = await getKV()
     if (kv) {
       return await kv.get(`nfc:bond:${bondId}`) as UserBond | null
-    } else {
-      const memoryStorage = getMemoryStorage()
-      return memoryStorage.get(`bond:${bondId}`) as UserBond | null
-    }
+          } else {
+        return getStorageItem<UserBond>(`bond:${bondId}`) || null
+      }
   } catch (error) {
     console.error('Failed to get bond:', error)
     return null

@@ -99,7 +99,7 @@ export class ZKBondingSystem {
 
       // Create ritual bond
       const bond: ZKRitualBond = {
-        id: `zkbond_${Date.now()}_${randomBytes(8).toString('hex')}`,
+        id: `zkbond_${Date.now()}_${Array.from(randomBytes(8), b => b.toString(16).padStart(2, '0')).join('')}`,
         commitment,
         proof: proofResult.proof,
         metadata: {
@@ -130,7 +130,7 @@ export class ZKBondingSystem {
     publicKey: Uint8Array,
     bondNonce?: string
   ): Promise<ZKBondSignature> {
-    const nonce = bondNonce || randomBytes(16).toString('hex')
+    const nonce = bondNonce || Array.from(randomBytes(16), b => b.toString(16).padStart(2, '0')).join('')
     const timestamp = Date.now()
     
     // Create message to sign: SHA256(chipUID + timestamp + nonce)
@@ -141,9 +141,9 @@ export class ZKBondingSystem {
     const { r, s } = await this.signMessage(messageHash, privateKey)
     
     return {
-      r: r.toString('hex'),
-      s: s.toString('hex'),
-      publicKey: publicKey.toString('hex'),
+      r: Array.from(r, b => b.toString(16).padStart(2, '0')).join(''),
+      s: Array.from(s, b => b.toString(16).padStart(2, '0')).join(''),
+      publicKey: Array.from(publicKey, b => b.toString(16).padStart(2, '0')).join(''),
       chipUID,
       timestamp,
       bondNonce: nonce
@@ -264,8 +264,8 @@ export class ZKBondingSystem {
       for (let i = 0; i < level.length; i += 2) {
         const left = level[i]
         const right = level[i + 1] || left
-        const combined = sha256(new TextEncoder().encode(left + right))
-        nextLevel.push(combined.toString('hex'))
+        const combined = await sha256(new TextEncoder().encode(left + right))
+        nextLevel.push(Array.from(new Uint8Array(combined), b => b.toString(16).padStart(2, '0')).join(''))
       }
       level = nextLevel
     }
@@ -273,9 +273,10 @@ export class ZKBondingSystem {
     return level[0] || ''
   }
 
-  private generateNullifier(signature: ZKBondSignature): string {
+  private async generateNullifier(signature: ZKBondSignature): Promise<string> {
     const input = `${signature.chipUID}${signature.bondNonce}${signature.timestamp}`
-    return sha256(new TextEncoder().encode(input)).toString('hex').substring(0, 32)
+    const hash = await sha256(new TextEncoder().encode(input))
+    return Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('').substring(0, 32)
   }
 
   private async generateBondProof(
@@ -292,7 +293,7 @@ export class ZKBondingSystem {
           Date.now().toString()
         ],
         bondCommitment: commitment,
-        nullifierHash: this.generateNullifier(signatures[0]), // Example nullifier
+        nullifierHash: await this.generateNullifier(signatures[0]), // Example nullifier
         timestamp: Date.now(),
         participantCount: signatures.length
       }
@@ -339,8 +340,8 @@ export class ZKBondingSystem {
   private async encryptBitVector(vector: number[], privateKey: Uint8Array): Promise<string> {
     // Simulated FHE encryption
     const vectorString = vector.join('')
-    const encrypted = sha256(new Uint8Array([...privateKey, ...new TextEncoder().encode(vectorString)]))
-    return encrypted.toString('hex')
+    const encrypted = await sha256(new Uint8Array([...privateKey, ...new TextEncoder().encode(vectorString)]))
+    return Array.from(new Uint8Array(encrypted), b => b.toString(16).padStart(2, '0')).join('')
   }
 
   private async simulatePSI(encryptedVector: string, theirCommitment: string): Promise<number> {
@@ -352,7 +353,8 @@ export class ZKBondingSystem {
 
   private async generatePSIProof(bitVector: number[], intersectionSize: number): Promise<string> {
     const input = `${bitVector.join('')}${intersectionSize}${Date.now()}`
-    return sha256(new TextEncoder().encode(input)).toString('hex')
+    const hash = await sha256(new TextEncoder().encode(input))
+    return Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('')
   }
 
   private async proveBondCount(bonds: UserBond[], threshold: number): Promise<{ proof: string; verified: boolean }> {
