@@ -2,81 +2,83 @@
 
 ## Supported Versions
 
-| Version | Supported |
-| ------- | --------- |
-| 1.x.x   | Yes       |
-| < 1.0   | No        |
+| Version | Supported          |
+| ------- | ------------------ |
+| 0.1.x   | :white_check_mark: |
 
-## Reporting Vulnerabilities
+## Reporting a Vulnerability
 
-**Do not report security issues through public GitHub issues.**
+KairOS takes security seriously. If you discover a security vulnerability, please follow these steps:
 
-### How to Report
-Email security issues to: **security@kairos.dev**
+### 🔒 Private Disclosure Process
 
-Include:
-- Issue type and description
-- Affected source files and locations
-- Reproduction steps
-- Proof-of-concept (if available)
-- Impact assessment
+1. **Do NOT open a public issue** for security vulnerabilities
+2. **Use GitHub Security Advisories**: [Report privately](https://github.com/bradleycr/KairOS/security/advisories/new)
+3. **Email**: For urgent issues, contact the maintainers directly
 
-### Response Timeline
-- **Initial response:** 48 hours
-- **Status updates:** Weekly
-- **Resolution target:** 30 days for critical issues
+### 📋 What to Include
 
-## Security Architecture
+When reporting a security issue, please include:
 
-### Cryptographic Foundation
-- **Ed25519 signatures** via @noble/ed25519
-- **Private keys** remain on user nodes
-- **Decentralized authentication** with challenge-response
-- **Replay attack protection**
+- **Description** of the vulnerability
+- **Steps to reproduce** the issue
+- **Potential impact** of the vulnerability
+- **Suggested fix** (if you have one)
 
-### NFC Security Model
-- **Public data only** on NFC chips
-- **Device-specific key derivation**
-- **Signature verification** for all operations
-- **No sensitive data transmission**
+### ⏰ Response Timeline
 
-### Web Security
-- HTTPS-only communication
-- Content Security Policy headers
-- Secure authentication flows
-- Input validation and sanitization
+- **Acknowledgment**: Within 48 hours
+- **Initial Assessment**: Within 7 days
+- **Fix Timeline**: Depends on severity and complexity
 
-## Best Practices
+### 🏆 Recognition
 
-### For Community Members
-- Never share private keys
-- Verify signatures before trusting data
-- Keep software updated
-- Use secure networks
+We appreciate security researchers who help keep KairOS safe:
+- **Credit** in security advisories (if desired)
+- **Recognition** in our changelog
+- **Collaboration** on fixes when appropriate
 
-### For Contributors
-- Follow secure coding practices
-- Validate all inputs
-- Implement proper authentication
-- Regular security reviews
+## Security Considerations
 
-## Security Testing
+### Cryptographic Implementation
 
-We encourage testing of:
-- Cryptographic implementations
-- Authentication flows
-- Timing attack resistance
-- Signature verification
-- NFC security protocols
+KairOS uses industry-standard cryptography:
+- **Ed25519** signatures via `@noble/ed25519` (audited library)
+- **HKDF** key derivation via `@noble/hashes`
+- **Deterministic key generation** from PIN + NFC chip ID
 
-## Responsible Disclosure
+### What We DON'T Store
 
-We commit to:
-- Acknowledge contributions
-- Coordinate resolution
-- Provide progress updates
-- Credit researchers (unless anonymous preferred)
+- ❌ Private keys (computed on-demand only)
+- ❌ Unencrypted PINs
+- ❌ Sensitive cryptographic material
+
+### What We DO Store
+
+- ✅ Public chip IDs (safe if exposed)
+- ✅ Encrypted session data in browser storage
+- ✅ Public profile information (user controlled)
+
+### Browser Security
+
+- **Same-origin policy** enforced
+- **HTTPS required** for NFC operations
+- **Local storage** encryption for sensitive data
+- **No third-party trackers** or analytics
+
+## Scope
+
+This security policy covers:
+- ✅ **Web application** (main focus)
+- ✅ **Cryptographic implementations**
+- ✅ **NFC authentication flows**
+- ✅ **Data handling practices**
+
+Out of scope:
+- ❌ Physical NFC card cloning (expected behavior)
+- ❌ Browser vulnerabilities (report to browser vendors)
+- ❌ Hardware implementation (simulation only)
 
 ---
 
-Thank you for helping secure KairOS and our community. 
+*Thank you for helping keep KairOS secure for everyone.* 

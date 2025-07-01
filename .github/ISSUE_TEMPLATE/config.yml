@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussion Forum
+    url: https://github.com/bradleycr/KairOS/discussions
+    about: Ask questions, share ideas, and discuss KairOS with the community
+  - name: 🔒 Security Issue
+    url: https://github.com/bradleycr/KairOS/security/advisories/new
+    about: Report security vulnerabilities privately 

@@ -1,44 +1,41 @@
-## Description
-What does this PR accomplish?
+# Pull Request
 
-Fixes #(issue_number)
+## Description
+Brief description of what this PR does.
 
 ## Type of Change
-- [ ] Bug fix (non-breaking)
-- [ ] New feature (non-breaking)
-- [ ] Breaking change
-- [ ] Documentation
-- [ ] UI/UX improvement
-- [ ] Performance optimization
-- [ ] Refactoring
+- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
+- [ ] ✨ New feature (non-breaking change which adds functionality)
+- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] 📚 Documentation update
+- [ ] 🧪 Test improvements
+- [ ] 🔧 Code refactoring
+- [ ] ⚡ Performance improvement
+
+## Testing
+- [ ] I have tested this locally
+- [ ] I have tested on multiple browsers (if UI changes)
+- [ ] I have tested with real NFC devices (if NFC changes)
+- [ ] I have tested the simulator mode
 
 ## Changes Made
 - 
 - 
 - 
 
-## Testing
-- [ ] All tests pass locally
-- [ ] Added tests for new functionality
-- [ ] Manual testing completed
-- [ ] Cross-platform testing (if applicable)
+## Screenshots (if applicable)
+<!-- Add screenshots to help explain your changes -->
 
-## Security & Privacy
-- [ ] Ed25519 operations follow best practices
-- [ ] No private keys inappropriately stored
-- [ ] Decentralized architecture maintained
-- [ ] Authentication flows secure
+## Checklist
+- [ ] My code follows the project's style guidelines
+- [ ] I have performed a self-review of my code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] Any dependent changes have been merged and published
 
-## Documentation
-- [ ] Code properly commented
-- [ ] README updated (if needed)
-- [ ] API docs updated (if needed)
-
-## Review Checklist
-- [ ] Self-review completed
-- [ ] Code follows project standards
-- [ ] No new warnings introduced
-- [ ] Performance impact considered
+## Related Issues
+Closes #
 
 ## Additional Notes
-Any other context for reviewers. 
+<!-- Any additional information about this PR --> 
