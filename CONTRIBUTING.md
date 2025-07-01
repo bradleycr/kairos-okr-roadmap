@@ -1,332 +1,175 @@
 # Contributing to KairOS
 
-Welcome to the KairOS community. We're building decentralized authentication together and need your help.
+Thank you for your interest in contributing to KairOS. We're building deterministic NFC authentication for a more open web.
 
-## 📊 **Current Project Status**
+## What is KairOS?
 
-### **What's Ready for Contributions**
-- ✅ **Web Application** - NFC authentication system
-- ✅ **Cryptographic Core** - Ed25519, DID:Key, multi-format authentication  
-- ✅ **UI/UX System** - Interface with holographic design
-- ✅ **Documentation** - Guides (being updated)
-- ✅ **Testing Framework** - Basic testing infrastructure
+KairOS is a **web application** that demonstrates how deterministic cryptography can solve identity problems. Tap an NFC card, enter a PIN, and access the same cryptographic identity on any device.
 
-### **What's In Development**
-- 🚧 **ESP32 Firmware** - Hardware implementation (simulation complete)
-- 🚧 **P2P Networking** - Decentralized identity registry
-- 🚧 **ZK Proofs** - Zero-knowledge authentication
-- 🚧 **Production Hardware** - Physical NFC pendants and MELD nodes
+**What actually works**:
+- ✅ NFC authentication in browsers
+- ✅ Ed25519 cryptography with deterministic key derivation
+- ✅ Way of Flowers installation with wallet integration
+- ✅ Cross-device identity access with PIN + NFC
 
-### **What We Need Help With**
-1. 🧪 **Testing & Validation** - Expand test coverage, edge case handling
-2. 📚 **Documentation** - Improve accuracy, add examples, clarify concepts
-3. 🔐 **Security Auditing** - Review cryptographic implementations
-4. 🎨 **UI/UX Improvements** - Enhance user experience and accessibility
-5. 🤖 **ESP32 Development** - Complete hardware firmware implementation
-6. 🌐 **Networking** - P2P discovery and decentralized features
+**What's planned for community development**:
+- Hardware implementations (ESP32 firmware)
+- Additional interactive installations
+- Enhanced mobile browser support
+- Security auditing and testing
 
----
+## Getting Started
 
-## 🚀 **Getting Started**
+### Prerequisites
+- Node.js 18+
+- Modern browser with Web NFC (Chrome/Edge on Android recommended)
+- Basic familiarity with TypeScript and React
 
-### **Development Environment Setup**
+### Setup
 ```bash
-# 1. Fork and clone the repository
-git clone https://github.com/YOUR_USERNAME/KairOS.git
+git clone https://github.com/bradleycr/KairOS.git
 cd KairOS
-
-# 2. Install dependencies (Node.js 18+ required)
 pnpm install
-
-# 3. Start development server
 pnpm dev
-
-# 4. Open browser and test
-open http://localhost:3000
 ```
 
-### **First Contribution Ideas**
-- 🐛 **Fix small bugs** in the issue tracker
-- 📝 **Improve documentation** clarity and examples
-- 🧪 **Add test cases** for authentication flows
-- 🎨 **Enhance UI components** and accessibility
-- 🔍 **Review code** and suggest improvements
+### Try the Working Features
+- **Main auth flow**: http://localhost:3000/nfc
+- **Testing tools**: http://localhost:3000/nfc-test
+- **Way of Flowers**: http://localhost:3000/installation/way-of-flowers
+- **Chip configuration**: http://localhost:3000/chip-config
 
----
+## How to Contribute
 
-## 💡 **Contribution Types**
+### 🐛 Bug Reports
+Found something broken? Please report it with:
+- Steps to reproduce
+- Browser and device info
+- Expected vs actual behavior
 
-### **1. 🐛 Bug Reports**
-Found an issue? Help us fix it.
+### ✨ Feature Requests
+Ideas for improvement? Consider:
+- Does it fit the core mission (simple, deterministic authentication)?
+- Is it something that enhances what already works?
+- Would it benefit the open source community?
 
-**Template:**
-```markdown
-## Bug Description
-Brief description of the bug
+### 🔨 Code Contributions
 
-## Steps to Reproduce
-1. Step one
-2. Step two
-3. Expected vs actual behavior
+#### Areas We Need Help With
+1. **Testing & Quality** - Expand test coverage for crypto operations
+2. **Mobile Browser Support** - Improve NFC compatibility across devices
+3. **Installation Framework** - Enhance the system used by Way of Flowers
+4. **Documentation** - Clear guides and accurate examples
+5. **Security Review** - Audit cryptographic implementations
 
-## Environment
-- Browser: Chrome/Firefox/Safari
-- OS: Windows/Mac/Linux
-- Node version: 18.x/20.x
+#### Pull Request Guidelines
+- Fork and create a feature branch
+- One feature/fix per PR
+- Include tests for new functionality
+- Update documentation if needed
+- Follow existing code patterns
 
-## Additional Context
-Screenshots, logs, or other helpful information
-```
-
-### **2. ✨ Feature Requests**
-Have an idea for improvement?
-
-**Before proposing:**
-- Check if it fits with project goals (decentralized authentication)
-- Consider if it should be core functionality or a plugin
-- Look for existing similar requests
-
-**Template:**
-```markdown
-## Feature Description
-What should this feature do?
-
-## Use Case
-Why is this feature needed? Who benefits?
-
-## Implementation Ideas
-Any thoughts on how to implement this?
-```
-
-### **3. 🔨 Code Contributions**
-
-#### **Pull Request Guidelines**
-- Fork the repository and create a feature branch
-- Make focused changes (one feature/fix per PR)
+#### Code Standards
+- TypeScript for all new code
+- Use Prettier formatting (runs automatically)
+- Follow existing file structure
 - Write clear commit messages
-- Add tests for new functionality
-- Update documentation as needed
-- Ensure code passes linting and tests
 
-#### **Code Standards**
-- **TypeScript**: All new code must be TypeScript
-- **Linting**: Follow ESLint rules (`pnpm lint`)
-- **Formatting**: Use Prettier (runs automatically)
-- **Comments**: Write clear, helpful comments for complex logic
-- **Architecture**: Follow existing patterns and file structure
+## Project Structure
 
----
-
-## 🏗️ **Project Architecture**
-
-### **File Structure**
 ```
-KairOS/
-├── app/                    # Next.js app router pages
-│   ├── nfc/               # Core authentication system
-│   ├── chip-config/       # NFC chip programming tools
-│   ├── nfc-test/         # Testing and validation
-│   └── ritual-designer/   # ESP32 simulation
-├── components/            # Shared React components
-│   └── ui/               # shadcn/ui design system
-├── lib/                  # Core business logic
-│   ├── crypto/           # Cryptographic operations
-│   ├── nfc/              # NFC account/session management
-│   └── hal/              # Hardware abstraction layer
-├── docs/                 # Project documentation
-└── src/                  # ESP32 firmware & simulation
+app/
+├── nfc/                    # Core authentication system
+├── installation/           # Interactive experiences
+│   └── way-of-flowers/     # Conservation installation with wallet integration
+├── chip-config/            # NFC programming tools
+└── nfc-test/              # Testing and validation
+
+lib/
+├── crypto/                 # Cryptographic operations
+├── nfc/                   # Account and session management
+├── installation/          # Installation framework
+└── utils.ts               # Shared utilities
+
+components/
+├── ui/                    # Design system components
+└── [feature].tsx          # Feature-specific components
 ```
 
-### **Key Technologies**
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS, Framer Motion, shadcn/ui
-- **Crypto**: @noble/ed25519, @noble/hashes
-- **NFC**: Web NFC API (browser-based)
-- **Hardware**: ESP32 simulation (real firmware in development)
+## Technology Stack
 
----
+**Core**:
+- Next.js 15 with App Router
+- React 19 with TypeScript
+- @noble/ed25519 for cryptography
+- Web NFC API for card reading
 
-## 🧪 **Testing Guidelines**
+**UI**:
+- Tailwind CSS for styling
+- Framer Motion for animations
+- shadcn/ui component library
 
-### **Running Tests**
+**Integration**:
+- Wallet connections (for installations)
+- Browser storage for local data
+- Session management
+
+## Development Guidelines
+
+### Testing
 ```bash
-# Run all tests
-pnpm test
-
 # Type checking
 pnpm type-check
 
 # Linting
 pnpm lint
 
-# Test NFC authentication manually
-# Visit /nfc-test in browser
+# Manual testing
+# Visit /nfc-test for crypto validation
+# Visit /nfc for full auth flow
 ```
 
-### **Writing Tests**
-- **Unit Tests**: For utility functions and crypto operations
-- **Integration Tests**: For authentication flows
-- **E2E Tests**: For complete user journeys
-- **Manual Tests**: For NFC hardware interactions
+### Working with NFC
+- Use Chrome/Edge on Android for real NFC testing
+- Test with the simulator on other browsers
+- Validate crypto operations independently in /nfc-test
 
-### **Test Areas Needing Coverage**
-- [ ] Ed25519 signature verification edge cases
-- [ ] Legacy card format compatibility  
-- [ ] Session management security
-- [ ] Error handling and recovery
-- [ ] Cross-browser compatibility
+### Security First
+- Never store private keys
+- Use audited crypto libraries (@noble/*)
+- Validate all user inputs
+- Clear sensitive data after use
 
----
+## Current Priorities
 
-## 🔐 **Security Guidelines**
+### High Priority
+- [ ] Expand test coverage for authentication flows
+- [ ] Improve error handling and user messaging
+- [ ] Enhance mobile browser compatibility
+- [ ] Document the installation framework better
 
-### **Cryptographic Code**
-- **Use audited libraries**: @noble/ed25519, @noble/hashes
-- **Never store private keys**: Always compute from PIN + chipUID
-- **Validate all inputs**: Especially NFC parameters
-- **Use constant-time operations**: Prevent timing attacks
-- **Clear sensitive data**: Overwrite private keys after use
+### Medium Priority
+- [ ] Add more interactive installations
+- [ ] Improve accessibility compliance
+- [ ] Cross-browser NFC testing
+- [ ] Performance optimizations
 
-### **Security Review Process**
-1. **Self-review**: Check for common vulnerabilities
-2. **Peer review**: Have another developer review crypto code  
-3. **Documentation**: Explain security decisions
-4. **Testing**: Validate security properties with tests
+### Future Work
+- [ ] ESP32 firmware development
+- [ ] Hardware abstraction layer
+- [ ] P2P networking features
+- [ ] Additional cryptographic protocols
 
-### **Reporting Security Issues**
-**⚠️ Do NOT open public issues for security vulnerabilities**
+## Questions or Help?
 
-Instead:
-1. Email: security@kair-os.org (or create GitHub security advisory)
-2. Provide detailed information about the vulnerability
-3. Allow reasonable time for response before public disclosure
-4. We'll work with you to understand and address the issue
+- Check existing issues for similar questions
+- Review the [Project Status](docs/PROJECT_STATUS.md) for current implementation details
+- Look at [Architecture](docs/ARCHITECTURE.md) for technical deep dive
 
-**Response Time**: We aim to respond to security reports within 48 hours.
+## Code of Conduct
 
----
-
-## 📚 **Documentation Standards**
-
-### **Documentation Types**
-- **README**: Project overview and quick start
-- **Architecture Docs**: System design and concepts
-- **API Docs**: Code interfaces and usage
-- **Tutorials**: Step-by-step guides
-- **Code Comments**: Inline explanations
-
-### **Documentation Guidelines**
-- **Accuracy**: Only document what actually works
-- **Clarity**: Write for developers new to the project
-- **Examples**: Include working code examples
-- **Updates**: Keep docs in sync with code changes
-- **Humble Tone**: Be honest about current limitations
-
-### **Priority Documentation Needs**
-- [ ] Complete API documentation for crypto functions
-- **Tutorial for setting up development environment**
-- **Guide for testing authentication flows**
-- **Architecture decisions and trade-offs**
-- **Roadmap and contribution opportunities**
+We're building for the commons. Be respectful, constructive, and focused on the shared goal of better digital tools for everyone.
 
 ---
 
-## 🤝 **Community Guidelines**
-
-### **Code of Conduct**
-We foster a welcoming, inclusive community:
-- **Be respectful** in all interactions
-- **Be patient** with new contributors
-- **Be constructive** in feedback and criticism
-- **Be collaborative** in solving problems
-- **Be humble** about expertise and limitations
-
-### **Communication Channels**
-- **GitHub Issues**: Bug reports, feature requests, technical discussion
-- **Pull Requests**: Code review and collaboration
-- **Discussions**: General questions and ideas
-
-### **Response Times**
-- **Issues**: We aim to respond within 48 hours
-- **Pull Requests**: Initial review within 72 hours
-- **Security Issues**: Acknowledge within 24 hours
-
----
-
-## 🎯 **Priority Contribution Areas**
-
-### **High Priority**
-1. **🧪 Testing & Validation**
-   - Add test coverage
-   - Test edge cases and error conditions
-   - Validate crypto implementations
-   - Cross-browser compatibility testing
-
-2. **📚 Documentation Improvements**
-   - Fix inaccuracies in existing docs
-   - Add missing code examples
-   - Create beginner-friendly tutorials
-   - Document architecture decisions
-
-3. **🔐 Security Review**
-   - Audit cryptographic implementations
-   - Review session management
-   - Validate input sanitization
-   - Check for timing vulnerabilities
-
-### **Medium Priority**
-4. **🎨 UI/UX Enhancements**
-   - Improve accessibility
-   - Enhance mobile experience
-   - Add keyboard navigation
-   - Polish visual design
-
-5. **🤖 ESP32 Development**
-   - Complete firmware implementation
-   - Hardware abstraction improvements
-   - Real device testing
-   - Performance optimization
-
-### **Future Priority**
-6. **🌐 P2P Networking**
-   - Improve IPFS integration
-   - Browser-to-browser discovery
-   - Offline-first architecture
-   - Network resilience
-
----
-
-## 🏆 **Recognition**
-
-### **Contributor Recognition**
-- **README Credits**: All contributors listed in README
-- **Release Notes**: Significant contributions highlighted
-- **Special Thanks**: Outstanding contributors recognized
-- **Core Team**: Long-term contributors invited to join
-
-### **Types of Contributions Valued**
-- **Code**: New features, bug fixes, performance improvements
-- **Documentation**: Guides, examples, API docs, tutorials
-- **Testing**: Test cases, validation, quality assurance
-- **Design**: UI/UX improvements, accessibility enhancements
-- **Review**: Code review, security audit, feedback
-- **Community**: Helping other contributors, answering questions
-
----
-
-## ❓ **Questions?**
-
-- **Check existing issues** for similar questions
-- **Read the documentation** in the `docs/` folder
-- **Open a discussion** for general questions
-- **Be specific** about your environment and use case
-
-**Remember**: There are no stupid questions. We're all learning together.
-
----
-
-## 🙏 **Thank You**
-
-Every contribution, no matter how small, helps make KairOS better. Thank you for being part of this journey toward decentralized authentication.
-
-**Happy coding! 🚀** 
+*Together we're building wearable protocols towards a new civics* 

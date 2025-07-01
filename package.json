@@ -1,6 +1,7 @@
 {
   "name": "kairos",
   "version": "0.1.0",
+  "description": "Deterministic NFC authentication platform - wearable protocols towards a new civics",
   "private": true,
   "scripts": {
     "dev": "next dev",
