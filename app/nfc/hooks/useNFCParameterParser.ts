@@ -316,8 +316,9 @@ export function useNFCParameterParser() {
     console.log(`🏆 Full chipUID: ${chipUID}`)
     
     if (!chipUID) {
-      console.error('🚨 Missing chipUID in checkLegacyCardPINRequirements')
-      throw new Error('Missing chipUID')
+      console.warn('[NFC] No chipUID found in URL parameters (this is normal in demo mode)')
+      setDebugInfo(prev => [...prev, '⚠️ Missing chipUID in URL (demo/simulation mode)'])
+      return
     }
     
     try {
@@ -533,8 +534,8 @@ export function useNFCParameterParser() {
       }
       
       if (!chipUID) {
-        console.error('🚨 No chipUID found in URL parameters')
-        setDebugInfo(prev => [...prev, '❌ Missing chipUID in URL'])
+        console.warn('[NFC] No chipUID found in URL parameters (this is normal in demo mode)')
+        setDebugInfo(prev => [...prev, '⚠️ Missing chipUID in URL (demo/simulation mode)'])
         return
       }
       
@@ -775,6 +776,7 @@ export function useNFCParameterParser() {
         
         setRequiresPIN(false)
         setAccountInitialized(true)
+        setPinVerificationComplete(true) // CRITICAL FIX: Set PIN verification complete
         
         // Check if this is same chip scenario (should redirect to profile)
         const isCurrentSameChip = await SessionManager.isSameChip(parsedParams.chipUID)

@@ -39,20 +39,19 @@ export function WoFChoiceStage({
   onConnectWallet
 }: WoFChoiceStageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-4 sm:p-6">
       <div className="max-w-2xl mx-auto space-y-6 py-8">
-        {/* Header */}
-        <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-          <CardContent className="p-6 text-center space-y-4">
+        {/* Header: Path and stage info */}
+        <Card className="bg-white/80 backdrop-blur-md border-0 shadow-2xl rounded-2xl">
+          <CardContent className="p-6 sm:p-10 text-center space-y-4">
             <div className="space-y-2">
-              <h2 className="text-xl font-light text-gray-900">
+              <h2 className="text-xl sm:text-2xl font-light text-gray-900">
                 Choose Your Conservation Path
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600">
                 Each choice shapes your digital creation and supports real conservation
               </p>
             </div>
-            
             {/* Path Info */}
             <div className="flex items-center justify-center gap-4 py-2">
               <Badge variant="outline" className="bg-emerald-50 border-emerald-200">
@@ -67,22 +66,22 @@ export function WoFChoiceStage({
 
         {/* Wallet Connection */}
         {!walletConnected && (
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6 text-center space-y-4">
+          <Card className="bg-white/80 backdrop-blur-md border-0 shadow-2xl rounded-2xl">
+            <CardContent className="p-6 sm:p-8 text-center space-y-4">
               <div className="flex items-center justify-center gap-2">
                 <Wallet className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm sm:text-base font-medium text-gray-900">
                   Connect Wallet for Donations
                 </span>
               </div>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Optional: Connect your wallet to make real conservation donations
               </p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onConnectWallet}
-                className="border-blue-200 hover:bg-blue-50"
+                className="border-blue-200 hover:bg-blue-50 rounded-lg px-4 py-2"
               >
                 Connect Wallet
               </Button>
@@ -90,39 +89,37 @@ export function WoFChoiceStage({
           </Card>
         )}
 
-        {/* Conservation Choices */}
-        <div className="grid gap-4">
+        {/* Conservation Choices: Responsive grid of offerings */}
+        <div className="grid gap-4 sm:grid-cols-2">
           {availableOfferings.map((offering) => {
             const IconComponent = getCauseIcon(offering)
-            
             return (
               <Card
                 key={offering.id}
-                className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group"
+                className="bg-white/80 backdrop-blur-md border-0 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group rounded-2xl"
                 onClick={() => onMakeChoice(offering)}
               >
-                <CardContent className="p-6">
+                <CardContent className="p-6 sm:p-8">
                   <div className="flex items-start gap-4">
                     {/* Icon */}
                     <div 
-                      className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: offering.primaryColor + '20' }}
                     >
                       <IconComponent 
-                        className="w-6 h-6" 
+                        className="w-6 h-6 sm:w-7 sm:h-7" 
                         style={{ color: offering.primaryColor }}
                       />
                     </div>
-                    
                     {/* Content */}
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-gray-900 group-hover:text-emerald-700 transition-colors">
+                        <h3 className="font-medium text-gray-900 group-hover:text-emerald-700 transition-colors text-base sm:text-lg">
                           {offering.name}
                         </h3>
                         <Badge 
                           variant="outline" 
-                          className="text-xs"
+                          className="text-xs sm:text-sm"
                           style={{ 
                             borderColor: offering.primaryColor + '40',
                             backgroundColor: offering.primaryColor + '10'
@@ -131,14 +128,12 @@ export function WoFChoiceStage({
                           {offering.category}
                         </Badge>
                       </div>
-                      
-                      <p className="text-sm text-gray-600 leading-relaxed">
+                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
                         {offering.description}
                       </p>
-                      
                       <div className="flex items-center gap-2 pt-1">
                         <Heart className="w-3 h-3 text-red-500" />
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs sm:text-sm text-gray-500">
                           {offering.impactDescription}
                         </span>
                       </div>
@@ -150,11 +145,11 @@ export function WoFChoiceStage({
           })}
         </div>
 
-        {/* Processing State */}
+        {/* Processing State: Show when making a choice */}
         {isProcessing && (
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="p-6 text-center">
-              <p className="text-sm text-emerald-600 animate-pulse">
+          <Card className="bg-white/80 backdrop-blur-md border-0 shadow-lg rounded-2xl">
+            <CardContent className="p-6 sm:p-8 text-center">
+              <p className="text-sm sm:text-base text-emerald-600 animate-pulse">
                 Planting your choice in the digital soil...
               </p>
             </CardContent>

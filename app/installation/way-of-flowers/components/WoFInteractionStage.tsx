@@ -26,19 +26,19 @@ export function WoFInteractionStage({
   onSelectExistingPath
 }: WoFInteractionStageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/70 backdrop-blur-sm border-0 shadow-2xl">
-        <CardContent className="p-8 space-y-6">
-          {/* Header */}
+    <div className="min-h-screen bg-background flex items-start justify-center pt-24 pb-8 px-4">
+      <Card className="w-full max-w-md mx-auto bg-card border border-border shadow-md rounded-xl">
+        <CardContent className="p-6 space-y-6">
+          {/* Header: Icon and title */}
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <Sprout className="w-12 h-12 text-emerald-600" />
+              <Sprout className="w-12 h-12 text-primary" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-light text-gray-900">
+              <h2 className="text-xl sm:text-2xl font-light text-foreground">
                 {isNewUser ? 'Begin Your Journey' : 'Welcome Back'}
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 {isNewUser 
                   ? 'Plant your first digital seed and watch it grow through conservation choices'
                   : 'Continue nurturing your garden or plant a new seed'
@@ -47,18 +47,18 @@ export function WoFInteractionStage({
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Actions: Create new path and show existing paths */}
           <div className="space-y-4">
             {/* Create New Path */}
             <Button
               onClick={onCreateNewPath}
               disabled={isProcessing}
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-lg"
+              className="w-full h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-lg rounded-lg text-base sm:text-lg"
             >
               <div className="flex items-center gap-3">
-                <Sprout className="w-4 h-4" />
+                <Sprout className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Plant New Seed</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </Button>
 
@@ -66,31 +66,30 @@ export function WoFInteractionStage({
             {userPaths.length > 0 && (
               <div className="space-y-3">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">
                     Your Growing Gardens
                   </p>
                 </div>
-                
                 {userPaths.slice(0, 3).map((path) => (
                   <Button
                     key={path.id}
                     variant="outline"
                     onClick={() => onSelectExistingPath(path)}
-                    className="w-full h-12 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50"
+                    className="w-full h-12 sm:h-14 border-primary/20 hover:border-primary/40 hover:bg-primary/5 rounded-lg text-base sm:text-lg"
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-3">
-                        <Flower2 className="w-4 h-4 text-emerald-600" />
+                        <Flower2 className="w-4 h-4 text-primary" />
                         <div className="text-left">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm sm:text-base font-medium text-foreground">
                             {path.name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {path.choices.length} choices • {path.currentStage}
                           </p>
                         </div>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     </div>
                   </Button>
                 ))}
@@ -98,10 +97,10 @@ export function WoFInteractionStage({
             )}
           </div>
 
-          {/* Status */}
+          {/* Status: Processing indicator */}
           {isProcessing && (
             <div className="text-center">
-              <p className="text-sm text-emerald-600 animate-pulse">
+              <p className="text-sm sm:text-base text-primary animate-pulse">
                 Preparing your garden...
               </p>
             </div>

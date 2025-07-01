@@ -15,73 +15,66 @@ interface WoFWelcomeStageProps {
 
 export function WoFWelcomeStage({ onSimulateFlow }: WoFWelcomeStageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/70 backdrop-blur-sm border-0 shadow-2xl">
-        <CardContent className="p-8 text-center space-y-6">
-          {/* Header */}
+    <div className="min-h-screen bg-background flex items-start justify-center pt-24 pb-8 px-4">
+      <Card className="w-full max-w-md mx-auto bg-card border border-border shadow-md rounded-xl">
+        <CardContent className="p-6 text-center space-y-6">
+          {/* Header: Icon and title */}
           <div className="space-y-4">
             <div className="flex justify-center">
               <div className="relative">
-                <Flower2 className="w-16 h-16 text-emerald-600" />
-                <Sparkles className="w-6 h-6 text-teal-500 absolute -top-1 -right-1 animate-pulse" />
+                <Flower2 className="w-16 h-16 text-primary" />
+                <Sparkles className="w-6 h-6 text-accent absolute -top-1 -right-1 animate-pulse" />
               </div>
             </div>
-            
             <div className="space-y-2">
-              <h1 className="text-2xl font-light text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-light text-foreground">
                 Way of Flowers
               </h1>
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                 A contemplative journey connecting intention with conservation through digital presence
               </p>
             </div>
           </div>
 
-          {/* Instructions */}
+          {/* Instructions: Steps for the user */}
           <div className="space-y-4 py-4">
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-emerald-600 text-sm font-medium">1</span>
+            {[{
+              color: 'primary',
+              step: 1,
+              text: 'Tap your NFC pendant to begin',
+            }, {
+              color: 'accent',
+              step: 2,
+              text: 'Choose your conservation path',
+            }, {
+              color: 'primary',
+              step: 3,
+              text: 'Watch your digital creation evolve',
+            }].map(({ color, step, text }) => (
+              <div key={step} className="flex items-center gap-3 text-left">
+                <div className={`w-8 h-8 rounded-full bg-${color}/10 flex items-center justify-center flex-shrink-0`}>
+                  <span className={`text-${color} text-sm font-medium`}>{step}</span>
+                </div>
+                <p className="text-sm sm:text-base text-foreground">
+                  {text}
+                </p>
               </div>
-              <p className="text-sm text-gray-700">
-                Tap your NFC pendant to begin
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-teal-600 text-sm font-medium">2</span>
-              </div>
-              <p className="text-sm text-gray-700">
-                Choose your conservation path
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-emerald-600 text-sm font-medium">3</span>
-              </div>
-              <p className="text-sm text-gray-700">
-                Watch your digital creation evolve
-              </p>
-            </div>
+            ))}
           </div>
 
-          {/* NFC Instruction */}
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center justify-center gap-2 text-gray-600">
-              <Smartphone className="w-4 h-4" />
-              <span className="text-sm">Hold your pendant near your device</span>
-            </div>
+          {/* NFC Instruction: Visual prompt for NFC action */}
+          <div className="bg-muted rounded-lg p-4 border border-border flex items-center justify-center gap-2 text-muted-foreground">
+            <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-sm sm:text-base">Hold your pendant near your device</span>
           </div>
 
-          {/* Development Mode */}
-          <div className="pt-4 border-t border-gray-100">
+          {/* Development Mode: Demo button for simulation */}
+          <div className="pt-4 border-t border-border">
             <Button
               variant="outline"
               size="sm"
               onClick={onSimulateFlow}
-              className="text-xs text-gray-500 hover:text-gray-700"
+              className="text-xs sm:text-sm text-muted-foreground hover:text-foreground rounded-lg px-4 py-2"
             >
               Demo Mode
             </Button>

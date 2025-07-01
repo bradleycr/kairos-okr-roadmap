@@ -32,32 +32,32 @@ export function WoFEvolutionStage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg bg-white/70 backdrop-blur-sm border-0 shadow-2xl">
-        <CardContent className="p-8 text-center space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4 sm:p-6">
+      <Card className="w-full max-w-lg bg-white/80 backdrop-blur-md border-0 shadow-2xl rounded-2xl">
+        <CardContent className="p-8 sm:p-12 text-center space-y-8">
           {/* Evolution Animation */}
           <div className="relative">
-            <div className="w-24 h-24 mx-auto bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center animate-pulse">
-              <div className="text-4xl">
+            <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center animate-pulse">
+              <div className="text-4xl sm:text-5xl">
                 {getStageEmoji(selectedPath.currentStage)}
               </div>
             </div>
             
             {/* Sparkles */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-emerald-500 absolute -top-2 -right-2 animate-bounce" />
-              <Sparkles className="w-4 h-4 text-teal-500 absolute -bottom-1 -left-1 animate-pulse" />
-              <Sparkles className="w-5 h-5 text-emerald-400 absolute top-1 -left-3 animate-bounce delay-300" />
+              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-500 absolute -top-2 -right-2 animate-bounce" />
+              <Sparkles className="w-4 h-4 sm:w-6 sm:h-6 text-teal-500 absolute -bottom-1 -left-1 animate-pulse" />
+              <Sparkles className="w-5 h-5 sm:w-7 sm:h-7 text-emerald-400 absolute top-1 -left-3 animate-bounce delay-300" />
             </div>
           </div>
 
           {/* Evolution Message */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <h2 className="text-2xl font-light text-gray-900">
+              <h2 className="text-2xl sm:text-3xl font-light text-gray-900">
                 Your Creation Evolves
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600">
                 Your choice to support <span className="font-medium">{selectedOffering.name}</span> has nurtured growth
               </p>
             </div>
@@ -65,8 +65,8 @@ export function WoFEvolutionStage({
             {/* Evolution Details */}
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2">
-                <TrendingUp className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm text-gray-700">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                <span className="text-sm sm:text-base text-gray-700">
                   Evolution Score: +{selectedOffering.evolutionEffect.bloomBoost}
                 </span>
               </div>
@@ -89,10 +89,10 @@ export function WoFEvolutionStage({
 
             {/* Visual Characteristics */}
             <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
+              <p className="text-xs sm:text-sm text-gray-500 uppercase tracking-wide">
                 Creation Characteristics
               </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-3 h-3 rounded-full"
@@ -124,7 +124,7 @@ export function WoFEvolutionStage({
                 backgroundColor: selectedOffering.primaryColor + '10'
               }}
             >
-              <p className="text-sm text-gray-700 leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
                 {selectedOffering.impactDescription}
               </p>
             </div>
@@ -132,7 +132,7 @@ export function WoFEvolutionStage({
 
           {/* Transitioning Message */}
           <div className="pt-4">
-            <p className="text-xs text-gray-500 animate-pulse">
+            <p className="text-xs sm:text-sm text-gray-500 animate-pulse">
               Growing into the commons...
             </p>
           </div>
