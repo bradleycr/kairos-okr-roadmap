@@ -7,13 +7,43 @@
 
 ## 🎯 **System Overview**
 
-KairOS implements a **standards-based DID:Key authentication architecture** where users maintain control over their cryptographic identity while accessing edge computing devices through NFC pendants.
+KairOS implements a hybrid cryptographic identity system combining NFC hardware authentication with Web3 wallet integration, following 2025 standards for decentralized identity and cross-device access.
 
 ### **Core Principles**
 - 🔒 **Privacy First**: Private keys never leave user's device
 - 🌐 **Standards-Based**: W3C DID Core compliance with DID:Key method
 - ⚡ **Zero Infrastructure**: No servers, databases, or dependencies
 - 🎨 **User Experience**: Clean authentication flows
+
+### **Web3 2025 Wallet Integration Architecture**
+
+#### **Wallet Discovery & Connection**
+```typescript
+// EIP-6963 Wallet Discovery
+- Automatic detection of installed wallets
+- MetaMask SDK integration
+- Custom wallet provider support
+- Multi-chain compatibility
+
+// NFC-Derived Ethereum Wallets  
+- Deterministic key generation from chipUID + PIN
+- HKDF-based entropy with enhanced security
+- Cross-device wallet access without seed phrases
+- Encrypted private key storage with PBKDF2 600k iterations
+```
+
+#### **Supported Chains (Web3 2025)**
+- **Ethereum Mainnet**: Primary chain for smart contracts
+- **Polygon**: Layer 2 scaling solution
+- **Optimism**: Optimistic rollup integration
+- **Arbitrum**: High-performance L2
+- **Base**: Coinbase L2 network
+
+#### **Security Features**
+- **Account Abstraction Ready**: Smart account detection
+- **Enhanced RPC Failover**: Multiple provider redundancy  
+- **Quantum-Resistant Preparation**: Ed25519 + future-proof design
+- **Zero-Knowledge Profile System**: Privacy-preserving identity
 
 ---
 
