@@ -4,11 +4,15 @@
   "description": "Deterministic NFC authentication platform - wearable protocols towards a new civics",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo",
+    "dev:legacy": "next dev",
     "dev:fast": "NODE_ENV=development next dev --turbo",
-    "dev:profile": "NODE_ENV=development next dev --profile",
+    "dev:debug": "NODE_ENV=development DEBUG=1 next dev --turbo",
+    "dev:profile": "NODE_ENV=development next dev --turbo --experimental-upload-trace",
+    "dev:performance": "node scripts/dev-performance-monitor.js",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
+    "build:profile": "next build --profile",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
@@ -17,7 +21,9 @@
     "build:zk": "./scripts/build-bonding-circuit.sh",
     "sim:start": "pnpm dev",
     "perf:check": "node -e \"console.log('Node.js version:', process.version); console.log('Memory usage:', process.memoryUsage()); console.log('Platform:', process.platform);\"",
+    "perf:monitor": "node scripts/dev-performance-monitor.js",
     "clean": "rm -rf .next node_modules/.cache",
+    "clean:turbo": "rm -rf .next/cache",
     "clean:all": "rm -rf .next node_modules/.cache node_modules && pnpm install"
   },
   "dependencies": {
@@ -81,6 +87,7 @@
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "task-master-ai": "^0.18.0",
     "vaul": "^0.9.6",
     "viem": "^2.21.54",
     "zod": "^3.24.1"
