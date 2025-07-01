@@ -1,0 +1,15 @@
+# Global code owners for KairOS
+* @bradleycr
+
+# Specific areas that need careful review
+/lib/crypto/ @bradleycr
+/lib/nfc/ @bradleycr
+/app/nfc/ @bradleycr
+
+# GitHub configuration requires review
+/.github/ @bradleycr
+
+# Documentation
+/docs/ @bradleycr
+README.md @bradleycr
+CONTRIBUTING.md @bradleycr 
