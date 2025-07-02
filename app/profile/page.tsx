@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAccount, useConnect, useDisconnect, useEnsName, useEnsAvatar } from 'wagmi';
 import { injected, metaMask, walletConnect, coinbaseWallet } from 'wagmi/connectors';
+import { notFound } from 'next/navigation';
 
 // Custom QR Code Generator Component
 const CustomQRCode = ({ data, size = 200 }: { data: string, size?: number }) => {
@@ -190,6 +192,7 @@ const ProfilePage = () => {
   const [requiresPINAuth, setRequiresPINAuth] = useState(false);
   const [pinAuthenticatedChipUID, setPinAuthenticatedChipUID] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [shouldShowNotFound, setShouldShowNotFound] = useState(false);
   
   // Wagmi hooks for wallet integration
   const { address, isConnected, connector } = useAccount();
@@ -290,8 +293,8 @@ const ProfilePage = () => {
         } else {
           // No chipUID in URL - use session chipUID
           if (!session?.currentUser?.chipUID) {
-            console.log('❌ No session found and no chipUID provided - profile access denied')
-            setUserProfile(null)
+            console.log('❌ No session found and no chipUID provided - this is a 404 case')
+            setShouldShowNotFound(true)
             setIsLoadingProfile(false)
             return
           }
@@ -395,6 +398,13 @@ const ProfilePage = () => {
   useEffect(() => {
     loadProfileData()
   }, [])
+
+  // Trigger 404 page if needed
+  useEffect(() => {
+    if (shouldShowNotFound) {
+      notFound()
+    }
+  }, [shouldShowNotFound])
 
   const markRitualFlowCompleted = async (chipUID: string) => {
     try {

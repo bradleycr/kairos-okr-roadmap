@@ -27,14 +27,14 @@ const connectors = [
     dappMetadata: {
       name: 'KairOS',
       url: typeof window !== 'undefined' ? window.location.origin : 'https://kair-os.vercel.app',
-      iconUrl: '/placeholder-logo.svg',
+      iconUrl: typeof window !== 'undefined' ? window.location.origin + '/placeholder-logo.svg' : 'https://kair-os.vercel.app/placeholder-logo.svg',
     },
   }),
   
   // Coinbase Wallet - popular self-custody option
   coinbaseWallet({
     appName: 'KairOS',
-    appLogoUrl: '/placeholder-logo.svg',
+    appLogoUrl: typeof window !== 'undefined' ? window.location.origin + '/placeholder-logo.svg' : 'https://kair-os.vercel.app/placeholder-logo.svg',
     preference: 'smartWalletOnly', // Use smart wallet features
   }),
   
