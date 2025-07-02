@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MorningEightPanel } from '@/src/features/morningEight/components/MorningEightPanel';
 import { AudioRitualView } from '@/src/features/morningEight/components/AudioRitualView';
 import { useMorningMemory } from '@/src/features/morningEight/hooks/useMorningMemory';
-import { PageLoader } from '@/components/ui/page-loader';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, Sparkles, Brain, Mic2 } from 'lucide-react';
@@ -70,39 +69,6 @@ function MorningEightErrorFallback() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Loading component with NotebookLM style
-function MorningEightLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50/30 via-background to-orange-100/20">
-      <div className="text-center space-y-6 max-w-md mx-auto p-8">
-        {/* Animated icon */}
-        <div className="relative">
-          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <Mic2 className="w-10 h-10 text-white animate-pulse" />
-          </div>
-          {/* Floating particles */}
-          <div className="absolute -top-2 -right-2 w-3 h-3 bg-orange-300 rounded-full animate-bounce"></div>
-          <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-orange-400 rounded-full animate-bounce delay-300"></div>
-        </div>
-        
-        {/* Progress indicator */}
-        <div className="space-y-4">
-          <div className="w-full bg-orange-100 rounded-full h-1 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full animate-pulse"></div>
-          </div>
-          
-          <div className="space-y-2">
-            <h2 className="text-xl font-light text-gray-900">Preparing Your Morning Ritual</h2>
-            <p className="text-sm text-gray-600">
-              Creating your personalized 8-minute experience...
-            </p>
-          </div>
         </div>
       </div>
     </div>
@@ -196,11 +162,6 @@ function MorningEightContent() {
     );
   }
 
-  // Show loading if generating routine in auto mode
-  if (isAuto && generating) {
-    return <MorningEightLoading />;
-  }
-
   // Default panel view
   return (
     <MorningEightErrorBoundary>
@@ -209,13 +170,7 @@ function MorningEightContent() {
   );
 }
 
-// Main page component with Suspense
+// Main page component
 export default function MorningEightPage() {
-  return (
-    <MorningEightErrorBoundary fallback={<MorningEightErrorFallback />}>
-      <Suspense fallback={<MorningEightLoading />}>
-        <MorningEightContent />
-      </Suspense>
-    </MorningEightErrorBoundary>
-  );
+  return <MorningEightContent />;
 } 

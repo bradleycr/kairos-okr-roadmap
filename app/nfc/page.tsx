@@ -7,8 +7,8 @@
  * Minimal design inspired by the Figma interface
  */
 
-import React, { Suspense, useEffect } from 'react'
-import { NfcIcon, LoaderIcon } from 'lucide-react'
+import React, { useEffect } from 'react'
+import { NfcIcon } from 'lucide-react'
 
 // Import our professional component architecture
 import { useNFCParameterParser } from './hooks/useNFCParameterParser'
@@ -128,7 +128,9 @@ function NFCPageContent() {
               ) : (
                 /* LOADING: Show processing state */
                 <div className="text-center space-y-4">
-                  <LoaderIcon className="h-8 w-8 animate-spin text-primary mx-auto" />
+                  <div className="relative p-3 rounded-full bg-primary/10 border border-primary/20 mx-auto">
+                    <NfcIcon className="h-8 w-8 text-primary animate-pulse" />
+                  </div>
                   <p className="text-sm text-muted-foreground font-mono">
                     {parsedParams.chipUID ? 
                       `Processing authentication for ${parsedParams.chipUID.slice(-4)}...` : 
@@ -168,35 +170,8 @@ function NFCPageContent() {
 }
 
 /**
- * Loading Component for Suspense
- */
-function NFCPageLoading() {
-  return (
-    <div className="h-screen w-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden touch-none" style={{ position: 'fixed', top: 0, left: 0 }}>
-      {/* Holographic Background Effect */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/25 to-secondary/15 animate-pulse"></div>
-      </div>
-      
-      <div className="h-full w-full flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="relative p-3 rounded-full bg-primary/10 border border-primary/20 mx-auto">
-            <NfcIcon className="h-8 w-8 text-primary animate-pulse" />
-          </div>
-          <p className="text-sm text-muted-foreground font-mono">Loading KairOS Gateway...</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/**
- * Main NFC Page Export with Suspense Boundary
+ * Main NFC Page Export
  */
 export default function NFCPage() {
-  return (
-    <Suspense fallback={<NFCPageLoading />}>
-      <NFCPageContent />
-    </Suspense>
-  )
+  return <NFCPageContent />;
 } 

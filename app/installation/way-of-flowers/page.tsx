@@ -12,7 +12,6 @@
 
 'use client'
 
-import { Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
@@ -292,19 +291,6 @@ function WayOfFlowersContent() {
   )
 }
 
-// Main exported WoF component with error boundary
 export default function WayOfFlowersInstallation() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
-          <div className="animate-pulse text-emerald-600">
-            Loading contemplative space...
-          </div>
-        </div>
-      }
-    >
-      <WayOfFlowersContent />
-    </Suspense>
-  )
+  return <WayOfFlowersContent />;
 }

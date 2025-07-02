@@ -6,11 +6,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { LoadingProvider } from "./context/loading-provider";
 import Navigation from "@/components/Navigation";
-import { PageLoader } from "@/components/ui/page-loader";
 import { Providers } from "./providers";
-import { Suspense } from 'react';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -133,25 +130,13 @@ export default function RootLayout({
             enableSystem={true}
             disableTransitionOnChange={false}
           >
-            <LoadingProvider>
-              <div style={{ minHeight: '100vh' }} className="relative">
-                {/* Minimal page loader for slow operations only */}
-                <Suspense fallback={null}>
-                  <PageLoader />
-                </Suspense>
-                
-                {/* Navigation */}
-                <Navigation />
-                
-                {/* Main Content with smoother transitions and proper mobile padding */}
-                <main className="md:pt-16 relative transition-opacity duration-200 ease-in-out">
-                  {children}
-                </main>
-                
-                {/* Toast Notifications */}
-                <Toaster />
-              </div>
-            </LoadingProvider>
+            <div style={{ minHeight: '100vh' }} className="relative">
+              <Navigation />
+              <main className="md:pt-16 relative transition-opacity duration-200 ease-in-out">
+                {children}
+              </main>
+              <Toaster />
+            </div>
           </ThemeProvider>
         </Providers>
         

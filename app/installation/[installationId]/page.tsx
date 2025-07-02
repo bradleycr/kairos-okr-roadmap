@@ -12,7 +12,6 @@ import {
   Frame, 
   Palette, 
   Users, 
-  Sparkles, 
   Heart, 
   Crown,
   Eye,
@@ -39,8 +38,6 @@ export default function InstallationExperience() {
   
   const [installation, setInstallation] = useState<InstallationConfig | null>(null)
   const [theme, setTheme] = useState<InstallationTheme | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [activeSection, setActiveSection] = useState<'welcome' | 'auth' | 'experience'>('welcome')
 
   useEffect(() => {
     loadInstallation()
@@ -62,8 +59,6 @@ export default function InstallationExperience() {
     } catch (error) {
       console.error('Failed to load installation:', error)
       router.push('/')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -84,17 +79,6 @@ export default function InstallationExperience() {
     if (installation?.name) {
       document.title = `${installation.name} - KairOS Art Installation`
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Sparkles className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-neutral-600">Loading installation experience...</p>
-        </div>
-      </div>
-    )
   }
 
   if (!installation) {
