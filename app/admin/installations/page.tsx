@@ -45,7 +45,9 @@ export default function InstallationAdmin() {
   const loadInstallations = async () => {
     try {
       const allInstallations = await installationManager.getAllInstallations()
-      setInstallations(allInstallations)
+      setInstallations(allInstallations);
+    } catch (error) {
+      console.error('Failed to load installations:', error);
     }
   }
 

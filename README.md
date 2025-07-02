@@ -12,37 +12,41 @@ KairOS is building the foundation for a new class of "votive devices"—wearable
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.0+-black.svg)](https://nextjs.org/)
 [![Ed25519](https://img.shields.io/badge/Crypto-Ed25519-green.svg)](https://ed25519.cr.yp.to/)
+[![wagmi](https://img.shields.io/badge/Web3-wagmi_v2-purple.svg)](https://wagmi.sh/)
 
 ## 🎯 **What is KairOS?**
 
 KairOS is a **decentralized NFC authentication system** that demonstrates cryptographic authentication using NFC devices. 
-Built with modern web technologies, it showcases **Ed25519 cryptography**, **DID:Key standards**, and **Web NFC integration**.
+Built with modern web technologies, it showcases **Ed25519 cryptography**, **DID:Key standards**, **Web NFC integration**, and **Web3 wallet connectivity**.
 
-**Currently implemented as a web application with ESP32 simulation.**
+**Currently implemented as a production-ready web application with comprehensive authentication flows.**
 
 ---
 
 ## 🚀 **Current Implementation Status**
 
-### **✅ Working Features**
+### **✅ Production Ready Features**
 - **🔐 DID:Key Authentication** - W3C standards-compliant cryptographic authentication
 - **📱 Web NFC Integration** - Browser-based NFC card reading and authentication  
-- **🎨 UI** - Interface with holographic design system
+- **💳 Web3 Wallet Integration** - wagmi v2 with MetaMask, WalletConnect, Coinbase Wallet
+- **🎨 Modern UI** - Responsive design with holographic aesthetic
 - **⚡ Multi-format Support** - Legacy card compatibility with modern crypto
-- **💾 Account Management** - Local storage with PIN-based encryption
-- **🔄 Session Management** - Secure session handling with device fingerprinting
-- **🎯 ESP32 Simulation** - Hardware simulation in browser
+- **💾 Account Management** - Secure local storage with PIN-based encryption
+- **🔄 Session Management** - Cross-device session handling with device fingerprinting
+- **🎯 ESP32 Simulation** - Complete hardware simulation in browser
+- **🎵 Audio Processing** - Voice transcription and morning ritual generation
+- **👥 User Profiles** - Rich profile management with stats and moments
 
 ### **🚧 In Development**
 - **🤖 ESP32 Firmware** - Hardware implementation (simulation complete)
-- **⚗️ ZK Proof System** - Zero-knowledge authentication (basic structure)
-- **🌐 P2P Network** - Decentralized identity registry (partial implementation)
+- **⚗️ ZK Proof System** - Zero-knowledge authentication (structure in place)
+- **🌐 P2P Network** - Decentralized identity registry (experimental)
 
 ### **📋 Planned Features**
 - **🔗 Physical MELD Nodes** - Distributed ESP32 hardware network
 - **⌚ NFC Pendant Production** - Metal cryptographic pendants
-- **🎵 Audio Transcription** - Local AI transcription services
 - **📁 Private File Servers** - Cryptographically secured file access
+- **🏛️ Installation Framework** - Art gallery deployment system
 
 ---
 
@@ -63,15 +67,17 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) and try the authentication flow.
 
-### **Demo Features**
+### **Key Demo Features**
 1. 🔧 **Chip Configuration** → `/chip-config` - Generate NFC URLs and test cryptography
-2. 🧪 **NFC Test Suite** → `/nfc-test` - Authentication testing
-3. 🎨 **Authentication Flow** → `/nfc` - Main UI
-4. 🤖 **ESP32 Simulation** → `/ritual-designer` - Hardware simulation
+2. 🧪 **NFC Authentication** → `/nfc` - Main authentication flow
+3. 👤 **User Profile** → `/profile` - Account management with Web3 wallet connection
+4. 🎨 **Installation Designer** → `/ritual-designer` - ESP32 hardware simulation
+5. 🌅 **Morning Eight** → `/morning-eight` - AI-powered morning rituals
+6. 🏛️ **Admin Panel** → `/admin/installations` - Installation management
 
 ---
 
-## 🏗️ **Current Architecture**
+## 🏗️ **Architecture**
 
 ### **Frontend (Next.js 15 + TypeScript)**
 ```
@@ -81,9 +87,10 @@ app/
 │   ├── hooks/              # Authentication hooks
 │   ├── utils/              # Business logic & crypto operations
 │   └── types/              # TypeScript interfaces
-├── chip-config/            # NFC chip programming tools
-├── nfc-test/              # Cryptographic testing suite
-├── ritual-designer/       # ESP32 hardware simulation
+├── profile/                # User profile & wallet management
+├── morning-eight/          # AI voice processing features
+├── installation/           # Art installation framework
+├── admin/                  # Installation management
 └── api/                   # Edge API routes
 ```
 
@@ -97,27 +104,39 @@ lib/
 ├── nfc/                   # Web NFC integration
 │   ├── accountManager.ts             # Account & session management
 │   └── sessionManager.ts            # Secure session handling
-└── hal/                   # Hardware abstraction (simulation)
+└── nillion/               # AI processing (experimental)
 ```
 
-### **Hardware Simulation**
+### **Web3 Integration**
 ```
-src/                       # ESP32 simulation & planned firmware
-├── fw/                    # ESP32 firmware (in development)
-├── sim/                   # Browser-based hardware simulation
-└── wasm/                  # WebAssembly modules (planned)
+app/
+├── providers.tsx          # wagmi configuration with multi-wallet support
+└── profile/page.tsx       # Wallet connection UI
+
+Supported Wallets:
+├── MetaMask               # Most popular browser wallet
+├── WalletConnect          # Mobile wallet protocol 
+├── Coinbase Wallet        # Coinbase's web3 wallet
+└── Injected Wallets       # Other browser-based wallets
 ```
 
 ---
 
 ## 🔐 **Security & Cryptography**
 
-### **Cryptography**
-- **Library**: `@noble/ed25519` v2.2.3 (audited implementation)
+### **Authentication Stack**
+- **Core Crypto**: `@noble/ed25519` v2.2.3 (audited implementation)
+- **Web3 Integration**: `wagmi` v2.15+ with React Query
 - **Standards**: W3C DID:Key, RFC 8032 Ed25519 signatures
 - **Private Keys**: 32 bytes, never stored, PIN-derived
 - **Signatures**: 64 bytes, quantum-resistant
 - **Sessions**: Device fingerprinting + encrypted local storage
+
+### **Wallet Security**
+- **Multi-Chain Support**: Ethereum, Polygon, Optimism, Arbitrum, Base
+- **ENS Integration**: Automatic ENS name and avatar resolution
+- **Connection Security**: Account verification with signature challenges
+- **Privacy**: No wallet data stored without explicit user consent
 
 ### **Threat Model & Protection**
 | Attack Vector | Protection Method | Status |
@@ -127,13 +146,7 @@ src/                       # ESP32 simulation & planned firmware
 | **MITM** | Ed25519 signature verification | ✅ Implemented |
 | **Physical Theft** | PIN-based key derivation | ✅ Implemented |
 | **Session Hijacking** | Device fingerprinting | ✅ Implemented |
-
-### **What's Stored Where**
-| Component | Data Stored | Security Level |
-|-----------|-------------|----------------|
-| **📱 User's Browser** | Encrypted profiles, session data | 🔒 Local only |
-| **⌚ NFC Card** | Device ID, public key, chip UID | 🔓 Public data only |
-| **🤖 ESP32 Simulation** | Nothing persistent | ✅ Stateless verification |
+| **Wallet Spoofing** | Signature verification | ✅ Implemented |
 
 ---
 
@@ -149,10 +162,10 @@ src/                       # ESP32 simulation & planned firmware
 ```
 
 ### **UI Philosophy**
-- **Simplicity** - Clean interfaces
-- **Consistency** - Predictable interactions
-- **Cross-Platform** - Mobile and desktop support  
-- **Error Handling** - Clear error experiences
+- **Simplicity** - Clean, intuitive interfaces
+- **Responsiveness** - Mobile-first design with desktop enhancement
+- **Accessibility** - ARIA compliant with keyboard navigation  
+- **Performance** - Optimized loading with efficient state management
 
 ---
 
@@ -163,83 +176,80 @@ src/                       # ESP32 simulation & planned firmware
 # Start development server
 pnpm dev
 
-# Fast development with Turbo
-pnpm dev:fast
-
 # Build for production  
 pnpm build
 
 # Lint and fix code
 pnpm lint:fix
 
-# Build ESP32 firmware (when ready)
-pnpm build:esp32
-
-# Build WebAssembly modules (planned)
-pnpm build:wasm
+# Run type checking
+pnpm type-check
 ```
 
-### **Testing the Authentication System**
-1. **Visit `/nfc-test`** - Generate test cards and validate cryptography
-2. **Visit `/chip-config`** - Create NFC URLs for real chip programming
-3. **Test Legacy Cards** - Validate backward compatibility
-4. **Try Error Pages** - Visit non-existent URLs to see error handling
+### **Testing the System**
+1. **Visit `/nfc`** - Test main authentication flow
+2. **Visit `/chip-config`** - Generate NFC URLs for real chips
+3. **Visit `/profile`** - Test wallet connection and profile management
+4. **Visit `/morning-eight`** - Try AI voice processing features
+5. **Visit `/admin/installations`** - Test installation management
 
 ---
 
 ## 🌍 **Deployment**
 
-### **Current Deployment** 
+### **Production Deployment** 
 - **Platform**: Vercel Edge Functions
 - **Production**: https://kair-os.vercel.app
 - **Auto-deploy**: Connected to GitHub main branch
-- **Edge Regions**: Global distribution for low latency
+- **Edge Regions**: Global CDN for optimal performance
+- **Environment**: No sensitive environment variables required for core functionality
 
-### **Future Hardware Deployment** (Planned)
-- **ESP32 MELD Nodes**: Local network devices for file/content serving
-- **NFC Pendants**: Metal pocket watches with NFC chips
-- **Local AI Services**: Edge computing with cryptographic access control
+### **Wallet Configuration**
+```bash
+# Optional: For WalletConnect functionality
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
+```
+
+---
+
+## 📱 **Web3 Wallet Integration**
+
+### **Supported Wallets**
+- **MetaMask** - Browser extension and mobile app
+- **WalletConnect** - Protocol for mobile wallet connections
+- **Coinbase Wallet** - Coinbase's self-custody wallet
+- **Injected Wallets** - Any browser-based web3 wallet
+
+### **Features**
+- **Multi-chain Support** - Ethereum mainnet and L2s (Polygon, Optimism, Arbitrum, Base)
+- **ENS Integration** - Automatic ENS name and avatar display
+- **Account Switching** - Seamless account switching with automatic reconnection
+- **Mobile Optimization** - Touch-friendly wallet connection flow
+
+### **Implementation**
+The wallet integration uses wagmi v2 with React Query for optimal performance:
+- **Persistent connections** - Automatic reconnection on page refresh
+- **Type-safe hooks** - Full TypeScript support for all wallet operations
+- **Error handling** - Comprehensive error states with user-friendly messages
+- **Performance** - Efficient state management with minimal re-renders
 
 ---
 
 ## 🤝 **Contributing**
 
-We welcome contributors to help build decentralized authentication. 
+### **Areas for Contribution**
+- **🔧 Hardware Development** - ESP32 firmware and circuit design
+- **🎨 UI/UX Design** - Interface improvements and accessibility
+- **🔐 Security Auditing** - Cryptographic implementation review
+- **📱 Mobile Testing** - Cross-device compatibility testing
+- **📚 Documentation** - Technical documentation and tutorials
 
-### **How to Contribute**
-1. **Fork the repository** and create a feature branch
-2. **Read `CONTRIBUTING.md`** for detailed guidelines
-3. **Check open issues** for tasks needing help
-4. **Focus on documentation** improvements and testing
-5. **Submit pull requests** with clear descriptions
-
-### **Priority Contribution Areas**
-- 🧪 **Testing & Validation** - Expand test coverage
-- 📚 **Documentation** - Improve guides and examples  
-- 🎨 **UI/UX Improvements** - Enhance user experience
-- 🔐 **Security Review** - Audit cryptographic implementations
-- 🤖 **ESP32 Development** - Complete hardware firmware
-- 🌐 **P2P Networking** - Advance decentralized features
-
-### **Not Ready Yet**
-- ❌ Hardware deployment (simulation only)
-- ❌ Production NFC pendant manufacturing
-- ❌ Large-scale network deployment
-
----
-
-## 📊 **Project Status**
-
-**Current Phase**: 🎯 **Web Application Complete**  
-**Next Phase**: 🤖 **Hardware Integration**  
-**Timeline**: Open source development community-driven
-
-### **Technology Stack**
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS, Framer Motion, shadcn/ui
-- **Crypto**: @noble/ed25519, @noble/hashes
-- **Storage**: Browser localStorage, session management
-- **Deployment**: Vercel Edge Functions
+### **Getting Started**
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
@@ -247,14 +257,16 @@ We welcome contributors to help build decentralized authentication.
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-**Built for the open source community**
+---
+
+## 🔗 **Links**
+
+- **Production App**: https://kair-os.vercel.app
+- **GitHub Repository**: https://github.com/BradleyRoyes/KairOS
+- **Technical Documentation**: See `/docs` directory
+- **Hardware Guides**: `/docs/HARDWARE.md`
+- **API Documentation**: `/docs/API.md`
 
 ---
 
-## 🎉 **Built by Visionaries**
-
-KairOS is crafted with love for the standards-based future. Built for users who demand **real privacy**, **beautiful design**, and **professional-grade security**.
-
-> *"The future is decentralized, standards-based, and beautiful."*
-
-**[📧 Contact](mailto:contact@kairos.dev)** • **[🐙 GitHub](https://github.com/BradleyRoyes/KairOS)** %
+*Built with ❤️ for a more sovereign, private, and democratic future.*

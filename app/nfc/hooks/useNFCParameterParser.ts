@@ -312,20 +312,14 @@ export function useNFCParameterParser() {
    * @returns {Promise<void>} Sets up PIN requirements or account access
    */
   const checkLegacyCardPINRequirements = useCallback(async (chipUID: string) => {
-    console.log(`🏆 Checking legacy card requirements for chipUID: ${chipUID?.slice(-4) || 'MISSING'}`)
-    console.log(`🏆 Full chipUID: ${chipUID}`)
-    
     if (!chipUID) {
-      console.warn('[NFC] No chipUID found in URL parameters (this is normal in demo mode)')
       setDebugInfo(prev => [...prev, '⚠️ Missing chipUID in URL (demo/simulation mode)'])
       return
     }
     
     try {
-      // 📊 Check if this chip has an account in our database
-      console.log('🏆 Importing NFCAccountManager...')
+      // Check if this chip has an account in our database
       const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
-      console.log('🏆 Calling authenticateWithPINGate...')
       
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) => 
@@ -336,138 +330,77 @@ export function useNFCParameterParser() {
         NFCAccountManager.authenticateWithPINGate(chipUID),
         timeoutPromise
       ]) as any
-      console.log('🏆 PIN gate result received:', result)
       
-      console.log(`🔍 Legacy card PIN gate result:`, {
-        requiresPIN: result.requiresPIN,
-        hasAccount: !result.isNewAccount,
-        hasPIN: result.hasPIN,
-        reason: result.reason
-      })
-      
-      if (result.requiresPIN) {
-        // 🔐 PIN required - set up for single PIN entry
-        console.log('🔐 Setting up PIN requirement for legacy card')
-        setRequiresPIN(true)
-        setPinGateInfo({
-          isNewAccount: result.isNewAccount,
-          isNewDevice: result.isNewDevice,
-          hasPIN: result.hasPIN,
-          reason: result.reason,
-          displayName: await getDisplayNameForChip(chipUID)
-        })
-        setDebugInfo(prev => [...prev, `🔒 PIN required for legacy card: ${result.reason}`])
+      if (result.account) {
+        // Create session and redirect to profile
+        await SessionManager.createSession(chipUID)
         
-        // Note: Account will be initialized after PIN success in handleLegacyCardPINSuccess
+        setAccountInitialized(true)
+        setRequiresPIN(false)
+        setPinVerificationComplete(true)
         
+        // Navigate to profile immediately (no PIN needed)
+        const profileUrl = new URL('/profile', window.location.origin)
+        profileUrl.searchParams.set('verified', 'true')
+        profileUrl.searchParams.set('source', 'legacy-card-no-pin')
+        profileUrl.searchParams.set('chipUID', chipUID)
+        profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+        
+        // Add a small delay to prevent infinite loops
+        setTimeout(() => {
+          router.push(profileUrl.toString())
+        }, 100)
       } else {
-        // ✅ No PIN required - account ready for direct access
-        console.log('✅ Legacy card access granted without PIN')
-        console.log('🔍 Result account data:', result.account)
+        // Account creation needed
+        setAccountInitialized(true)
+        setRequiresPIN(false)
+        setPinVerificationComplete(true)
         
-        if (result.account) {
-          // Create session and redirect to profile
-          console.log('🔄 Creating session for existing account...')
-          await SessionManager.createSession(chipUID)
-          
-          console.log('✅ Setting account as initialized')
-          setAccountInitialized(true)
-          setRequiresPIN(false)
-          setPinVerificationComplete(true)
-          
-                console.log('✅ Legacy card ready - redirecting to profile')
-      
-      // 🚀 Navigate to profile immediately (no PIN needed)
-      const profileUrl = new URL('/profile', window.location.origin)
-      profileUrl.searchParams.set('verified', 'true')
-      profileUrl.searchParams.set('source', 'legacy-card-no-pin')
-      profileUrl.searchParams.set('chipUID', chipUID)
-      profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
-      
-      console.log('🚀 Redirecting to:', profileUrl.toString())
-      
-      // Add a small delay to prevent infinite loops
-      setTimeout(() => {
-        router.push(profileUrl.toString())
-      }, 100)
-          
-        } else {
-          // Account creation needed
-          console.log('🆕 No existing account - creating new one')
-          setAccountInitialized(true)
-          setRequiresPIN(false)
-          setPinVerificationComplete(true)
-          console.log('✅ New legacy card - ready for account creation')
-          
-          // Redirect to profile
-          const profileUrl = new URL('/profile', window.location.origin)
-          profileUrl.searchParams.set('verified', 'true')
-          profileUrl.searchParams.set('source', 'legacy-card-verified')
-          profileUrl.searchParams.set('chipUID', chipUID)
-          profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
-          
-                console.log('🚀 Redirecting new account to:', profileUrl.toString())
-      
-      // Add a small delay to prevent infinite loops
-      setTimeout(() => {
-        router.push(profileUrl.toString())
-      }, 100)
-        }
+        // Redirect to profile
+        const profileUrl = new URL('/profile', window.location.origin)
+        profileUrl.searchParams.set('verified', 'true')
+        profileUrl.searchParams.set('source', 'legacy-card-verified')
+        profileUrl.searchParams.set('chipUID', chipUID)
+        profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
+        
+        setTimeout(() => {
+          router.push(profileUrl.toString())
+        }, 100)
       }
-      
     } catch (error) {
       console.error('❌ Legacy card PIN check failed:', error)
-      console.error('❌ Error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      })
       setDebugInfo(prev => [...prev, `⚠️ Legacy PIN check failed: ${error}`])
       
-      // 🚨 Instead of fallback to PIN, try direct authentication
-      console.log('🔄 PIN check failed, trying direct authentication without PIN...')
-      
+      // Fallback: try to proceed anyway
       try {
-        // Try to create a session anyway
-        console.log('🔄 Attempting fallback authentication...')
         setRequiresPIN(false)
         setAccountInitialized(true)
         setPinVerificationComplete(true)
         
         await SessionManager.createSession(chipUID)
         
-        // Redirect directly to profile
+        // Direct redirect to profile
         const profileUrl = new URL('/profile', window.location.origin)
         profileUrl.searchParams.set('verified', 'true')
-        profileUrl.searchParams.set('source', 'legacy-direct')
+        profileUrl.searchParams.set('source', 'legacy-fallback')
         profileUrl.searchParams.set('chipUID', chipUID)
         profileUrl.searchParams.set('momentId', `moment_${Date.now()}`)
         
-        console.log('🚀 Direct redirect after PIN check failure:', profileUrl.toString())
-        
-        // Add a small delay to prevent infinite loops
         setTimeout(() => {
           router.push(profileUrl.toString())
         }, 100)
-        
       } catch (fallbackError) {
         console.error('🚨 Even fallback failed:', fallbackError)
-        console.error('🚨 Fallback error details:', {
-          name: fallbackError instanceof Error ? fallbackError.name : 'Unknown',
-          message: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
-          stack: fallbackError instanceof Error ? fallbackError.stack : 'No stack trace'
-        })
         
         // Last resort: show PIN entry
-        console.log('🚨 Last resort: requiring PIN for security')
-      setRequiresPIN(true)
-      setPinGateInfo({
-        isNewAccount: true,
-        isNewDevice: true,
-        hasPIN: false,
+        setRequiresPIN(true)
+        setPinGateInfo({
+          isNewAccount: true,
+          isNewDevice: true,
+          hasPIN: false,
           reason: 'Legacy card verification required (last resort)',
           displayName: `User ${chipUID?.slice(-4).toUpperCase() || 'Unknown'}`
-      })
+        })
       }
     }
   }, [toast, router, getDisplayNameForChip])

@@ -7,7 +7,7 @@
  * Minimal design inspired by the Figma interface
  */
 
-import React, { useEffect } from 'react'
+import React, { useEffect, Suspense } from 'react'
 import { NfcIcon } from 'lucide-react'
 
 // Import our professional component architecture
@@ -173,5 +173,9 @@ function NFCPageContent() {
  * Main NFC Page Export
  */
 export default function NFCPage() {
-  return <NFCPageContent />;
+  return (
+    <Suspense fallback={null}>
+      <NFCPageContent />
+    </Suspense>
+  );
 } 

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -787,6 +787,8 @@ GND          Negative       Ground
 
 export default function InstallationGuidePage() {
   return (
-    <InstallationGuideContent />
+    <Suspense fallback={null}>
+      <InstallationGuideContent />
+    </Suspense>
   );
 } 
