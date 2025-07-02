@@ -2,18 +2,27 @@
  * WoF (Way of Flowers) Flow State Management Hook
  * Handles the core logic and state for the Way of Flowers installation
  * 
- * New Flow:
- * A. Someone logs in on tap (persistent session like Cursive Connections)
- * B. Confirmation taps trigger Web NFC API for both Android and iPhone
- * C. Checks smart contract for interactions (CitizenWallet style)
+ * New Flow matches beautiful screenshots:
+ * 1. TAP TO START - Initial NFC tap screen
+ * 2. CONNECT SEED - NFC connection/authentication  
+ * 3. BLOOMING INITIATION - Welcome back with ecosystem choice
+ * 4. ECOSYSTEM CHOICES - Tree/nature selection
+ * 5. WALLET INTEGRATION - Address lookup and completion
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import { WayOfFlowersManager, type FlowerPath, type CauseOffering } from '@/lib/installation/wayOfFlowers'
 import { SessionManager } from '@/lib/nfc/sessionManager'
 import { walletIntegration } from '@/lib/crypto/walletIntegration'
+import { useAccount } from 'wagmi'
 
-export type WoFStage = 'welcome' | 'auth' | 'first-interaction' | 'choice' | 'evolution' | 'complete'
+export type WoFStage = 
+  | 'tap-to-start' 
+  | 'connect-seed' 
+  | 'blooming-initiation' 
+  | 'ecosystem-choices' 
+  | 'wallet-integration' 
+  | 'complete'
 
 export interface UserWoFSession {
   chipUID: string
@@ -22,6 +31,8 @@ export interface UserWoFSession {
   lastInteraction: string
   ethAddress?: string
   hasWallet: boolean
+  displayName?: string
+  interactionCount?: number
 }
 
 export interface WoFFlowState {
@@ -32,35 +43,58 @@ export interface WoFFlowState {
   userPaths: FlowerPath[]
   selectedPath: FlowerPath | null
   selectedOffering: CauseOffering | null
+  selectedEcosystem: string | null
   availableOfferings: CauseOffering[]
   persistentSession: any | null
   needsNFCConfirmation: boolean
   isNFCListening: boolean
+  isConnecting: boolean
+  connectionError: string | null
 }
 
 export function useWoFFlow() {
   // Initialize manager
   const [wofManager] = useState(() => new WayOfFlowersManager())
   
+  // Wagmi wallet integration
+  const { address, isConnected } = useAccount()
+  
   // Core state
   const [state, setState] = useState<WoFFlowState>({
-    currentStage: 'welcome',
+    currentStage: 'tap-to-start',
     isProcessing: false,
     isSimulationMode: false,
     userSession: null,
     userPaths: [],
     selectedPath: null,
     selectedOffering: null,
+    selectedEcosystem: null,
     availableOfferings: wofManager.getAllCauseOfferings(),
     persistentSession: null,
     needsNFCConfirmation: false,
-    isNFCListening: false
+    isNFCListening: false,
+    isConnecting: false,
+    connectionError: null
   })
 
-  // Check for existing persistent session on mount (like Cursive Connections)
+  // Check for existing persistent session on mount
   useEffect(() => {
     checkPersistentSession()
   }, [])
+
+  // Update wallet status when wagmi connection changes
+  useEffect(() => {
+    if (state.userSession && address) {
+      setState(prev => ({
+        ...prev,
+        userSession: {
+          ...prev.userSession!,
+          ethAddress: address,
+          hasWallet: isConnected
+        }
+      }))
+    }
+  }, [address, isConnected, state.userSession])
 
   const checkPersistentSession = useCallback(async () => {
     try {
@@ -75,13 +109,14 @@ export function useWoFFlow() {
           isNewUser: false,
           sessionStarted: currentSession.currentUser.lastAuthenticated,
           lastInteraction: new Date().toISOString(),
-          hasWallet: false
+          hasWallet: isConnected,
+          displayName: currentSession.currentUser.displayName,
+          interactionCount: 17 // Could be fetched from blockchain
         }
 
         // Check if user has wallet
-        const walletSession = walletIntegration.getCurrentSession()
-        if (walletSession) {
-          wofSession.ethAddress = walletSession.account.address
+        if (address) {
+          wofSession.ethAddress = address
           wofSession.hasWallet = true
         }
 
@@ -93,13 +128,13 @@ export function useWoFFlow() {
           persistentSession: currentSession,
           userSession: wofSession,
           userPaths: existingPaths,
-          currentStage: existingPaths.length > 0 ? 'choice' : 'first-interaction'
+          currentStage: existingPaths.length > 0 ? 'blooming-initiation' : 'connect-seed'
         }))
       }
     } catch (error) {
       console.error('Failed to check persistent session:', error)
     }
-  }, [wofManager])
+  }, [wofManager, address, isConnected])
 
   // Initialize simulation mode if needed
   useEffect(() => {
@@ -112,198 +147,175 @@ export function useWoFFlow() {
         isNewUser: true,
         sessionStarted: new Date().toISOString(),
         lastInteraction: new Date().toISOString(),
-        hasWallet: false
+        hasWallet: isConnected,
+        displayName: 'Demo User',
+        interactionCount: 5
       }
       
       setState(prev => ({
         ...prev,
         isSimulationMode: true,
         userSession: simulationSession,
-        currentStage: 'first-interaction'
+        currentStage: 'connect-seed'
       }))
     }
-  }, [])
+  }, [isConnected])
 
-  // Trigger NFC confirmation when needed (Web NFC API)
-  const requestNFCConfirmation = useCallback(async () => {
-    if (!('NDEFReader' in window)) {
-      console.warn('Web NFC not supported on this device')
-      return false
-    }
-
-    setState(prev => ({ ...prev, needsNFCConfirmation: true, isNFCListening: true }))
-
+  // Handle NFC tap detection
+  const handleNFCTap = useCallback(async () => {
+    setState(prev => ({ ...prev, isConnecting: true, connectionError: null }))
+    
     try {
-      const ndef = new (window as any).NDEFReader()
+      // Simulate NFC connection
+      await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Request permission and start listening
-      await ndef.scan()
-      console.log('🔊 NFC listening started for confirmation...')
+      // Check for existing session or create new one
+      await checkPersistentSession()
       
-      return new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          setState(prev => ({ ...prev, isNFCListening: false, needsNFCConfirmation: false }))
-          resolve(false)
-        }, 10000) // 10 second timeout
-
-        ndef.addEventListener('reading', (event: any) => {
-          console.log('✅ NFC confirmation received')
-          clearTimeout(timeout)
-          setState(prev => ({ ...prev, isNFCListening: false, needsNFCConfirmation: false }))
-          resolve(true)
-        })
-      })
+      // If no session exists, move to blooming initiation
+      setState(prev => ({
+        ...prev,
+        isConnecting: false,
+        currentStage: prev.persistentSession ? 'blooming-initiation' : 'blooming-initiation'
+      }))
+      
     } catch (error) {
-      console.error('NFC confirmation failed:', error)
-      setState(prev => ({ ...prev, isNFCListening: false, needsNFCConfirmation: false }))
-      return false
+      console.error('NFC connection failed:', error)
+      setState(prev => ({
+        ...prev,
+        isConnecting: false,
+        connectionError: 'Failed to connect. Please try again.'
+      }))
     }
-  }, [])
+  }, [checkPersistentSession])
 
-  // Check smart contract for interactions (CitizenWallet style)
-  const checkSmartContractInteractions = useCallback(async (ethAddress: string) => {
+  // Handle ecosystem selection
+  const handleEcosystemChoice = useCallback(async (ecosystem: string) => {
+    setState(prev => ({ 
+      ...prev, 
+      selectedEcosystem: ecosystem,
+      isProcessing: true 
+    }))
+    
     try {
-      console.log('🔗 Checking smart contract interactions for:', ethAddress)
+      // Simulate processing
+      await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Use the conservation contract to check real interactions
-      const { ConservationContract } = await import('@/lib/crypto/conservationContract')
-      const conservationContract = ConservationContract.getInstance()
-      const interactions = await conservationContract.getConservationInteractions(ethAddress as any)
-      const metrics = await conservationContract.getConservationMetrics(ethAddress as any)
+      setState(prev => ({
+        ...prev,
+        isProcessing: false,
+        currentStage: 'ecosystem-choices'
+      }))
       
-      console.log('📊 Conservation metrics:', metrics)
-      console.log('🔗 Recent interactions:', interactions)
-      
-      return { interactions, metrics }
     } catch (error) {
-      console.error('Smart contract check failed:', error)
-      return { interactions: [], metrics: null }
+      console.error('Ecosystem choice failed:', error)
+      setState(prev => ({ ...prev, isProcessing: false }))
     }
   }, [])
 
-  const createNewPath = useCallback(async () => {
-    if (!state.userSession?.chipUID) return
+  // Handle ecosystem selection (final choice)
+  const handleEcosystemSelect = useCallback(async (ecosystem: string) => {
+    setState(prev => ({ 
+      ...prev, 
+      selectedEcosystem: ecosystem,
+      isProcessing: true 
+    }))
+    
+    try {
+      // Create new path if needed
+      if (!state.selectedPath && state.userSession?.chipUID) {
+        const newPath = await wofManager.createNewFlowerPath(
+          state.userSession.chipUID, 
+          `${ecosystem} Path`
+        )
+        
+        setState(prev => ({
+          ...prev,
+          selectedPath: newPath,
+          userPaths: [...prev.userPaths, newPath]
+        }))
+      }
+      
+      // Move to wallet integration
+      setState(prev => ({
+        ...prev,
+        isProcessing: false,
+        currentStage: 'wallet-integration'
+      }))
+      
+    } catch (error) {
+      console.error('Ecosystem selection failed:', error)
+      setState(prev => ({ ...prev, isProcessing: false }))
+    }
+  }, [state.selectedPath, state.userSession?.chipUID, wofManager])
 
+  // Handle wallet connection
+  const handleConnectWallet = useCallback(async () => {
+    try {
+      // Wallet connection is handled by wagmi
+      // This just updates our local state
+      setState(prev => ({
+        ...prev,
+        userSession: prev.userSession ? {
+          ...prev.userSession,
+          hasWallet: true,
+          ethAddress: address
+        } : null
+      }))
+    } catch (error) {
+      console.error('Wallet connection failed:', error)
+    }
+  }, [address])
+
+  // Handle flow completion
+  const handleComplete = useCallback(async () => {
     setState(prev => ({ ...prev, isProcessing: true }))
     
     try {
-      const newPath = await wofManager.createNewFlowerPath(
-        state.userSession.chipUID, 
-        'Garden Path'
-      )
+      // Simulate completion processing
+      await new Promise(resolve => setTimeout(resolve, 2000))
       
       setState(prev => ({
         ...prev,
-        selectedPath: newPath,
-        userPaths: [...prev.userPaths, newPath],
-        currentStage: 'choice',
-        isProcessing: false
+        isProcessing: false,
+        currentStage: 'complete'
       }))
+      
     } catch (error) {
-      console.error('WoF failed to create new path:', error)
+      console.error('Flow completion failed:', error)
       setState(prev => ({ ...prev, isProcessing: false }))
     }
-  }, [state.userSession?.chipUID, wofManager])
-
-  const selectExistingPath = useCallback((path: FlowerPath) => {
-    setState(prev => ({
-      ...prev,
-      selectedPath: path,
-      currentStage: 'choice'
-    }))
   }, [])
 
-  const makeChoice = useCallback(async (offering: CauseOffering) => {
-    if (!state.userSession?.chipUID || !state.selectedPath) return
-
-    setState(prev => ({ ...prev, isProcessing: true, selectedOffering: offering }))
-    
-    try {
-      // Request NFC confirmation if available
-      const confirmed = await requestNFCConfirmation()
-      
-      if (!confirmed && !state.isSimulationMode) {
-        console.log('⚠️ NFC confirmation not received, continuing anyway...')
-      }
-
-      // Check smart contract interactions if wallet is connected
-      if (state.userSession.hasWallet && state.userSession.ethAddress) {
-        await checkSmartContractInteractions(state.userSession.ethAddress)
-      }
-
-      const result = await wofManager.makeChoice(
-        state.userSession.chipUID,
-        state.selectedPath.id,
-        offering.id
-      )
-      
-      setState(prev => ({
-        ...prev,
-        selectedPath: result.updatedPath,
-        currentStage: 'evolution',
-        isProcessing: false
-      }))
-      
-      // Auto-advance to complete after showing evolution
-      setTimeout(() => {
-        setState(prev => ({ ...prev, currentStage: 'complete' }))
-      }, 3000)
-      
-    } catch (error) {
-      console.error('WoF failed to make choice:', error)
-      setState(prev => ({ ...prev, isProcessing: false }))
-    }
-  }, [state.userSession, state.selectedPath, state.isSimulationMode, wofManager, requestNFCConfirmation, checkSmartContractInteractions])
-
+  // Start over
   const startOver = useCallback(() => {
     setState(prev => ({
       ...prev,
-      currentStage: 'welcome',
+      currentStage: 'tap-to-start',
       selectedPath: null,
       selectedOffering: null,
-      userSession: null,
-      persistentSession: null
+      selectedEcosystem: null,
+      isProcessing: false,
+      connectionError: null
     }))
   }, [])
 
-  const getStageProgress = useCallback(() => {
-    const stageMap = {
-      'welcome': 0,
-      'auth': 20,
-      'first-interaction': 40,
-      'choice': 60,
-      'evolution': 80,
-      'complete': 100
-    }
-    return stageMap[state.currentStage] || 0
-  }, [state.currentStage])
-
-  // Auto-reset after completion
-  useEffect(() => {
-    if (state.currentStage === 'complete') {
-      const timer = setTimeout(() => {
-        // Don't clear persistent session, just reset WoF state
-        setState(prev => ({
-          ...prev,
-          currentStage: state.persistentSession ? 'first-interaction' : 'welcome',
-          selectedPath: null,
-          selectedOffering: null,
-          userSession: state.persistentSession ? prev.userSession : null
-        }))
-      }, 6000)
-      return () => clearTimeout(timer)
-    }
-  }, [state.currentStage, state.persistentSession])
-
   return {
+    // State
     ...state,
-    createNewPath,
-    selectExistingPath,
-    makeChoice,
+    
+    // Actions
+    handleNFCTap,
+    handleEcosystemChoice,
+    handleEcosystemSelect,
+    handleConnectWallet,
+    handleComplete,
     startOver,
-    getStageProgress,
     checkPersistentSession,
-    requestNFCConfirmation,
-    checkSmartContractInteractions
+    
+    // Computed values
+    canProceed: state.userSession !== null,
+    hasWallet: state.userSession?.hasWallet || isConnected,
+    walletAddress: state.userSession?.ethAddress || address
   }
 } 
