@@ -130,11 +130,17 @@ export class NFCAuthenticationEngine {
     // For legacy decentralized format, try to use existing account data
     try {
       // Check if account exists in database
-      const response = await fetch(`/api/nfc/accounts?chipUID=${encodeURIComponent(chipUID)}`)
+      const response = await fetch('/api/nfc/accounts', {
+        method: 'GET',
+        headers: {
+          'X-Chip-UID': chipUID
+        }
+      })
       
       if (response.ok) {
-        const account = await response.json()
-        if (account && account.chipUID) {
+        const result = await response.json()
+        if (result.success && result.account) {
+          const account = result.account
           const sessionToken = `legacy_session_${Date.now()}_${Math.random().toString(36).slice(2)}`
           
           return {
@@ -330,11 +336,16 @@ export class NFCAuthenticationEngine {
   private static async ensureAccountExists(chipUID: string, authData?: { publicKey: string; did?: string }): Promise<void> {
     try {
       // Check if account already exists
-      const existingResponse = await fetch(`/api/nfc/accounts?chipUID=${encodeURIComponent(chipUID)}`)
+      const existingResponse = await fetch('/api/nfc/accounts', {
+        method: 'GET',
+        headers: {
+          'X-Chip-UID': chipUID
+        }
+      })
       
       if (existingResponse.ok) {
-        const existingAccount = await existingResponse.json()
-        if (existingAccount && existingAccount.chipUID) {
+        const result = await existingResponse.json()
+        if (result.success && result.account) {
           console.log('Account already exists for chipUID:', chipUID)
           return
         }

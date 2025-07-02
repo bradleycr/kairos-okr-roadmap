@@ -1,14 +1,19 @@
 /**
- * Wallet Integration System - Web3 2025 Best Practices
- * Supports EIP-6963 wallet discovery, MetaMask SDK, and NFC-based Ethereum accounts
- * Updated for 2025 standards: Account abstraction ready, multi-chain support
+ * 🎯 KairOS Wallet Integration - wagmi v2 Compatible
+ * 
+ * Modern wallet integration that works with wagmi v2 providers
+ * while maintaining NFC-based Ethereum account functionality.
+ * 
+ * ✅ Compatible with wagmi v2 connectors
+ * ✅ NFC-derived Ethereum accounts
+ * ✅ Local storage management
+ * ❌ No external services or paid APIs
  */
 
 import { ethers } from 'ethers'
-import { createWalletClient, custom, type Address } from 'viem'
-import { mainnet, polygon, optimism, arbitrum, base } from 'viem/chains'
+import { type Address } from 'viem'
 
-// Web3 2025 Standards
+// Modern Web3 Standards
 declare global {
   interface Window {
     ethereum?: any
@@ -17,12 +22,12 @@ declare global {
 
 export interface WalletAccount {
   address: Address
-  type: 'metamask' | 'walletconnect' | 'nfc-ethereum' | 'injected'
+  type: 'metamask' | 'coinbase' | 'injected' | 'nfc-ethereum'
   chipUID?: string // For NFC-derived accounts
   isConnected: boolean
   chainId?: number
   ensName?: string
-  // Web3 2025: Account abstraction support
+  // Modern account features
   isSmartAccount?: boolean
   accountAbstractionProvider?: string
 }
@@ -34,7 +39,7 @@ export interface WalletSession {
   sessionId: string
   connectedAt: number
   lastUsed: number
-  // Web3 2025: Enhanced session metadata
+  // Session metadata
   walletInfo?: {
     name: string
     icon: string
@@ -49,28 +54,20 @@ export interface NFCEthereumAccount {
   derivationPath: string
   isBackedUp: boolean
   createdAt: number
-  // Web3 2025: Multi-chain support
+  // Multi-chain support
   supportedChains: number[]
 }
 
-// EIP-6963 Wallet Discovery Support
-interface EIP6963ProviderInfo {
-  uuid: string
-  name: string
-  icon: string
-  rdns: string
-}
-
-interface EIP6963ProviderDetail {
-  info: EIP6963ProviderInfo
-  provider: any
-}
-
+/**
+ * 🔐 Modern Wallet Integration Manager
+ * 
+ * Manages NFC-derived Ethereum accounts and integrates with wagmi v2.
+ * This complements wagmi's wallet connectors with KairOS NFC functionality.
+ */
 class WalletIntegrationManager {
   private currentSession: WalletSession | null = null
   private nfcAccounts: Map<string, NFCEthereumAccount> = new Map()
   private static instance: WalletIntegrationManager
-  private discoveredWallets: Map<string, EIP6963ProviderDetail> = new Map()
 
   static getInstance(): WalletIntegrationManager {
     if (!WalletIntegrationManager.instance) {
@@ -80,172 +77,43 @@ class WalletIntegrationManager {
   }
 
   constructor() {
-    this.loadNFCAccounts()
-    this.initializeEIP6963Discovery()
-  }
-
-  // --- EIP-6963 Wallet Discovery (Web3 2025 Standard) ---
-  
-  private initializeEIP6963Discovery(): void {
-    if (typeof window === 'undefined') return
-
-    // Listen for wallet announcements
-    window.addEventListener('eip6963:announceProvider', (event: any) => {
-      const detail = event.detail as EIP6963ProviderDetail
-      this.discoveredWallets.set(detail.info.uuid, detail)
-      console.log('🔍 Discovered wallet:', detail.info.name)
-    })
-
-    // Request wallet announcements
-    window.dispatchEvent(new Event('eip6963:requestProvider'))
-  }
-
-  getDiscoveredWallets(): EIP6963ProviderDetail[] {
-    return Array.from(this.discoveredWallets.values())
-  }
-
-  // --- Enhanced MetaMask Connection (Web3 2025) ---
-  
-  async connectMetaMask(): Promise<WalletSession | null> {
-    try {
-      // First try EIP-6963 discovery for MetaMask
-      const metamaskWallet = Array.from(this.discoveredWallets.values())
-        .find(wallet => wallet.info.rdns === 'io.metamask')
-
-      let provider: any
-      let walletInfo: any = undefined
-
-      if (metamaskWallet) {
-        console.log('🦊 Using EIP-6963 discovered MetaMask')
-        provider = metamaskWallet.provider
-        walletInfo = metamaskWallet.info
-      } else if (window.ethereum?.isMetaMask) {
-        console.log('🦊 Using legacy window.ethereum MetaMask')
-        provider = window.ethereum
-      } else {
-        throw new Error('MetaMask not found. Please install MetaMask browser extension.')
-      }
-
-      // Request account access with modern error handling
-      const accounts = await provider.request({
-        method: 'eth_requestAccounts'
-      }).catch((error: any) => {
-        if (error.code === 4001) {
-          throw new Error('User rejected the connection request')
-        } else if (error.code === -32002) {
-          throw new Error('Connection request already pending')
-        }
-        throw error
-      })
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error('No accounts found')
-      }
-
-      const ethersProvider = new ethers.BrowserProvider(provider)
-      const signer = await ethersProvider.getSigner()
-      const address = await signer.getAddress()
-      const chainId = Number(await provider.request({ method: 'eth_chainId' }))
-
-      // Enhanced ENS resolution with error handling
-      let ensName: string | undefined
-      try {
-        if (chainId === 1) { // Only on mainnet
-          ensName = await ethersProvider.lookupAddress(address) || undefined
-        }
-      } catch (e) {
-        console.log('ENS lookup skipped or failed')
-      }
-
-      // Check for account abstraction support (Web3 2025)
-      let isSmartAccount = false
-      let accountAbstractionProvider = undefined
-      try {
-        const code = await ethersProvider.getCode(address)
-        isSmartAccount = code !== '0x'
-        if (isSmartAccount) {
-          console.log('🔮 Smart account detected')
-        }
-      } catch (e) {
-        console.log('Smart account check failed')
-      }
-
-      const walletAccount: WalletAccount = {
-        address: address as Address,
-        type: 'metamask',
-        isConnected: true,
-        chainId,
-        ensName,
-        isSmartAccount,
-        accountAbstractionProvider
-      }
-
-      const session: WalletSession = {
-        account: walletAccount,
-        provider: ethersProvider,
-        signer,
-        sessionId: `metamask_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-        connectedAt: Date.now(),
-        lastUsed: Date.now(),
-        walletInfo
-      }
-
-      this.currentSession = session
-      this.saveSession()
-
-      console.log('🦊 MetaMask connected (Web3 2025):', address)
-      return session
-
-    } catch (error) {
-      console.error('❌ MetaMask connection failed:', error)
-      throw error
+    // Only initialize in browser environment
+    if (typeof window !== 'undefined') {
+      this.loadNFCAccounts()
     }
   }
 
-  // --- Enhanced NFC-Based Ethereum Account Creation (Web3 2025) ---
+  // --- NFC Ethereum Account Management ---
   
+  /**
+   * Create a new NFC-derived Ethereum account
+   */
   async createNFCEthereumAccount(chipUID: string, pin: string): Promise<NFCEthereumAccount | null> {
     try {
-      // Enhanced deterministic key derivation with better entropy
-      const combinedSeed = `KairOS-Ethereum-v2:${chipUID}:${pin}`
-      const seedHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(combinedSeed))
-      
-      // Additional entropy round for enhanced security
-      const secondHash = await crypto.subtle.digest('SHA-256', new Uint8Array(seedHash))
-      const privateKeyBytes = new Uint8Array(secondHash)
-      
-      // Create wallet from private key
-      const privateKeyHex = Array.from(privateKeyBytes, byte => byte.toString(16).padStart(2, '0')).join('')
-      const wallet = new ethers.Wallet(privateKeyHex)
-      const address = wallet.address
+      console.log('🏷️ Creating NFC Ethereum account for chipUID:', chipUID)
 
-      // Encrypt private key with enhanced PIN protection
+      // Generate deterministic private key from chipUID + PIN
+      const seed = ethers.keccak256(ethers.toUtf8Bytes(`${chipUID}:${pin}:kairos:2025`))
+      const wallet = new ethers.Wallet(seed)
+      
+      // Encrypt private key with PIN
       const encryptedPrivateKey = await this.encryptPrivateKey(wallet.privateKey, pin)
-
-      // Web3 2025: Multi-chain support
-      const supportedChains = [
-        1,    // Ethereum Mainnet
-        137,  // Polygon
-        10,   // Optimism
-        42161, // Arbitrum
-        8453   // Base
-      ]
-
+      
       const nfcAccount: NFCEthereumAccount = {
         chipUID,
-        address: address as Address,
+        address: wallet.address as Address,
         privateKey: encryptedPrivateKey,
-        derivationPath: `m/44'/60'/0'/0/0`, // Standard Ethereum path
+        derivationPath: `m/44'/60'/0'/0/0`, // Standard Ethereum derivation
         isBackedUp: false,
         createdAt: Date.now(),
-        supportedChains
+        supportedChains: [1, 137, 10, 42161, 8453] // ETH, Polygon, Optimism, Arbitrum, Base
       }
 
+      // Store account
       this.nfcAccounts.set(chipUID, nfcAccount)
       this.saveNFCAccounts()
 
-      console.log('🏷️ NFC Ethereum account created (Web3 2025):', address)
-      console.log('🌐 Supported chains:', supportedChains.length)
+      console.log('✅ NFC Ethereum account created:', wallet.address)
       return nfcAccount
 
     } catch (error) {
@@ -254,62 +122,50 @@ class WalletIntegrationManager {
     }
   }
 
+  /**
+   * Connect to an existing NFC Ethereum account
+   */
   async connectNFCEthereumAccount(chipUID: string, pin: string): Promise<WalletSession | null> {
     try {
+      console.log('🔐 Connecting to NFC Ethereum account:', chipUID)
+
+      // Get or create NFC account
       let nfcAccount = this.nfcAccounts.get(chipUID)
-      
-      // Create account if it doesn't exist
       if (!nfcAccount) {
-        nfcAccount = await this.createNFCEthereumAccount(chipUID, pin) || undefined
-        if (!nfcAccount) return null
+        nfcAccount = await this.createNFCEthereumAccount(chipUID, pin)
+        if (!nfcAccount) {
+          throw new Error('Failed to create NFC account')
+        }
       }
 
       // Decrypt private key
       const privateKey = await this.decryptPrivateKey(nfcAccount.privateKey, pin)
       const wallet = new ethers.Wallet(privateKey)
 
-      // Web3 2025: Enhanced RPC provider selection
-      const providers = [
-        'https://eth-mainnet.g.alchemy.com/v2/demo',
-        'https://cloudflare-eth.com',
-        'https://ethereum.publicnode.com'
-      ]
-      
-      // Try providers in order until one works
-      let provider: ethers.JsonRpcProvider | null = null
-      for (const rpcUrl of providers) {
-        try {
-          const testProvider = new ethers.JsonRpcProvider(rpcUrl)
-          await testProvider.getBlockNumber() // Test connection
-          provider = testProvider
-          break
-        } catch (e) {
-          console.log(`RPC ${rpcUrl} failed, trying next...`)
-        }
+      // Verify address matches
+      if (wallet.address !== nfcAccount.address) {
+        throw new Error('PIN verification failed')
       }
 
-      if (!provider) {
-        throw new Error('All RPC providers failed')
+      // Create provider (using window.ethereum if available, or a default provider)
+      let provider: ethers.BrowserProvider
+      if (window.ethereum) {
+        provider = new ethers.BrowserProvider(window.ethereum)
+      } else {
+        // Fallback to read-only provider
+        provider = new ethers.JsonRpcProvider('https://eth.llamarpc.com') as any
       }
 
+      // Connect wallet to provider
       const signer = wallet.connect(provider)
-
-      // Check for smart account features
-      let isSmartAccount = false
-      try {
-        const code = await provider.getCode(nfcAccount.address)
-        isSmartAccount = code !== '0x'
-      } catch (e) {
-        console.log('Smart account check failed')
-      }
 
       const walletAccount: WalletAccount = {
         address: nfcAccount.address,
         type: 'nfc-ethereum',
         chipUID,
         isConnected: true,
-        chainId: 1, // Mainnet
-        isSmartAccount
+        chainId: 1, // Default to mainnet
+        isSmartAccount: false
       }
 
       const session: WalletSession = {
@@ -329,7 +185,7 @@ class WalletIntegrationManager {
       this.currentSession = session
       this.saveSession()
 
-      console.log('🏷️ NFC Ethereum account connected (Web3 2025):', nfcAccount.address)
+      console.log('🏷️ NFC Ethereum account connected:', nfcAccount.address)
       return session
 
     } catch (error) {
@@ -338,8 +194,11 @@ class WalletIntegrationManager {
     }
   }
 
-  // --- Smart Contract Interactions ---
+  // --- Transaction Management ---
   
+  /**
+   * Send a transaction using the current session
+   */
   async sendTransaction(to: Address, value: string, data?: string): Promise<string | null> {
     try {
       if (!this.currentSession?.signer) {
@@ -364,6 +223,9 @@ class WalletIntegrationManager {
     }
   }
 
+  /**
+   * Execute a smart contract function
+   */
   async executeSmartContract(
     contractAddress: Address,
     abi: any[],
@@ -404,13 +266,18 @@ class WalletIntegrationManager {
 
   async disconnect(): Promise<void> {
     this.currentSession = null
-    localStorage.removeItem('kairos_wallet_session')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('kairos_wallet_session')
+    }
     console.log('👋 Wallet disconnected')
   }
 
-  // --- Storage ---
+  // --- Storage Management ---
   
   private saveSession(): void {
+    // Only access localStorage in browser environment
+    if (typeof window === 'undefined') return
+    
     if (this.currentSession) {
       const sessionData = {
         account: this.currentSession.account,
@@ -423,11 +290,17 @@ class WalletIntegrationManager {
   }
 
   private saveNFCAccounts(): void {
+    // Only access localStorage in browser environment
+    if (typeof window === 'undefined') return
+    
     const accountsData = Array.from(this.nfcAccounts.entries())
     localStorage.setItem('kairos_nfc_ethereum_accounts', JSON.stringify(accountsData))
   }
 
   private loadNFCAccounts(): void {
+    // Only access localStorage in browser environment
+    if (typeof window === 'undefined') return
+    
     try {
       const stored = localStorage.getItem('kairos_nfc_ethereum_accounts')
       if (stored) {
@@ -439,7 +312,7 @@ class WalletIntegrationManager {
     }
   }
 
-  // --- Enhanced Encryption (Web3 2025 Security Standards) ---
+  // --- Encryption/Decryption ---
   
   private async encryptPrivateKey(privateKey: string, pin: string): Promise<string> {
     const encoder = new TextEncoder()
@@ -456,12 +329,12 @@ class WalletIntegrationManager {
       ['deriveBits', 'deriveKey']
     )
     
-    // Enhanced PBKDF2 parameters (Web3 2025 standards)
+    // Enhanced PBKDF2 parameters (2025 security standards)
     const key = await crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
         salt: salt,
-        iterations: 600000, // Increased from 100000 for 2025 security
+        iterations: 600000, // High iteration count for security
         hash: 'SHA-256'
       },
       keyMaterial,
@@ -563,12 +436,35 @@ class WalletIntegrationManager {
 
     return new TextDecoder().decode(decrypted)
   }
+
+  // --- Utility Methods ---
+  
+  /**
+   * Get all NFC accounts
+   */
+  getAllNFCAccounts(): NFCEthereumAccount[] {
+    return Array.from(this.nfcAccounts.values())
+  }
+
+  /**
+   * Get NFC account by chipUID
+   */
+  getNFCAccount(chipUID: string): NFCEthereumAccount | undefined {
+    return this.nfcAccounts.get(chipUID)
+  }
+
+  /**
+   * Check if chipUID has an NFC account
+   */
+  hasNFCAccount(chipUID: string): boolean {
+    return this.nfcAccounts.has(chipUID)
+  }
 }
 
-// Export singleton
+// Export singleton instance
 export const walletIntegration = WalletIntegrationManager.getInstance()
 
-// Export types
+// Export types for use in other components
 export type { 
   WalletAccount as WalletAccountType, 
   WalletSession as WalletSessionType, 

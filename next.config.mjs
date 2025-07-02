@@ -14,7 +14,8 @@ const nextConfig = {
   }),
   
   // --- External Packages (moved from experimental in Next.js 15) ---
-  serverExternalPackages: ['@noble/curves', '@noble/hashes', 'snarkjs', 'circomlibjs'],
+  // Note: Removed @noble/curves and @noble/hashes from externals to fix bundling issues
+  serverExternalPackages: ['snarkjs', 'circomlibjs'],
   
   // --- Build Optimizations ---
   compiler: {
