@@ -1,31 +1,70 @@
 // --- Root Layout: The Soul of KairOS ---
 // Minimal dark-first design with Apple-inspired aesthetics and modern best practices.
 
-import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import Navigation from '@/components/Navigation'
-import { Toaster } from '@/components/ui/toaster'
-import { ThemeProvider } from '@/components/theme-provider'
-import { PageLoader } from '@/components/ui/page-loader'
-import { LoadingProvider } from '@/app/context/loading-provider'
-import { Suspense } from 'react'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { LoadingProvider } from "./context/loading-provider";
+import Navigation from "@/components/Navigation";
+import { PageLoader } from "@/components/ui/page-loader";
+import { Providers } from "./providers";
+import { Suspense } from 'react';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 // --- Universal Metadata: Crafted with intention ---
 export const metadata: Metadata = {
-  title: 'kairOS by MELD - Cryptographic NFC Interaction Platform',
-  description: 'Open-source cryptographic NFC interaction system for events, art installations, and digital experiences.',
-  manifest: '/manifest.json',
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png'
-  }
-}
+  title: "KairOS by MELD",
+  description: "Decentralized identity platform with NFC-based authentication",
+  keywords: ["Web3", "NFC", "Identity", "Authentication", "Decentralized"],
+  authors: [{ name: "MELD" }],
+  creator: "MELD",
+  publisher: "MELD",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://kair-os.vercel.app'),
+  alternates: {
+    canonical: '/',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: '/',
+    title: 'KairOS by MELD',
+    description: 'Decentralized identity platform with NFC-based authentication',
+    siteName: 'KairOS',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'KairOS by MELD',
+    description: 'Decentralized identity platform with NFC-based authentication',
+    creator: '@meld',
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
+};
 
 // --- Viewport Configuration: Modern Next.js best practices ---
-export const viewport: Viewport = {
+export const viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -82,34 +121,39 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <ServiceWorkerScript />
+        <link rel="icon" href="/placeholder-logo.svg" />
+        <link rel="apple-touch-icon" href="/placeholder-logo.svg" />
+        <meta name="theme-color" content="#000000" />
       </head>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={true}
-          disableTransitionOnChange={false}
-        >
-          <LoadingProvider>
-            <div style={{ minHeight: '100vh' }} className="relative">
-              {/* Minimal page loader for slow operations only */}
-              <Suspense fallback={null}>
-                <PageLoader />
-              </Suspense>
-              
-              {/* Navigation */}
-              <Navigation />
-              
-              {/* Main Content with smoother transitions and proper mobile padding */}
-              <main className="md:pt-16 relative transition-opacity duration-200 ease-in-out">
-                {children}
-              </main>
-              
-              {/* Toast Notifications */}
-              <Toaster />
-            </div>
-          </LoadingProvider>
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={true}
+            disableTransitionOnChange={false}
+          >
+            <LoadingProvider>
+              <div style={{ minHeight: '100vh' }} className="relative">
+                {/* Minimal page loader for slow operations only */}
+                <Suspense fallback={null}>
+                  <PageLoader />
+                </Suspense>
+                
+                {/* Navigation */}
+                <Navigation />
+                
+                {/* Main Content with smoother transitions and proper mobile padding */}
+                <main className="md:pt-16 relative transition-opacity duration-200 ease-in-out">
+                  {children}
+                </main>
+                
+                {/* Toast Notifications */}
+                <Toaster />
+              </div>
+            </LoadingProvider>
+          </ThemeProvider>
+        </Providers>
         
         {/* Global Debug Utilities */}
         <script dangerouslySetInnerHTML={{
