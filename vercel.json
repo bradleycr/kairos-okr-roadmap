@@ -47,6 +47,10 @@
       "destination": "/installation/way-of-flowers"
     },
     {
+      "source": "/wof-nfc",
+      "destination": "/installation/way-of-flowers/wof-nfc"
+    },
+    {
       "source": "/flowers",
       "destination": "/installation/way-of-flowers"
     },
