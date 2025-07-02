@@ -6,11 +6,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { LoadingProvider } from "./context/loading-provider";
 import Navigation from "@/components/Navigation";
-import { PageLoader } from "@/components/ui/page-loader";
 import { Providers } from "./providers";
-import { Suspense } from 'react';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -133,46 +130,31 @@ export default function RootLayout({
             enableSystem={true}
             disableTransitionOnChange={false}
           >
-            <LoadingProvider>
-              <div style={{ minHeight: '100vh' }} className="relative">
-                {/* Minimal page loader for slow operations only */}
-                <Suspense fallback={null}>
-                  <PageLoader />
-                </Suspense>
-                
-                {/* Navigation */}
-                <Navigation />
-                
-                {/* Main Content with smoother transitions and proper mobile padding */}
-                <main className="md:pt-16 relative transition-opacity duration-200 ease-in-out">
-                  {children}
-                </main>
-                
-                {/* Toast Notifications */}
-                <Toaster />
-              </div>
-            </LoadingProvider>
+            <div style={{ minHeight: '100vh' }} className="relative">
+              <Navigation />
+              <main className="md:pt-16 relative transition-opacity duration-200 ease-in-out">
+                {children}
+              </main>
+              <Toaster />
+            </div>
           </ThemeProvider>
         </Providers>
         
         {/* Global Debug Utilities */}
         <script dangerouslySetInnerHTML={{
           __html: `
-            // KairOS Debug Utilities - Available in browser console
+            // KairOS Essential Utilities
             window.KairOSDebug = {
               async checkSession(chipUID) {
-                console.log('🔍 Running session diagnostics...');
                 try {
                   const { SessionManager } = await import('/lib/nfc/sessionManager.js');
                   return await SessionManager.runSessionDiagnostics(chipUID);
                 } catch (error) {
-                  console.error('❌ Debug check failed:', error);
                   return { error: error.message };
                 }
               },
               
               async clearAllSessions() {
-                console.log('🧹 Clearing all sessions...');
                 try {
                   const { SessionManager } = await import('/lib/nfc/sessionManager.js');
                   const { NFCAccountManager } = await import('/lib/nfc/accountManager.js');
@@ -180,41 +162,12 @@ export default function RootLayout({
                   await SessionManager.clearSession();
                   NFCAccountManager.logout();
                   
-                  console.log('✅ All sessions cleared');
                   return { success: true };
                 } catch (error) {
-                  console.error('❌ Clear sessions failed:', error);
                   return { error: error.message };
                 }
-              },
-              
-              showFingerprint() {
-                const components = [
-                  navigator.platform || 'unknown',
-                  navigator.language || 'en', 
-                  Math.max(screen.width, screen.height) + 'x' + Math.min(screen.width, screen.height),
-                  navigator.hardwareConcurrency?.toString() || '4'
-                ];
-                
-                let hash = 0;
-                const fingerprint = components.join('|');
-                for (let i = 0; i < fingerprint.length; i++) {
-                  const char = fingerprint.charCodeAt(i);
-                  hash = ((hash << 5) - hash) + char;
-                  hash = hash & hash;
-                }
-                
-                const deviceFingerprint = 'device_' + Math.abs(hash).toString(16);
-                console.log('📱 Device Fingerprint:', deviceFingerprint);
-                console.log('🔧 Components:', components);
-                return { fingerprint: deviceFingerprint, components };
               }
             };
-            
-            console.log('🚀 KairOS Debug utilities loaded! Try:');
-            console.log('  - KairOSDebug.checkSession("your-chip-uid")');
-            console.log('  - KairOSDebug.clearAllSessions()');
-            console.log('  - KairOSDebug.showFingerprint()');
           `
         }} />
       </body>

@@ -220,25 +220,6 @@ export function AudioRitualView({ routine, onClose, autoStart = false }: AudioRi
                   </motion.div>
                 )}
 
-                {/* Loading State */}
-                {isGeneratingAudio && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center space-y-4"
-                  >
-                    <div className="w-16 h-16 mx-auto bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center">
-                      <Waves className="w-8 h-8 text-white animate-pulse" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium">Creating Your Audio Ritual</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Using {voices.find(v => v.id === selectedVoice)?.name} voice • This may take 30-60 seconds
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-
                 {/* Audio Controls */}
                 {audioUrl && !error && (
                   <motion.div

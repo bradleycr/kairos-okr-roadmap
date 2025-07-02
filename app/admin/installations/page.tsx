@@ -33,7 +33,6 @@ interface NFCURLConfig {
 export default function InstallationAdmin() {
   const { toast } = useToast()
   const [installations, setInstallations] = useState<InstallationConfig[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [selectedInstallation, setSelectedInstallation] = useState<InstallationConfig | null>(null)
   const [nfcConfigDialog, setNfcConfigDialog] = useState(false)
   const [generatedURLs, setGeneratedURLs] = useState<NFCURLConfig | null>(null)
@@ -46,9 +45,9 @@ export default function InstallationAdmin() {
   const loadInstallations = async () => {
     try {
       const allInstallations = await installationManager.getAllInstallations()
-      setInstallations(allInstallations)
-    } finally {
-      setIsLoading(false)
+      setInstallations(allInstallations);
+    } catch (error) {
+      console.error('Failed to load installations:', error);
     }
   }
 
@@ -259,340 +258,330 @@ ${urls.simulationUrl}
           </AlertDescription>
         </Alert>
 
-        {/* Loading State */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading installations...</p>
-            </div>
-          </div>
-        ) : (
-          /* Installation Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {installations.map((installation) => (
-              <Card key={installation.id} className="group hover:shadow-lg transition-all duration-300 border-border/40 hover:border-primary/30">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">{getInstallationIcon(installation.id)}</div>
-                      <div>
-                        <CardTitle className="text-lg font-semibold">{installation.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">{installation.artist}</p>
-                      </div>
+        {/* Installation Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {installations.map((installation) => (
+            <Card key={installation.id} className="group hover:shadow-lg transition-all duration-300 border-border/40 hover:border-primary/30">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl">{getInstallationIcon(installation.id)}</div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">{installation.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">{installation.artist}</p>
                     </div>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Ready
-                    </Badge>
                   </div>
-                </CardHeader>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Ready
+                  </Badge>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-0">
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                  {installation.description}
+                </p>
                 
-                <CardContent className="pt-0">
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {installation.description}
-                  </p>
-                  
-                  {/* URL Display */}
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg mb-4 border border-border/30">
-                    <code className="text-sm font-mono flex-1 text-foreground/80">
-                      /installation/{installation.id}
-                    </code>
+                {/* URL Display */}
+                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg mb-4 border border-border/30">
+                  <code className="text-sm font-mono flex-1 text-foreground/80">
+                    /installation/{installation.id}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => copyInstallationUrl(installation.id)}
+                    className="h-8 w-8 p-0 hover:bg-primary/10"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+                
+                {/* Theme Preview */}
+                <div className={`h-2 rounded-full mb-4 bg-gradient-to-r ${getThemeColors(installation.theme)}`} />
+                
+                {/* Installation Stats */}
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {installation.duration}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Palette className="w-3 h-3" />
+                    {installation.features?.length || 0} features
+                  </span>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 mb-3">
+                  <Button 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => visitInstallation(installation.id)}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Visit
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => simulateInstallation(installation.id)}
+                    className="px-3"
+                  >
+                    <Play className="w-3 h-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="px-3"
+                  >
+                    <Settings className="w-3 h-3" />
+                  </Button>
+                </div>
+
+                {/* NFC Configuration Button */}
+                <Dialog open={nfcConfigDialog && selectedInstallation?.id === installation.id} onOpenChange={(open) => {
+                  setNfcConfigDialog(open)
+                  if (open) {
+                    setSelectedInstallation(installation)
+                    setGeneratedURLs(null)
+                  }
+                }}>
+                  <DialogTrigger asChild>
                     <Button
+                      variant="secondary"
                       size="sm"
-                      variant="ghost"
-                      onClick={() => copyInstallationUrl(installation.id)}
-                      className="h-8 w-8 p-0 hover:bg-primary/10"
+                      className="w-full"
+                      onClick={() => setSelectedInstallation(installation)}
                     >
-                      <Copy className="w-3 h-3" />
+                      <Smartphone className="w-3 h-3 mr-2" />
+                      Configure NFC
                     </Button>
-                  </div>
-                  
-                  {/* Theme Preview */}
-                  <div className={`h-2 rounded-full mb-4 bg-gradient-to-r ${getThemeColors(installation.theme)}`} />
-                  
-                  {/* Installation Stats */}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {installation.duration}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Palette className="w-3 h-3" />
-                      {installation.features?.length || 0} features
-                    </span>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <Button 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => visitInstallation(installation.id)}
-                    >
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      Visit
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => simulateInstallation(installation.id)}
-                      className="px-3"
-                    >
-                      <Play className="w-3 h-3" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="px-3"
-                    >
-                      <Settings className="w-3 h-3" />
-                    </Button>
-                  </div>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Smartphone className="w-5 h-5" />
+                        NFC Configuration - {installation.name}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Generate URLs for NFC chips and testing. Create physical interactions with your installation.
+                      </DialogDescription>
+                    </DialogHeader>
 
-                  {/* NFC Configuration Button */}
-                  <Dialog open={nfcConfigDialog && selectedInstallation?.id === installation.id} onOpenChange={(open) => {
-                    setNfcConfigDialog(open)
-                    if (open) {
-                      setSelectedInstallation(installation)
-                      setGeneratedURLs(null)
-                    }
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => setSelectedInstallation(installation)}
-                      >
-                        <Smartphone className="w-3 h-3 mr-2" />
-                        Configure NFC
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          <Smartphone className="w-5 h-5" />
-                          NFC Configuration - {installation.name}
-                        </DialogTitle>
-                        <DialogDescription>
-                          Generate URLs for NFC chips and testing. Create physical interactions with your installation.
-                        </DialogDescription>
-                      </DialogHeader>
+                    <div className="space-y-6">
+                      {!generatedURLs ? (
+                        <div className="text-center py-8">
+                          <div className="text-6xl mb-4">📱</div>
+                          <h3 className="text-lg font-semibold mb-2">Ready to Generate NFC URLs</h3>
+                          <p className="text-muted-foreground mb-6">
+                            Create test and production URLs for "{installation.name}" installation
+                          </p>
+                          <Button 
+                            onClick={() => generateNFCURLs(installation)}
+                            disabled={isGeneratingURLs}
+                            size="lg"
+                          >
+                            {isGeneratingURLs ? (
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <QrCode className="w-4 h-4 mr-2" />
+                            )}
+                            Generate NFC URLs
+                          </Button>
+                        </div>
+                      ) : (
+                        <Tabs defaultValue="overview" className="w-full">
+                          <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="overview">Overview</TabsTrigger>
+                            <TabsTrigger value="production">Production</TabsTrigger>
+                            <TabsTrigger value="testing">Testing</TabsTrigger>
+                            <TabsTrigger value="simulation">Simulation</TabsTrigger>
+                          </TabsList>
 
-                      <div className="space-y-6">
-                        {!generatedURLs ? (
-                          <div className="text-center py-8">
-                            <div className="text-6xl mb-4">📱</div>
-                            <h3 className="text-lg font-semibold mb-2">Ready to Generate NFC URLs</h3>
-                            <p className="text-muted-foreground mb-6">
-                              Create test and production URLs for "{installation.name}" installation
-                            </p>
-                            <Button 
-                              onClick={() => generateNFCURLs(installation)}
-                              disabled={isGeneratingURLs}
-                              size="lg"
-                            >
-                              {isGeneratingURLs ? (
-                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                              ) : (
-                                <QrCode className="w-4 h-4 mr-2" />
-                              )}
-                              Generate NFC URLs
-                            </Button>
-                          </div>
-                        ) : (
-                          <Tabs defaultValue="overview" className="w-full">
-                            <TabsList className="grid w-full grid-cols-4">
-                              <TabsTrigger value="overview">Overview</TabsTrigger>
-                              <TabsTrigger value="production">Production</TabsTrigger>
-                              <TabsTrigger value="testing">Testing</TabsTrigger>
-                              <TabsTrigger value="simulation">Simulation</TabsTrigger>
-                            </TabsList>
+                          <TabsContent value="overview" className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <Card>
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-base">Chip Configuration</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-sm">Chip UID:</Label>
+                                    <code className="text-xs bg-muted px-2 py-1 rounded">{generatedURLs.chipUID}</code>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-sm">PIN:</Label>
+                                    <code className="text-xs bg-muted px-2 py-1 rounded">{generatedURLs.pin}</code>
+                                  </div>
+                                </CardContent>
+                              </Card>
 
-                            <TabsContent value="overview" className="space-y-4">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card>
-                                  <CardHeader className="pb-3">
-                                    <CardTitle className="text-base">Chip Configuration</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <Label className="text-sm">Chip UID:</Label>
-                                      <code className="text-xs bg-muted px-2 py-1 rounded">{generatedURLs.chipUID}</code>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <Label className="text-sm">PIN:</Label>
-                                      <code className="text-xs bg-muted px-2 py-1 rounded">{generatedURLs.pin}</code>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-
-                                <Card>
-                                  <CardHeader className="pb-3">
-                                    <CardTitle className="text-base">Quick Actions</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      className="w-full justify-start"
-                                      onClick={() => window.open(generatedURLs.simulationUrl, '_blank')}
-                                    >
-                                      <Play className="w-3 h-3 mr-2" />
-                                      Test Simulation
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      className="w-full justify-start"
-                                      onClick={() => downloadAsText(generatedURLs, installation.name)}
-                                    >
-                                      <Download className="w-3 h-3 mr-2" />
-                                      Download Config
-                                    </Button>
-                                  </CardContent>
-                                </Card>
-                              </div>
-                            </TabsContent>
-
-                            <TabsContent value="production" className="space-y-4">
-                              <Alert>
-                                <Smartphone className="h-4 w-4" />
-                                <AlertDescription>
-                                  This URL should be programmed onto physical NFC chips using NFC Tools or similar apps.
-                                </AlertDescription>
-                              </Alert>
-                              
-                              <div className="space-y-3">
-                                <Label>Production NFC URL (Program to Chip)</Label>
-                                <div className="flex gap-2">
-                                  <Input 
-                                    value={generatedURLs.productionUrl} 
-                                    readOnly 
-                                    className="font-mono text-xs"
-                                  />
+                              <Card>
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-base">Quick Actions</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
                                   <Button 
                                     size="sm" 
-                                    onClick={() => copyToClipboard(generatedURLs.productionUrl, 'Production URL')}
+                                    variant="outline" 
+                                    className="w-full justify-start"
+                                    onClick={() => window.open(generatedURLs.simulationUrl, '_blank')}
                                   >
-                                    <Copy className="w-3 h-3" />
+                                    <Play className="w-3 h-3 mr-2" />
+                                    Test Simulation
                                   </Button>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  Program this URL onto NFC chips. Users tap chip → enter PIN → access installation.
-                                </p>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="w-full justify-start"
+                                    onClick={() => downloadAsText(generatedURLs, installation.name)}
+                                  >
+                                    <Download className="w-3 h-3 mr-2" />
+                                    Download Config
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="production" className="space-y-4">
+                            <Alert>
+                              <Smartphone className="h-4 w-4" />
+                              <AlertDescription>
+                                This URL should be programmed onto physical NFC chips using NFC Tools or similar apps.
+                              </AlertDescription>
+                            </Alert>
+                            
+                            <div className="space-y-3">
+                              <Label>Production NFC URL (Program to Chip)</Label>
+                              <div className="flex gap-2">
+                                <Input 
+                                  value={generatedURLs.productionUrl} 
+                                  readOnly 
+                                  className="font-mono text-xs"
+                                />
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => copyToClipboard(generatedURLs.productionUrl, 'Production URL')}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </Button>
                               </div>
-                            </TabsContent>
+                              <p className="text-xs text-muted-foreground">
+                                Program this URL onto NFC chips. Users tap chip → enter PIN → access installation.
+                              </p>
+                            </div>
+                          </TabsContent>
 
-                            <TabsContent value="testing" className="space-y-4">
-                              <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-                                <ExternalLink className="h-4 w-4" />
-                                <AlertDescription>
-                                  Test URLs include authentication parameters for easy testing without physical chips.
-                                </AlertDescription>
-                              </Alert>
-                              
-                              <div className="space-y-4">
-                                <div className="space-y-3">
-                                  <Label>Test URL (With Auth Parameters)</Label>
-                                  <div className="flex gap-2">
-                                    <Input 
-                                      value={generatedURLs.testUrl} 
-                                      readOnly 
-                                      className="font-mono text-xs"
-                                    />
-                                    <Button 
-                                      size="sm" 
-                                      onClick={() => copyToClipboard(generatedURLs.testUrl, 'Test URL')}
-                                    >
-                                      <Copy className="w-3 h-3" />
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => window.open(generatedURLs.testUrl, '_blank')}
-                                    >
-                                      <ExternalLink className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                  <Label>Direct Installation Link</Label>
-                                  <div className="flex gap-2">
-                                    <Input 
-                                      value={generatedURLs.installationUrl} 
-                                      readOnly 
-                                      className="font-mono text-xs"
-                                    />
-                                    <Button 
-                                      size="sm" 
-                                      onClick={() => copyToClipboard(generatedURLs.installationUrl, 'Installation URL')}
-                                    >
-                                      <Copy className="w-3 h-3" />
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => window.open(generatedURLs.installationUrl, '_blank')}
-                                    >
-                                      <ExternalLink className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </TabsContent>
-
-                            <TabsContent value="simulation" className="space-y-4">
-                              <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-                                <Play className="h-4 w-4" />
-                                <AlertDescription>
-                                  Simulation URLs bypass authentication for demos and development.
-                                </AlertDescription>
-                              </Alert>
-                              
+                          <TabsContent value="testing" className="space-y-4">
+                            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+                              <ExternalLink className="h-4 w-4" />
+                              <AlertDescription>
+                                Test URLs include authentication parameters for easy testing without physical chips.
+                              </AlertDescription>
+                            </Alert>
+                            
+                            <div className="space-y-4">
                               <div className="space-y-3">
-                                <Label>Simulation URL (No Auth Required)</Label>
+                                <Label>Test URL (With Auth Parameters)</Label>
                                 <div className="flex gap-2">
                                   <Input 
-                                    value={generatedURLs.simulationUrl} 
+                                    value={generatedURLs.testUrl} 
                                     readOnly 
                                     className="font-mono text-xs"
                                   />
                                   <Button 
                                     size="sm" 
-                                    onClick={() => copyToClipboard(generatedURLs.simulationUrl, 'Simulation URL')}
+                                    onClick={() => copyToClipboard(generatedURLs.testUrl, 'Test URL')}
                                   >
                                     <Copy className="w-3 h-3" />
                                   </Button>
                                   <Button 
                                     size="sm" 
                                     variant="outline"
-                                    onClick={() => window.open(generatedURLs.simulationUrl, '_blank')}
+                                    onClick={() => window.open(generatedURLs.testUrl, '_blank')}
                                   >
-                                    <Play className="w-3 h-3 mr-1" />
-                                    Test Now
+                                    <ExternalLink className="w-3 h-3" />
                                   </Button>
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                  For demos, development, and testing without NFC hardware.
-                                </p>
                               </div>
-                            </TabsContent>
-                          </Tabs>
-                        )}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+
+                              <div className="space-y-3">
+                                <Label>Direct Installation Link</Label>
+                                <div className="flex gap-2">
+                                  <Input 
+                                    value={generatedURLs.installationUrl} 
+                                    readOnly 
+                                    className="font-mono text-xs"
+                                  />
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => copyToClipboard(generatedURLs.installationUrl, 'Installation URL')}
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => window.open(generatedURLs.installationUrl, '_blank')}
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="simulation" className="space-y-4">
+                            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+                              <Play className="h-4 w-4" />
+                              <AlertDescription>
+                                Simulation URLs bypass authentication for demos and development.
+                              </AlertDescription>
+                            </Alert>
+                            
+                            <div className="space-y-3">
+                              <Label>Simulation URL (No Auth Required)</Label>
+                              <div className="flex gap-2">
+                                <Input 
+                                  value={generatedURLs.simulationUrl} 
+                                  readOnly 
+                                  className="font-mono text-xs"
+                                />
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => copyToClipboard(generatedURLs.simulationUrl, 'Simulation URL')}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => window.open(generatedURLs.simulationUrl, '_blank')}
+                                >
+                                  <Play className="w-3 h-3 mr-1" />
+                                  Test Now
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                For demos, development, and testing without NFC hardware.
+                              </p>
+                            </div>
+                          </TabsContent>
+                        </Tabs>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
         {/* Empty State */}
-        {!isLoading && installations.length === 0 && (
+        {!installations.length && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🎨</div>
             <h3 className="text-xl font-semibold mb-2">No Installations Found</h3>

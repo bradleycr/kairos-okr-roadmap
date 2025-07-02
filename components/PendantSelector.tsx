@@ -52,7 +52,6 @@ export default function PendantSelector({
   className = "" 
 }: PendantSelectorProps) {
   const [pendants, setPendants] = useState<PendantIdentity[]>([])
-  const [isGenerating, setIsGenerating] = useState(false)
 
   // Initialize test pendants with crypto keys
   useEffect(() => {
@@ -102,8 +101,6 @@ export default function PendantSelector({
 
   // Generate a new numbered pendant
   const generateNewPendant = async () => {
-    setIsGenerating(true)
-    
     try {
       const { privateKey, publicKey } = await generateKeypair()
       
@@ -143,8 +140,6 @@ export default function PendantSelector({
       
     } catch (error) {
       console.error('Failed to generate new pendant:', error)
-    } finally {
-      setIsGenerating(false)
     }
   }
 
@@ -164,11 +159,10 @@ export default function PendantSelector({
         
         <button
           onClick={generateNewPendant}
-          disabled={isGenerating}
           className="flex items-center gap-2 px-3 py-2 glass-button text-muted-foreground rounded-lg hover:text-foreground disabled:opacity-50 text-sm font-medium"
         >
           <Plus className="w-4 h-4" />
-          {isGenerating ? 'Adding...' : 'Add'}
+          Add
         </button>
       </div>
 
@@ -247,16 +241,6 @@ export default function PendantSelector({
           )
         })}
       </div>
-
-      {/* Loading State */}
-      {isGenerating && (
-        <div className="text-center py-4">
-          <div className="inline-flex items-center gap-2 px-3 py-2 glass-card rounded-lg">
-            <div className="w-3 h-3 bg-primary rounded-full animate-gentle-pulse"></div>
-            <span className="text-neutral-700 text-sm">Generating keys...</span>
-          </div>
-        </div>
-      )}
     </div>
   )
 } 

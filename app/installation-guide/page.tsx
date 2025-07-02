@@ -23,8 +23,7 @@ import {
   ChevronDown,
   ChevronRight,
   ArrowLeftIcon,
-  NfcIcon,
-  LoaderIcon
+  NfcIcon
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { Ritual } from '@/lib/ritual/types'
@@ -49,7 +48,6 @@ function InstallationGuideContent() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']))
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [currentRitual, setCurrentRitual] = useState<Ritual | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
 
   // --- Load Ritual Data ---
   useEffect(() => {
@@ -74,7 +72,6 @@ function InstallationGuideContent() {
       }
       setCurrentRitual(mockRitual)
     }
-    setIsLoading(false)
   }, [searchParams])
 
   // --- Helper Functions ---
@@ -668,21 +665,6 @@ GND          Negative       Ground
     }
   ]
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-32">
-            <div className="text-center space-y-4">
-              <LoaderIcon className="h-12 w-12 animate-spin text-primary mx-auto" />
-              <p className="text-foreground">Loading installation guide...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -803,27 +785,10 @@ GND          Negative       Ground
   )
 }
 
-// Loading component for Suspense fallback
-function InstallationGuideLoading() {
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-32">
-          <div className="text-center space-y-4">
-            <LoaderIcon className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="text-foreground">Loading installation guide...</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Main component with Suspense boundary
 export default function InstallationGuidePage() {
   return (
-    <Suspense fallback={<InstallationGuideLoading />}>
+    <Suspense fallback={null}>
       <InstallationGuideContent />
     </Suspense>
-  )
+  );
 } 

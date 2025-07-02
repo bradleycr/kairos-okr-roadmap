@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { motion, AnimatePresence } from "framer-motion";
 import { Download, Upload, Copy, Shield, Sparkles, Users, MessageCircle, Brain, X, UserIcon, HeartIcon, User, Heart, Sunrise, Wallet, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
 import Link from 'next/link';
 import { PINSetup } from '@/components/ui/pin-setup';
@@ -18,72 +17,6 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAccount, useConnect, useDisconnect, useEnsName, useEnsAvatar } from 'wagmi';
 import { injected, metaMask, walletConnect, coinbaseWallet } from 'wagmi/connectors';
-
-// Welcome Ritual Component
-const WelcomeRitual = ({ onComplete }: { onComplete: () => void }) => {
-  const [stage, setStage] = useState(0);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (stage < 2) {
-        setStage(stage + 1);
-      } else {
-        setTimeout(() => onComplete(), 1000);
-      }
-    }, 1800);
-    
-    return () => clearTimeout(timer);
-  }, [stage, onComplete]);
-
-  const stages = [
-    { text: "Generating cryptographic identity", detail: "Creating Ed25519 keypair from device entropy" },
-    { text: "Establishing decentralized profile", detail: "Zero-knowledge identity verification" },
-    { text: "Memory space initialized", detail: "Local storage configured" }
-  ];
-
-  return (
-    <motion.div
-      className="fixed inset-0 bg-background/98 backdrop-blur-md z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <div className="w-full max-w-sm text-center">
-        {/* Minimal Sacred Geometry Background */}
-        <motion.div
-          className="absolute inset-0 opacity-5 flex items-center justify-center"
-          initial={{ scale: 0, rotate: 0 }}
-          animate={{ scale: 1, rotate: 360 }}
-          transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-        >
-          <div className="w-64 h-64 border border-primary rounded-full"></div>
-        </motion.div>
-
-        <motion.div
-          key={stage}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="relative z-10 space-y-4"
-        >
-          {/* Minimal Progress Indicator */}
-          <div className="flex justify-center mb-6">
-            <div className="w-12 h-12 border-2 border-primary rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-            </div>
-          </div>
-
-          <h2 className="text-lg font-mono text-primary font-medium">
-            {stages[stage]?.text}
-          </h2>
-          <p className="text-sm text-muted-foreground font-mono px-4">
-            {stages[stage]?.detail}
-          </p>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-};
 
 // Custom QR Code Generator Component
 const CustomQRCode = ({ data, size = 200 }: { data: string, size?: number }) => {
@@ -245,7 +178,6 @@ const ResponsiveTabsTrigger = ({ value, children }: any) => {
 };
 
 const ProfilePage = () => {
-  const [showWelcomeRitual, setShowWelcomeRitual] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   const [showExportModal, setShowExportModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -464,15 +396,6 @@ const ProfilePage = () => {
     loadProfileData()
   }, [])
 
-  const handleWelcomeComplete = () => {
-    setShowWelcomeRitual(false)
-    
-    // Mark ritual flow as completed for this user
-    if (userProfile?.chipUID) {
-      markRitualFlowCompleted(userProfile.chipUID)
-    }
-  }
-  
   const markRitualFlowCompleted = async (chipUID: string) => {
     try {
       const { NFCAccountManager } = await import('@/lib/nfc/accountManager')
@@ -768,12 +691,6 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <AnimatePresence>
-        {showWelcomeRitual && (
-          <WelcomeRitual onComplete={handleWelcomeComplete} />
-        )}
-      </AnimatePresence>
-      
       {/* Morning Eight NFC Gate - runs in background */}
       <NFCGate />
 
