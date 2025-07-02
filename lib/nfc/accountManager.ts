@@ -1021,13 +1021,32 @@ export class NFCAccountManager {
       })
       
       if (hasActiveSession) {
-        // Active session exists (device or API) - no PIN required
+        // 🔐 CRITICAL SECURITY CHECK: Even with active session, 
+        // accounts with PINs must have authenticated with PIN on this device
+        if (hasPINSetup) {
+          // Account has PIN - verify the session includes PIN authentication
+          const sessionIncludesPINAuth = hasValidDeviceSession && deviceSession?.pinEntered
+          
+          if (!sessionIncludesPINAuth) {
+            console.log('🔒 Account has PIN but session lacks PIN authentication - require PIN')
+            return {
+              requiresPIN: true,
+              isNewAccount: false,
+              isNewDevice: !hasActiveSession,
+              hasPIN: true,
+              reason: 'PIN verification required for accounts with PIN protection',
+              account: existingAccount
+            }
+          }
+        }
+        
+        // Active session exists and is properly authenticated - no PIN required
         console.log(`✅ Active session found (${hasValidDeviceSession ? 'device' : 'API'}) - no PIN required`)
         
         // Update device session if only API session exists (for better persistence)
         if (!hasValidDeviceSession && hasActiveApiSession) {
           console.log('🔄 Creating device session for better persistence')
-          await this.createDeviceSession(chipUID, true)
+          await this.createDeviceSession(chipUID, hasPINSetup) // Pass PIN status
         }
         
         return {
@@ -1041,17 +1060,14 @@ export class NFCAccountManager {
       }
       
       if (!hasPINSetup) {
-        // 🔐 SECURITY FIX: Account exists but no PIN setup
-        // This is already handled above by the hasActiveSession check
-        // If we're here, there's NO active session and NO PIN
-        // This requires proper NFC authentication to establish security
-        console.log('🔒 Account exists without PIN and no active session - require NFC authentication')
+        // Account exists but no PIN setup - allow access for first-time setup
+        console.log('🆕 Account exists but no PIN - allow direct access for setup')
         return {
-          requiresPIN: true,
+          requiresPIN: false,
           isNewAccount: false,
           isNewDevice: true,
           hasPIN: false,
-          reason: 'Account security requires NFC authentication to establish PIN',
+          reason: 'Account ready - PIN can be set up in profile',
           account: existingAccount
         }
       }

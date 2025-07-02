@@ -41,7 +41,6 @@ const connectors = [
   // Injected wallets - covers Brave Wallet, Trust Wallet, hardware wallets, etc.
   injected({
     shimDisconnect: true,
-    unstable_shimAsyncInject: 2000, // Wait 2 seconds for mobile wallet injection
   }),
 ];
 
