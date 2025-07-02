@@ -8,9 +8,9 @@
 
 import { useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import { useNFCParameterParser } from '../../nfc/hooks/useNFCParameterParser'
-import { useNFCAuthentication } from '../../nfc/hooks/useNFCAuthentication'
-import { NFCAuthFlow } from '../../nfc/components/NFCAuthFlow'
+import { useNFCParameterParser } from '../../../nfc/hooks/useNFCParameterParser'
+import { useNFCAuthentication } from '../../../nfc/hooks/useNFCAuthentication'
+import { NFCAuthFlow } from '../../../nfc/components/NFCAuthFlow'
 import PINEntry from '@/components/ui/pin-entry'
 import { NfcIcon, Flower } from 'lucide-react'
 
