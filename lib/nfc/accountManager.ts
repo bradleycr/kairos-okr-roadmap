@@ -1041,14 +1041,31 @@ export class NFCAccountManager {
       }
       
       if (!hasPINSetup) {
-        // Account exists but no PIN setup - allow access for first-time setup
-        console.log('🆕 Account exists but no PIN - allow direct access for setup')
+        // 🔐 SECURITY FIX: Account exists but no PIN setup
+        // Only allow access if it's a genuinely new account setup OR we have an active session
+        // This prevents URL hijacking of existing accounts without PINs
+        
+        if (hasActiveSession) {
+          console.log('✅ Account without PIN but has active session - allow access')
+          return {
+            requiresPIN: false,
+            isNewAccount: false,
+            isNewDevice: false,
+            hasPIN: false,
+            reason: 'Active session validates access to account without PIN',
+            account: existingAccount
+          }
+        }
+        
+        // No active session and no PIN - this is a security risk
+        // Force PIN setup through proper authentication flow
+        console.log('🔒 Account exists without PIN and no active session - require proper authentication')
         return {
-          requiresPIN: false,
+          requiresPIN: true,
           isNewAccount: false,
           isNewDevice: true,
           hasPIN: false,
-          reason: 'Account ready - PIN can be set up in profile',
+          reason: 'Account security requires authentication before access',
           account: existingAccount
         }
       }

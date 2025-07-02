@@ -39,9 +39,7 @@ const connectors = [
   }),
   
   // Injected wallets - covers Brave Wallet, Trust Wallet, hardware wallets, etc.
-  injected({
-    target: 'metaMask', // Fallback for generic injection
-  }),
+  injected(),
 ];
 
 // Multi-chain support with free RPC endpoints

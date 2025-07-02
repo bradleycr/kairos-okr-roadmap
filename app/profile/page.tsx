@@ -265,25 +265,37 @@ const ProfilePage = () => {
         
         // If chipUID provided in URL, validate it matches current session
         if (chipUID) {
-          if (!session?.isActive || session.currentUser?.chipUID !== chipUID) {
-            console.log('🚫 SECURITY: URL chipUID does not match authenticated session')
-            console.log('   Session chipUID:', session?.currentUser?.chipUID || 'none')
-            console.log('   URL chipUID:', chipUID)
+          // 🔐 SECURITY FIX: Always check PIN gate before allowing profile access
+          console.log('🔐 SECURITY: Checking PIN gate for profile access...')
+          const authCheck = await NFCAccountManager.authenticateWithPINGate(chipUID)
+          
+          console.log('🔍 PIN Gate result:', authCheck)
+          
+          if (authCheck.requiresPIN) {
+            console.log('🔒 PIN authentication required for profile access')
             
-                         // Check if user has PIN authorization for this chipUID through PIN gate
-             const authCheck = await NFCAccountManager.authenticateWithPINGate(chipUID)
-             if (authCheck.requiresPIN) {
-               console.log('🔒 PIN authentication required for profile access')
-               setUserProfile(null)
-               setIsLoadingProfile(false)
-               
-               // Redirect to NFC authentication with proper PIN flow
-               window.location.href = `/nfc?chipUID=${encodeURIComponent(chipUID)}&returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`
-               return
-             }
+            // Set up PIN requirement state and load basic account info
+            const basicProfile = {
+              chipUID,
+              displayName: authCheck.account?.displayName || `User ${chipUID.slice(-4).toUpperCase()}`,
+              username: authCheck.account?.username || `user_${chipUID.slice(-4).toLowerCase()}`,
+              bio: authCheck.account?.bio || 'KairOS user',
+              hasPIN: authCheck.hasPIN,
+              isNewUser: authCheck.isNewAccount
+            }
             
-                         console.log('✅ Valid session found - proceeding with chipUID from URL')
+            setUserProfile(basicProfile)
+            setRequiresPINAuth(true)
+            setIsLoadingProfile(false)
+            return
           }
+          
+          // Only proceed if PIN gate explicitly allows access
+          if (!session?.isActive || session.currentUser?.chipUID !== chipUID) {
+            console.log('🚫 SECURITY: URL chipUID does not match authenticated session, but PIN gate allows access')
+          }
+          
+          console.log('✅ PIN gate passed - loading profile')
           
           // Proceed with validated chipUID
           console.log(`✅ Loading verified profile for authenticated chipUID: ${chipUID}`)
@@ -677,6 +689,55 @@ const ProfilePage = () => {
 
   // Show PIN authentication gate if required
   if (requiresPINAuth && userProfile && pinAuthenticatedChipUID !== userProfile.chipUID) {
+    
+    // 🔐 SECURITY: If account doesn't have PIN, redirect to NFC setup
+    if (!userProfile.hasPIN) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden">
+          {/* Holographic Background Effect */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/25 to-secondary/15 animate-pulse"></div>
+          </div>
+          
+          <div className="container mx-auto px-4 py-8 max-w-md relative z-10 flex items-center justify-center min-h-screen">
+            <div className="w-full text-center space-y-6">
+              <div className="relative p-4 rounded-full bg-amber-500/10 border border-amber-500/20 mx-auto w-fit mb-6">
+                <AlertCircle className="h-12 w-12 text-amber-500" />
+              </div>
+              
+              <div className="space-y-4">
+                <h1 className="text-2xl font-mono font-light text-foreground/90">
+                  Account Setup Required
+                </h1>
+                <p className="text-muted-foreground font-mono text-sm leading-relaxed">
+                  Your account needs to be properly authenticated via NFC to set up security.
+                </p>
+                
+                <div className="bg-card/50 backdrop-blur-sm border border-amber-500/20 rounded-lg p-4 text-left">
+                  <p className="text-xs text-muted-foreground font-mono mb-2">
+                    <strong>Security Setup:</strong>
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono leading-relaxed">
+                    For your security, this account must be authenticated through the proper NFC flow 
+                    to establish your PIN and complete setup.
+                  </p>
+                </div>
+              </div>
+              
+              <Button
+                onClick={() => window.location.href = `/nfc?chipUID=${encodeURIComponent(userProfile.chipUID)}&returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-mono w-full"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Complete Authentication Setup
+              </Button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    
+    // Account has PIN - show PIN entry
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5 relative overflow-hidden">
         {/* Holographic Background Effect */}
