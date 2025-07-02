@@ -39,7 +39,10 @@ const connectors = [
   }),
   
   // Injected wallets - covers Brave Wallet, Trust Wallet, hardware wallets, etc.
-  injected(),
+  injected({
+    shimDisconnect: true,
+    unstable_shimAsyncInject: 2000, // Wait 2 seconds for mobile wallet injection
+  }),
 ];
 
 // Multi-chain support with free RPC endpoints

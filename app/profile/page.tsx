@@ -586,12 +586,34 @@ const ProfilePage = () => {
       
       if (targetConnector) {
         console.log(`Connecting to ${targetConnector.name}...`);
+        
+        // Check if connector is ready (important for mobile)
+        if (!targetConnector.ready && connectorType === 'injected') {
+          console.log('🔄 Injected connector not ready, waiting...');
+          // Give mobile wallets time to inject
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         connect({ connector: targetConnector });
       } else {
         console.error(`Connector ${connectorType} not found`);
+        
+        // For mobile injected wallets, provide helpful message
+        if (connectorType === 'injected') {
+          alert('No wallet detected. Please make sure you have a Web3 wallet app installed (like Trust Wallet, MetaMask Mobile, or Coinbase Wallet) and try again.');
+        }
       }
     } catch (error) {
       console.error('Wallet connection failed:', error);
+      
+      // Provide user-friendly error messages
+      if (error instanceof Error) {
+        if (error.message.includes('Provider not found')) {
+          alert('Wallet not detected. Please install a Web3 wallet like MetaMask, Trust Wallet, or Coinbase Wallet.');
+        } else {
+          alert(`Connection failed: ${error.message}`);
+        }
+      }
     }
   };
 
