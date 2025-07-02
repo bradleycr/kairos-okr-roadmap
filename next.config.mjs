@@ -89,15 +89,26 @@ const nextConfig = {
       };
     }
     
-    // Production optimizations
-    if (!dev && !isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        path: false,
-        crypto: false,
-      };
-    }
+    // Production optimizations and SSR fixes
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      crypto: false,
+      // Disable IndexedDB-related modules during SSR
+      'idb-keyval': false,
+      indexeddb: false,
+    };
+    
+    // Suppress pino-pretty warning from WalletConnect dependencies
+    const originalIgnoreWarnings = config.ignoreWarnings || [];
+    config.ignoreWarnings = [
+      ...originalIgnoreWarnings,
+      {
+        module: /pino-pretty/,
+      },
+      /Module not found: Can't resolve 'pino-pretty'/,
+    ];
     
     // Optimize for large dependencies
     config.optimization = {

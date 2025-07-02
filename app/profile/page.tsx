@@ -557,16 +557,8 @@ const ProfilePage = () => {
     disconnect();
   };
 
-  // Load wallet session on mount
-  useEffect(() => {
-    const currentSession = walletIntegration.getCurrentSession();
-    if (currentSession && currentSession.account.isConnected) {
-      setWalletSession(currentSession);
-      if (currentSession.account.type === 'nfc-ethereum') {
-        setNfcEthereumAccount(currentSession.account);
-      }
-    }
-  }, []);
+  // Wallet integration is now handled by wagmi hooks above
+  // No need for manual session loading
 
   // Show loading spinner while profile is loading
   if (isLoadingProfile) {

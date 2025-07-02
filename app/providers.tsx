@@ -29,6 +29,8 @@ const config = createConfig({
     [base.id]: http(),
   },
   ssr: true,
+  // Disable storage during SSR to prevent IndexedDB access
+  storage: typeof window !== 'undefined' ? undefined : null,
 });
 
 const queryClient = new QueryClient({
