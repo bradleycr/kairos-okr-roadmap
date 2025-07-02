@@ -1640,6 +1640,12 @@ export class NFCAccountManager {
    */
   private static openKairosSessionDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
+      // Check if we're in a browser environment with IndexedDB support
+      if (typeof window === 'undefined' || !window.indexedDB) {
+        reject(new Error('IndexedDB not available'))
+        return
+      }
+      
       const dbName = 'kairos-sessions'
       const storeName = 'device-sessions'
       const request = indexedDB.open(dbName, 1)

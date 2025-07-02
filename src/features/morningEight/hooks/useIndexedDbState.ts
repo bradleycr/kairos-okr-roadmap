@@ -13,8 +13,12 @@ interface IndexedDbState<T> {
   clear: () => Promise<void>;
 }
 
-// Initialize IndexedDB
+// Initialize IndexedDB (browser-only)
 const initDB = async (): Promise<IDBDatabase> => {
+  if (typeof window === 'undefined' || !window.indexedDB) {
+    throw new Error('IndexedDB not available');
+  }
+  
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     
@@ -36,8 +40,15 @@ export function useIndexedDbState<T>(key: string, defaultValue: T): IndexedDbSta
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load data from IndexedDB
+  // Load data from IndexedDB (browser-only)
   const loadData = useCallback(async () => {
+    // Skip if not in browser environment
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      setData(defaultValue);
+      setLoading(false);
+      return defaultValue;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -63,8 +74,14 @@ export function useIndexedDbState<T>(key: string, defaultValue: T): IndexedDbSta
     }
   }, [key, defaultValue]);
 
-  // Save data to IndexedDB
+  // Save data to IndexedDB (browser-only)
   const save = useCallback(async (newData: T) => {
+    // Skip if not in browser environment
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      setData(newData);
+      return;
+    }
+    
     try {
       setError(null);
       
@@ -86,8 +103,14 @@ export function useIndexedDbState<T>(key: string, defaultValue: T): IndexedDbSta
     }
   }, [key]);
 
-  // Clear data from IndexedDB
+  // Clear data from IndexedDB (browser-only)
   const clear = useCallback(async () => {
+    // Skip if not in browser environment
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      setData(null);
+      return;
+    }
+    
     try {
       setError(null);
       
@@ -109,9 +132,11 @@ export function useIndexedDbState<T>(key: string, defaultValue: T): IndexedDbSta
     }
   }, [key]);
 
-  // Load data on mount
+  // Load data on mount (only in browser)
   useEffect(() => {
-    loadData().then(setData);
+    if (typeof window !== 'undefined') {
+      loadData().then(setData);
+    }
   }, [loadData]);
 
   return {

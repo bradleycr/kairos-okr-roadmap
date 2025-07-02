@@ -227,9 +227,14 @@ async function runCryptoDiagnostics(setResults: (r: DiagnosticResult[]) => void,
   setResults(results)
 }
 
-// System diagnostics runner
+// System diagnostics runner (browser-only)
 async function runSystemDiagnostics(): Promise<DiagnosticResult[]> {
   const results: DiagnosticResult[] = []
+  
+  // Skip if not in browser environment
+  if (typeof window === 'undefined') {
+    return results
+  }
   
   // Browser capabilities
   const hasWebCrypto = !!window.crypto?.subtle
@@ -266,9 +271,9 @@ async function runSystemDiagnostics(): Promise<DiagnosticResult[]> {
     category: 'system'
   })
   
-  // Performance metrics
-  const connectionType = (navigator as any)?.connection?.effectiveType || 'unknown'
-  const isOnline = navigator.onLine
+  // Performance metrics (browser-only)
+  const connectionType = (typeof navigator !== 'undefined' && (navigator as any)?.connection?.effectiveType) || 'unknown'
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
   
   results.push({
     label: "Network Connectivity",
@@ -352,9 +357,11 @@ export default function DeveloperDiagnosticsHub() {
     }
   }, [isMonitoring])
   
-  // Auto-run system diagnostics on mount
+  // Auto-run system diagnostics on mount (browser-only)
   useEffect(() => {
-    runSystemDiagnostics().then(setSystemResults)
+    if (typeof window !== 'undefined') {
+      runSystemDiagnostics().then(setSystemResults)
+    }
   }, [])
   
   const toggleSection = (section: string) => {

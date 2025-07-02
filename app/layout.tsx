@@ -53,11 +53,6 @@ export const metadata: Metadata = {
     description: 'Decentralized identity platform with NFC-based authentication',
     creator: '@meld',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
 };
 
 // --- Viewport Configuration: Modern Next.js best practices ---
