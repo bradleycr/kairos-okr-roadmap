@@ -17,7 +17,7 @@ import { NFCGate } from '@/src/features/morningEight/components/NFCGate';
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAccount, useConnect, useDisconnect, useEnsName, useEnsAvatar } from 'wagmi';
-import { injected, metaMask, walletConnect, coinbaseWallet } from 'wagmi/connectors';
+import { injected, metaMask, coinbaseWallet } from 'wagmi/connectors';
 import { notFound } from 'next/navigation';
 
 // Custom QR Code Generator Component
@@ -552,14 +552,34 @@ const ProfilePage = () => {
     }
   }
 
-  // Wallet Integration Functions - REPLACE EXISTING ONES
+  // Wallet Integration Functions - Simplified and Fixed
   const connectWallet = async (connectorType: string) => {
-    const connector = connectors.find(c => 
-      c.name.toLowerCase().includes(connectorType.toLowerCase())
-    );
-    
-    if (connector) {
-      connect({ connector });
+    try {
+      let targetConnector;
+      
+      // Map connector types to actual available connectors
+      switch (connectorType.toLowerCase()) {
+        case 'metamask':
+          targetConnector = connectors.find(c => c.name === 'MetaMask');
+          break;
+        case 'coinbase':
+          targetConnector = connectors.find(c => c.name === 'Coinbase Wallet');
+          break;
+        case 'injected':
+          targetConnector = connectors.find(c => c.name === 'Injected');
+          break;
+        default:
+          targetConnector = connectors[0]; // Fallback to first available
+      }
+      
+      if (targetConnector) {
+        console.log(`Connecting to ${targetConnector.name}...`);
+        connect({ connector: targetConnector });
+      } else {
+        console.error(`Connector ${connectorType} not found`);
+      }
+    } catch (error) {
+      console.error('Wallet connection failed:', error);
     }
   };
 
@@ -815,10 +835,6 @@ const ProfilePage = () => {
               <span className="hidden sm:inline font-medium">Morning</span>
               <span className="sm:hidden text-xs">8min</span>
             </TabsTrigger>
-            <TabsTrigger value="wallet" className="flex items-center space-x-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
-              <Wallet className="w-4 h-4" />
-              <span className="hidden sm:inline ml-2">Wallet</span>
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="identity" className="mt-6 space-y-6">
@@ -984,7 +1000,7 @@ const ProfilePage = () => {
                   )}
 
                   {/* Wallet Connection Options */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* MetaMask */}
                     <Card className="hover:border-orange-300 transition-colors cursor-pointer group" onClick={() => connectWallet('metamask')}>
                       <CardContent className="p-6">
@@ -1020,41 +1036,7 @@ const ProfilePage = () => {
                       </CardContent>
                     </Card>
 
-                    {/* WalletConnect */}
-                    <Card className="hover:border-blue-300 transition-colors cursor-pointer group" onClick={() => connectWallet('walletconnect')}>
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors dark:bg-blue-950/30">
-                            <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
-                              <path d="M5.5 8.5C8.5 5.5 13.5 5.5 16.5 8.5L17.5 9.5C17.8 9.8 17.8 10.2 17.5 10.5L16.5 11.5C16.2 11.8 15.8 11.8 15.5 11.5L14.8 10.8C12.8 8.8 9.2 8.8 7.2 10.8L6.5 11.5C6.2 11.8 5.8 11.8 5.5 11.5L4.5 10.5C4.2 10.2 4.2 9.8 4.5 9.5L5.5 8.5Z" fill="#3B99FC"/>
-                              <path d="M19.5 12.5L20.5 13.5C20.8 13.8 20.8 14.2 20.5 14.5L12.5 22.5C12.2 22.8 11.8 22.8 11.5 22.5L3.5 14.5C3.2 14.2 3.2 13.8 3.5 13.5L4.5 12.5C4.8 12.2 5.2 12.2 5.5 12.5L11.5 18.5C11.8 18.8 12.2 18.8 12.5 18.5L18.5 12.5C18.8 12.2 19.2 12.2 19.5 12.5Z" fill="#3B99FC"/>
-                            </svg>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-slate-900 dark:text-slate-100">WalletConnect</h4>
-                            <p className="text-sm text-muted-foreground">Scan with any wallet</p>
-                          </div>
-                        </div>
-                        <Button 
-                          disabled={isLoading}
-                          variant="outline"
-                          className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300"
-                          size="sm"
-                        >
-                          {isLoading ? 'Connecting...' : 'Connect with QR'}
-                        </Button>
-                        <div className="mt-3 space-y-1">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>300+ wallets supported</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>Mobile-first experience</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+
 
                     {/* Coinbase Wallet */}
                     <Card className="hover:border-indigo-300 transition-colors cursor-pointer group" onClick={() => connectWallet('coinbase')}>
@@ -1269,298 +1251,6 @@ const ProfilePage = () => {
                 </CardContent>
               </Card>
             </motion.div>
-          </TabsContent>
-
-          <TabsContent value="wallet" className="space-y-6">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    Web3 Wallet
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Connect your wallet to access Web3 features
-                  </p>
-                </div>
-                <Badge variant="outline" className="border-primary/50 text-primary">
-                  Modern Integration
-                </Badge>
-              </div>
-
-              {isConnected ? (
-                // Connected State
-                <div className="space-y-4">
-                  <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          {ensAvatar && (
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage src={ensAvatar} alt="ENS Avatar" />
-                              <AvatarFallback>
-                                <Wallet className="h-6 w-6" />
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                              <span className="font-semibold text-green-800 dark:text-green-200">
-                                Wallet Connected
-                              </span>
-                            </div>
-                            <p className="text-sm text-green-600 dark:text-green-400">
-                              {connector?.name} • {ensName || `${address?.slice(0, 6)}...${address?.slice(-4)}`}
-                            </p>
-                            {ensName && (
-                              <p className="text-xs text-muted-foreground font-mono">
-                                {address}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          onClick={disconnectWallet}
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/20"
-                        >
-                          Disconnect
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Wallet Actions */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card className="hover:border-primary/50 transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/30">
-                            <ExternalLink className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">View on Explorer</h4>
-                            <p className="text-sm text-muted-foreground">Check transactions</p>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full"
-                          onClick={() => window.open(`https://etherscan.io/address/${address}`, '_blank')}
-                        >
-                          Open Etherscan
-                        </Button>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="hover:border-primary/50 transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="p-2 bg-purple-100 rounded-lg dark:bg-purple-950/30">
-                            <Copy className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Copy Address</h4>
-                            <p className="text-sm text-muted-foreground">Share your address</p>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full"
-                          onClick={() => navigator.clipboard.writeText(address || '')}
-                        >
-                          Copy to Clipboard
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              ) : (
-                // Disconnected State
-                <div className="space-y-6">
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-slate-800">
-                      <Wallet className="h-8 w-8 text-slate-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                      No Wallet Connected
-                    </h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                      Connect your Web3 wallet to access DeFi features, NFTs, and blockchain interactions
-                    </p>
-                  </div>
-
-                  {connectError && (
-                    <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                      <AlertDescription className="text-red-700 dark:text-red-300">
-                        {connectError.message}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Wallet Connection Options */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* MetaMask */}
-                    <Card className="hover:border-orange-300 transition-colors cursor-pointer group" onClick={() => connectWallet('metamask')}>
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200 transition-colors dark:bg-orange-950/30">
-                            <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
-                              <path d="M22.05 8.76L12.84 1.2a1.24 1.24 0 0 0-1.68 0L1.95 8.76a1.24 1.24 0 0 0-.45.95v6.58c0 .37.16.72.45.95l9.21 7.56c.5.41 1.18.41 1.68 0l9.21-7.56c.29-.23.45-.58.45-.95V9.71c0-.37-.16-.72-.45-.95z" fill="#F6851B"/>
-                              <path d="M12 15.84L7.2 12l4.8-3.84L16.8 12l-4.8 3.84z" fill="#E2761B"/>
-                            </svg>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-slate-900 dark:text-slate-100">MetaMask</h4>
-                            <p className="text-sm text-muted-foreground">Most popular wallet</p>
-                          </div>
-                        </div>
-                        <Button 
-                          disabled={isLoading}
-                          className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                          size="sm"
-                        >
-                          {isLoading ? 'Connecting...' : 'Connect MetaMask'}
-                        </Button>
-                        <div className="mt-3 space-y-1">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>Browser extension</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>Mobile app support</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* WalletConnect */}
-                    <Card className="hover:border-blue-300 transition-colors cursor-pointer group" onClick={() => connectWallet('walletconnect')}>
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors dark:bg-blue-950/30">
-                            <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
-                              <path d="M5.5 8.5C8.5 5.5 13.5 5.5 16.5 8.5L17.5 9.5C17.8 9.8 17.8 10.2 17.5 10.5L16.5 11.5C16.2 11.8 15.8 11.8 15.5 11.5L14.8 10.8C12.8 8.8 9.2 8.8 7.2 10.8L6.5 11.5C6.2 11.8 5.8 11.8 5.5 11.5L4.5 10.5C4.2 10.2 4.2 9.8 4.5 9.5L5.5 8.5Z" fill="#3B99FC"/>
-                              <path d="M19.5 12.5L20.5 13.5C20.8 13.8 20.8 14.2 20.5 14.5L12.5 22.5C12.2 22.8 11.8 22.8 11.5 22.5L3.5 14.5C3.2 14.2 3.2 13.8 3.5 13.5L4.5 12.5C4.8 12.2 5.2 12.2 5.5 12.5L11.5 18.5C11.8 18.8 12.2 18.8 12.5 18.5L18.5 12.5C18.8 12.2 19.2 12.2 19.5 12.5Z" fill="#3B99FC"/>
-                            </svg>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-slate-900 dark:text-slate-100">WalletConnect</h4>
-                            <p className="text-sm text-muted-foreground">Scan with any wallet</p>
-                          </div>
-                        </div>
-                        <Button 
-                          disabled={isLoading}
-                          variant="outline"
-                          className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300"
-                          size="sm"
-                        >
-                          {isLoading ? 'Connecting...' : 'Connect with QR'}
-                        </Button>
-                        <div className="mt-3 space-y-1">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>300+ wallets supported</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>Mobile-first experience</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Coinbase Wallet */}
-                    <Card className="hover:border-indigo-300 transition-colors cursor-pointer group" onClick={() => connectWallet('coinbase')}>
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:bg-indigo-200 transition-colors dark:bg-indigo-950/30">
-                            <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
-                              <circle cx="12" cy="12" r="10" fill="#0052FF"/>
-                              <path d="M8 12h8M12 8v8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                            </svg>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-slate-900 dark:text-slate-100">Coinbase Wallet</h4>
-                            <p className="text-sm text-muted-foreground">Self-custody wallet</p>
-                          </div>
-                        </div>
-                        <Button 
-                          disabled={isLoading}
-                          variant="outline"
-                          className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300"
-                          size="sm"
-                        >
-                          {isLoading ? 'Connecting...' : 'Connect Coinbase'}
-                        </Button>
-                        <div className="mt-3 space-y-1">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>Built-in DeFi browser</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>Multi-chain support</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Injected/Other */}
-                    <Card className="hover:border-slate-300 transition-colors cursor-pointer group" onClick={() => connectWallet('injected')}>
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-slate-200 transition-colors dark:bg-slate-800">
-                            <Wallet className="w-7 h-7 text-slate-600 dark:text-slate-400" />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-slate-900 dark:text-slate-100">Other Wallets</h4>
-                            <p className="text-sm text-muted-foreground">Browser injected</p>
-                          </div>
-                        </div>
-                        <Button 
-                          disabled={isLoading}
-                          variant="outline"
-                          className="w-full"
-                          size="sm"
-                        >
-                          {isLoading ? 'Connecting...' : 'Connect Wallet'}
-                        </Button>
-                        <div className="mt-3 space-y-1">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>Brave, Trust Wallet</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>Hardware wallets</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">
-                      Don't have a wallet?{' '}
-                      <a 
-                        href="https://ethereum.org/en/wallets/find-wallet/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        Learn how to get one
-                      </a>
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
           </TabsContent>
         </Tabs>
       </div>
