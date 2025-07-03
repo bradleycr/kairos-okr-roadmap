@@ -5,150 +5,111 @@ north_star: >
 horizon_2025: 2025-12-31
 
 objectives:
-  # Q1 2025 — Core Platform Stability & Contributor Readiness
+
+  # Q1 2025 — Contributor Onboarding & Auth Foundation
   - id: Q1
-    title: Core Platform Stability & Contributor Readiness
+    title: Contributor Onboarding & Auth Foundation
     owner: Brad
     end: 2025-03-31
     krs:
       - id: Q1a
-        title: New contributor onboarding <10 minutes (measured for 10 new devs)
+        title: Setup docs enable <10-min contributor onboarding
         end: 2025-01-15
       - id: Q1b
-        title: 95% code documentation coverage (JSDoc for all hooks/utilities)
-        end: 2025-01-31
+        title: NFC auth ≥98 % success across devices (1 000-tap test)
+        end: 2025-02-28
       - id: Q1c
-        title: First PR path <30 minutes (clear contribution guidelines)
-        end: 2025-02-01
+        title: Wallet sign-in works (Chromium / Safari / PWA)
+        end: 2025-02-28
       - id: Q1d
-        title: 3 external contributors onboarded
-        end: 2025-03-01
-      - id: Q1e
-        title: NFC authentication >98% success rate across devices
-        end: 2025-02-28
-      - id: Q1f
-        title: Way-of-Flowers wallet connection >95% reliability
+        title: Final NFC-URL scheme spec + card-writer CLI 100 % accurate
         end: 2025-02-15
-      - id: Q1g
-        title: Morning Eight NFC auto-routing race-condition-free
-        end: 2025-02-28
-      - id: Q1h
-        title: Mobile experience optimized for iOS and Android
+      - id: Q1e
+        title: Profiles stored locally and DID-synced cross-device
         end: 2025-03-15
-      - id: Q1i
-        title: Contributor satisfaction survey and PR review time tracking
-        end: 2025-03-31
 
-  # Q2 2025 — User Experience, Hardware, & Research
+  # Q2 2025 — Performance & Pipeline
   - id: Q2
-    title: User Experience, Hardware, & Research
+    title: Performance & Pipeline Optimisation
     owner: Brad
     end: 2025-06-30
     krs:
       - id: Q2a
-        title: Cold start development server <2s consistently
+        title: Cold-start dev server <2 s consistently
         end: 2025-04-15
       - id: Q2b
-        title: Profile system with DID-based sync functional
-        end: 2025-05-31
-      - id: Q2c
-        title: Error recovery flows for all critical user journeys
+        title: Error-recovery flows for all critical journeys
         end: 2025-05-15
+      - id: Q2c
+        title: Comprehensive test suite >90 % coverage
+        end: 2025-06-15
       - id: Q2d
-        title: Comprehensive testing suite with >90% coverage
-        end: 2025-06-15
+        title: Automated production deploy pipeline (CI → Vercel)
+        end: 2025-06-30
       - id: Q2e
-        title: Production deployment pipeline automated
-        end: 2025-06-30
-      - id: Q2f
-        title: ESP32 firmware 90% complete (hardware authentication)
-        end: 2025-06-01
-      - id: Q2g
-        title: Ritual Designer MVP (ESP32 sketch design interface)
-        end: 2025-06-15
-      - id: Q2h
-        title: Hardware simulation 100% accurate
-        end: 2025-06-15
-      - id: Q2i
-        title: 3 documented installation templates (reusable community space designs)
-        end: 2025-06-30
-      - id: Q2j
-        title: 2 academic partnerships (universities using KairOS for research)
+        title: Mobile UX optimised for iOS & Android (<2 s FCP)
         end: 2025-06-30
 
-  # Q3 2025 — Community Deployments & Advanced Features
+  # Q3 2025 — Modular Repos & Ritual Designer
   - id: Q3
-    title: Community Deployments & Advanced Features
+    title: Modular Repos & Ritual Designer
     owner: Brad
     end: 2025-09-30
     krs:
+      # Repo split & deployments
       - id: Q3a
-        title: ZK proof system for privacy-preserving social bonding
-        end: 2025-08-31
+        title: kairos-core repo live, CI green, deployed at core.kairos.app
+        end: 2025-07-10
       - id: Q3b
-        title: Community installation framework (gallery demos)
-        end: 2025-09-15
+        title: ritual-designer repo live, deployed at designer.kairos.app
+        end: 2025-07-10
       - id: Q3c
-        title: Audio transcription and ritual generation polished
-        end: 2025-08-15
+        title: way-of-flowers repo live, deployed at flowers.kairos.app
+        end: 2025-07-10
       - id: Q3d
-        title: Cross-platform PWA with offline capabilities
-        end: 2025-09-30
+        title: Shared types package @kairos/common v0.1 published
+        end: 2025-07-20
       - id: Q3e
-        title: 10 ESP32 nodes deployed in 3 locations
-        end: 2025-09-01
+        title: 10-min dev script + MIT licence + CONTRIBUTING in each repo
+        end: 2025-07-31
+      # Simulation & Designer
       - id: Q3f
-        title: 100 NFC pendants produced (metal cryptographic jewelry)
-        end: 2025-09-01
+        title: Web simulation of full Way-of-Flowers ritual
+        end: 2025-07-25
       - id: Q3g
-        title: 5 community installations (Way-of-Flowers and similar projects)
-        end: 2025-09-15
+        title: Simulation preview embedded in Ritual Designer
+        end: 2025-07-31
       - id: Q3h
-        title: 1000 successful NFC authentications (hardware reliability)
-        end: 2025-09-30
+        title: Sketch editor compiles ESP32 binary (drag-and-drop)
+        end: 2025-08-08
       - id: Q3i
-        title: Community deployment guide and template library published
-        end: 2025-09-30
+        title: LAN OTA flash succeeds on dev board
+        end: 2025-08-15
+      - id: Q3j
+        title: Way-of-Flowers firmware flashed; tap → bloom works
+        end: 2025-08-30
+      - id: Q3k
+        title: Five simulated nodes run ritual 48 h without error
+        end: 2025-09-10
 
-  # Q4 2025 — Scale, Governance, & Open Source Maturity
+  # Q4 2025 — Open-Source Polish & Ecosystem
   - id: Q4
-    title: Scale, Governance, & Open Source Maturity
+    title: Open-Source Polish & Ecosystem
     owner: Brad
     end: 2025-12-31
     krs:
       - id: Q4a
-        title: Multi-installation support with management dashboard
+        title: Multi-installation dashboard (manage >1 ritual)
         end: 2025-11-30
       - id: Q4b
-        title: Developer API and SDK for third-party integrations
+        title: Developer API + SDK for third-party integrations
         end: 2025-12-15
       - id: Q4c
-        title: Documentation site with tutorials and examples
+        title: Docs site with step-by-step tutorials live
         end: 2025-11-15
       - id: Q4d
-        title: Community contribution guidelines and review process
+        title: Contribution guidelines + review process published
         end: 2025-10-31
       - id: Q4e
-        title: Performance benchmarks and monitoring dashboard
-        end: 2025-12-31
-      - id: Q4f
-        title: Governance voting system (cryptographic community decision-making)
-        end: 2025-12-01
-      - id: Q4g
-        title: Resource allocation tools (community-controlled infrastructure funding)
-        end: 2025-12-15
-      - id: Q4h
-        title: Conflict resolution mechanisms (decentralized dispute handling)
-        end: 2025-12-20
-      - id: Q4i
-        title: 5 self-governing communities (independent digital spaces)
-        end: 2025-12-31
-      - id: Q4j
-        title: Local social graphs and proximity-based interactions
-        end: 2025-12-31
-      - id: Q4k
-        title: Community reputation systems and zero data collection
-        end: 2025-12-31
-      - id: Q4l
-        title: 1000+ active users, 10+ installations, 20+ art projects, 5+ university partnerships
+        title: Performance monitoring dashboard (Core Web Vitals)
         end: 2025-12-31 
