@@ -86,6 +86,12 @@ const navItems: NavItemWithChildren[] = [
     description: 'User profile and dashboard'
   },
   {
+    href: '/okr-dashboard',
+    label: 'OKRs',
+    icon: <LayersIcon className="h-4 w-4" />,
+    description: 'Live objectives and key results tracking'
+  },
+  {
     href: '/admin/installations',
     label: 'Installations',
     icon: <GlobeIcon className="h-4 w-4" />,
