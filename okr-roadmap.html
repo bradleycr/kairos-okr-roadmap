@@ -172,6 +172,36 @@
             transition: width 0.5s ease;
         }
 
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .quarter {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .quarter.hidden {
+            opacity: 0.3;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+
+        .controls select {
+            transition: all 0.2s ease;
+        }
+
+        .controls select:focus {
+            box-shadow: 0 0 0 3px rgba(168, 184, 157, 0.3);
+            outline: none;
+        }
+
         .progress-ahead { background: linear-gradient(90deg, rgb(149, 189, 152), rgb(168, 184, 157)); }
         .progress-on-track { background: linear-gradient(90deg, rgb(144, 193, 196), rgb(168, 184, 157)); }
         .progress-at-risk { background: linear-gradient(90deg, rgb(245, 181, 145), rgb(237, 164, 154)); }
@@ -601,39 +631,213 @@ Generated: ${new Date().toLocaleDateString()}
             const description = document.getElementById('description').value;
 
             if (!taskName || !startDate || !endDate) {
-                alert('Please fill in task name, start date, and end date.');
+                showMessage('❌ Please fill in task name, start date, and end date.', 'warning');
                 return;
             }
 
-            alert(`✅ Task Added Successfully!\n\nTask: ${taskName}\nCategory: ${category}\nDuration: ${startDate} to ${endDate}\nProgress: ${progress}%\n\nDescription: ${description}\n\nThis would be saved to the GitHub repository and sync with issues.`);
+            // Show processing message
+            showMessage('🔄 Adding task to GitHub repository...', 'info');
             
-            // Clear form
-            document.getElementById('taskName').value = '';
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            document.getElementById('progress').value = '';
-            document.getElementById('description').value = '';
+            // Simulate API call delay
+            setTimeout(() => {
+                showMessage(`✅ Task "${taskName}" added successfully!`, 'success');
+                
+                // Create a temporary visual representation
+                const tempTask = document.createElement('div');
+                tempTask.style.cssText = `
+                    background: rgba(34, 197, 94, 0.1);
+                    border: 2px solid rgb(34, 197, 94);
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin: 10px 0;
+                    position: relative;
+                    animation: slideIn 0.3s ease;
+                `;
+                tempTask.innerHTML = `
+                    <strong>${taskName}</strong><br>
+                    <small>${startDate} → ${endDate} | ${progress}% complete</small><br>
+                    <em>${description}</em>
+                    <div style="position: absolute; top: 8px; right: 8px; color: rgb(34, 197, 94);">📝 New</div>
+                `;
+                
+                // Add to the appropriate quarter based on category
+                const targetQuarter = category === 'stability' ? 0 : 
+                                    category === 'performance' ? 1 : 
+                                    category === 'advanced' ? 2 : 3;
+                
+                const quarters = document.querySelectorAll('.quarter');
+                if (quarters[targetQuarter]) {
+                    quarters[targetQuarter].appendChild(tempTask);
+                }
+                
+                // Clear form
+                document.getElementById('taskName').value = '';
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+                document.getElementById('progress').value = '';
+                document.getElementById('description').value = '';
+                
+                // Note about GitHub integration
+                setTimeout(() => {
+                    showMessage('💡 To persist changes, edit okrs.yml in the repository', 'info');
+                }, 2000);
+            }, 1500);
         }
 
         function updateChart() {
-            alert('🔄 Updating charts with latest data...\n\nThis will refresh all Gantt charts and progress indicators with the most current information from the GitHub repository.');
-            location.reload();
+            showMessage('🔄 Updating charts with latest data...', 'info');
+            
+            // Re-render all Mermaid charts
+            mermaid.init(undefined, '.mermaid');
+            
+            // Reset any filters
+            document.getElementById('viewSelect').value = 'quarterly';
+            document.getElementById('categorySelect').value = 'all';
+            
+            // Show all quarters
+            const quarters = document.querySelectorAll('.quarter');
+            quarters.forEach(quarter => {
+                quarter.style.display = 'block';
+                quarter.classList.remove('hidden');
+            });
+            
+            // Update progress bars with animation
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const currentWidth = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = currentWidth;
+                }, 100);
+            });
+            
+            setTimeout(() => {
+                showMessage('✅ Charts updated successfully!', 'success');
+            }, 1000);
         }
 
         // View and category filtering
         document.getElementById('viewSelect').addEventListener('change', function() {
             const view = this.value;
-            alert(`📊 Switching to ${view} view...\n\nThis will adjust the timeline granularity and update all charts accordingly.`);
+            updateChartsView(view);
         });
 
         document.getElementById('categorySelect').addEventListener('change', function() {
             const category = this.value;
-            if (category === 'all') {
-                alert('📋 Showing all categories...');
-            } else {
-                alert(`🔍 Filtering to show only: ${category}\n\nThis will highlight relevant tasks and hide others for focused viewing.`);
-            }
+            filterByCategory(category);
         });
+
+        function updateChartsView(view) {
+            // Update all Mermaid charts with new date format based on view
+            const charts = document.querySelectorAll('.mermaid');
+            
+            charts.forEach(chart => {
+                let chartContent = chart.textContent;
+                
+                // Update axisFormat based on view
+                if (view === 'weekly') {
+                    chartContent = chartContent.replace(/axisFormat %b %d/g, 'axisFormat %m/%d');
+                } else if (view === 'monthly') {
+                    chartContent = chartContent.replace(/axisFormat %b %d/g, 'axisFormat %b');
+                } else { // quarterly
+                    chartContent = chartContent.replace(/axisFormat %m\/%d|axisFormat %b/g, 'axisFormat %b %d');
+                }
+                
+                chart.textContent = chartContent;
+            });
+            
+            // Re-render all charts
+            mermaid.init(undefined, '.mermaid');
+            
+            // Show success message
+            showMessage(`📊 Switched to ${view} view`, 'success');
+        }
+
+        function filterByCategory(category) {
+            const quarters = document.querySelectorAll('.quarter');
+            
+            quarters.forEach(quarter => {
+                const quarterHeader = quarter.querySelector('.quarter-header').textContent.toLowerCase();
+                let shouldShow = true;
+                
+                if (category !== 'all') {
+                    shouldShow = false;
+                    
+                    if (category === 'stability' && quarterHeader.includes('core platform stability')) {
+                        shouldShow = true;
+                    } else if (category === 'performance' && quarterHeader.includes('performance')) {
+                        shouldShow = true;
+                    } else if (category === 'advanced' && quarterHeader.includes('advanced features')) {
+                        shouldShow = true;
+                    } else if (category === 'scale' && quarterHeader.includes('scale')) {
+                        shouldShow = true;
+                    }
+                }
+                
+                if (shouldShow) {
+                    quarter.style.display = 'block';
+                    quarter.classList.remove('hidden');
+                } else {
+                    quarter.classList.add('hidden');
+                    setTimeout(() => {
+                        if (quarter.classList.contains('hidden')) {
+                            quarter.style.display = 'none';
+                        }
+                    }, 300);
+                }
+            });
+            
+            // Show filter message
+            const categoryName = category === 'all' ? 'All Categories' : 
+                                category === 'stability' ? 'Core Platform Stability' :
+                                category === 'performance' ? 'Performance & UX' :
+                                category === 'advanced' ? 'Advanced Features' :
+                                'Scale & OSS Maturity';
+            
+            showMessage(`🔍 Filtered to: ${categoryName}`, 'info');
+        }
+
+        function showMessage(text, type) {
+            // Create or update message element
+            let messageEl = document.getElementById('filter-message');
+            if (!messageEl) {
+                messageEl = document.createElement('div');
+                messageEl.id = 'filter-message';
+                messageEl.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: 500;
+                    z-index: 1000;
+                    transition: all 0.3s ease;
+                `;
+                document.body.appendChild(messageEl);
+            }
+            
+            // Set color based on type
+            const colors = {
+                success: 'rgb(34, 197, 94)',
+                info: 'rgb(59, 130, 246)',
+                warning: 'rgb(245, 158, 11)'
+            };
+            
+            messageEl.style.backgroundColor = colors[type] || colors.info;
+            messageEl.textContent = text;
+            messageEl.style.opacity = '1';
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                messageEl.style.opacity = '0';
+                setTimeout(() => {
+                    if (messageEl.parentNode) {
+                        messageEl.parentNode.removeChild(messageEl);
+                    }
+                }, 300);
+            }, 3000);
+        }
 
         // Set default dates
         const today = new Date().toISOString().split('T')[0];
