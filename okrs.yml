@@ -1,44 +1,51 @@
 north_star: >
-  Data Commons OS for democratic cryptography and privacy-preserving social computing.
+  Build KairOS: democratic cryptography, privacy-preserving social
+  computing, NFC identity.
 
 horizon_2025: 2025-09-15
 
 objectives:
-  # July 2025 — break the monolith, nail auth, web sim ready
+  # July 2025 — split repos, solid auth, first simulation
   - id: J1
-    title: Repos split & docs
+    title: Split repos and deploy
     owner: Sam
     end: 2025-07-31
     krs:
       - id: J1a
-        title: commons-os repo live, CI green
+        title: kairos-core repo live, CI green, deployed at core.kairos.app
         end: 2025-07-10
       - id: J1b
-        title: ritual-designer repo live, CI green
+        title: ritual-designer repo live, CI green, deployed at designer.kairos.app
         end: 2025-07-10
       - id: J1c
-        title: flowers-demo repo live, CI green
+        title: way-of-flowers repo live, CI green, deployed at flowers.kairos.app
         end: 2025-07-10
       - id: J1d
-        title: Shared types published as @kairos/common v0.1
+        title: Shared types package @kairos/common v0.1 published
         end: 2025-07-20
       - id: J1e
-        title: MIT licence + CONTRIBUTING + 10-min dev script
+        title: MIT licence, CONTRIBUTING, 10-min dev script in every repo
         end: 2025-07-31
 
   - id: J2
-    title: Identity & crypto solid
+    title: Authentication & identity complete
     owner: Lea
     end: 2025-07-31
     krs:
       - id: J2a
-        title: 1 000-tap stress test >98 % success, <50 ms
+        title: 1 000-tap stress test ≥98 % success, <50 ms
         end: 2025-07-25
       - id: J2b
-        title: Wallet sign-in ok (Chromium, Safari, PWA)
+        title: Wallet sign-in works on Chromium, Safari, PWA
         end: 2025-07-25
       - id: J2c
-        title: W3C Credential Manifest export
+        title: Profiles stored locally and synced via DID
+        end: 2025-07-31
+      - id: J2d
+        title: Final NFC-URL scheme documented & implemented
+        end: 2025-07-20
+      - id: J2e
+        title: Card-writer script loads 100 % of NFC cards without error
         end: 2025-07-31
 
   - id: J3
@@ -47,55 +54,52 @@ objectives:
     end: 2025-07-31
     krs:
       - id: J3a
-        title: Full ritual sim renders in browser
+        title: Full ritual simulation runs in web app
+        end: 2025-07-25
+      - id: J3b
+        title: Simulation preview embedded in ritual-designer
         end: 2025-07-31
 
-  # August 2025 — Ritual Designer + first firmware flash
+  # August 2025 — firmware pipeline & flashing
   - id: A1
-    title: Ritual-designer builds firmware
+    title: Ritual-designer builds & flashes firmware
     owner: Noor
     end: 2025-08-31
     krs:
       - id: A1a
-        title: Drag-and-drop sketch editor => ESP32 binary
-        end: 2025-08-15
+        title: Sketch editor compiles ESP32 binary
+        end: 2025-08-08
       - id: A1b
-        title: LAN OTA flash test passes on dev board
+        title: LAN OTA flash succeeds on dev board
         end: 2025-08-15
       - id: A1c
-        title: First firmware burned, tap→bloom works
+        title: Way-of-Flowers firmware flashed; tap→bloom works
         end: 2025-08-30
 
-  # September 2025 — Gallery install live
+  # September 2025 — installation-ready software & OSS polish
   - id: S1
-    title: Way-of-Flowers installation shipped
+    title: Way-of-Flowers software release
     owner: Mei
     end: 2025-09-15
     krs:
       - id: S1a
-        title: Five nodes assembled & bench-tested 48 h
-        end: 2025-08-30
-      - id: S1b
-        title: Gallery mount complete (magnetic) 10 Sep
+        title: Five simulated nodes run ritual 48 h without error
         end: 2025-09-10
-      - id: S1c
-        title: 200 NFC pendants minted
-        end: 2025-09-05
-      - id: S1d
-        title: 90 % visitor ritual completion; logs exported
+      - id: S1b
+        title: Log export to Dappnode demo completed
         end: 2025-09-15
 
   - id: S2
-    title: Open-source readiness
+    title: Open-source polish
     owner: Dan
     end: 2025-09-15
     krs:
       - id: S2a
-        title: GitHub Actions green across repos
+        title: GitHub Actions green across all repos
         end: 2025-08-31
       - id: S2b
         title: Issue templates + linter merged
         end: 2025-08-31
       - id: S2c
-        title: Public docs site live on Pages
+        title: Docs site live on GitHub Pages
         end: 2025-09-15 
