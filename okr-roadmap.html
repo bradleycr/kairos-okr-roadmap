@@ -14,8 +14,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
+            background: linear-gradient(135deg, rgb(245, 181, 145) 0%, rgb(168, 184, 157) 100%);
+            color: rgb(45, 42, 38);
             line-height: 1.6;
             min-height: 100vh;
         }
@@ -29,17 +29,17 @@
         .header {
             text-align: center;
             margin-bottom: 40px;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(252, 250, 247, 0.95);
             padding: 30px;
             border-radius: 20px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px rgba(45, 42, 38, 0.1);
         }
 
         .header h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, rgb(245, 181, 145), rgb(144, 193, 196));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -47,7 +47,7 @@
 
         .north-star {
             font-size: 1.2rem;
-            color: #666;
+            color: rgb(115, 110, 100);
             font-style: italic;
             margin-bottom: 20px;
         }
@@ -60,12 +60,12 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(252, 250, 247, 0.9);
             padding: 20px;
             border-radius: 15px;
             text-align: center;
             backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(45, 42, 38, 0.1);
             transition: transform 0.3s ease;
         }
 
@@ -76,21 +76,21 @@
         .stat-number {
             font-size: 2.5rem;
             font-weight: bold;
-            color: #667eea;
+            color: rgb(245, 181, 145);
         }
 
         .stat-label {
-            color: #666;
+            color: rgb(115, 110, 100);
             font-size: 0.9rem;
         }
 
         .controls {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(252, 250, 247, 0.9);
             padding: 20px;
             border-radius: 15px;
             margin-bottom: 30px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(45, 42, 38, 0.1);
         }
 
         .control-group {
@@ -103,7 +103,7 @@
 
         .control-group label {
             font-weight: 600;
-            color: #555;
+            color: rgb(79, 70, 59);
         }
 
         .control-group select, .control-group button {
@@ -116,8 +116,8 @@
         }
 
         .control-group button {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: linear-gradient(135deg, rgb(245, 181, 145), rgb(168, 184, 157));
+            color: rgb(79, 70, 59);
             border: none;
             cursor: pointer;
             font-weight: 600;
@@ -125,7 +125,7 @@
 
         .control-group button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 15px rgba(245, 181, 145, 0.4);
         }
 
         .timeline {
@@ -147,8 +147,8 @@
         }
 
         .quarter-header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: linear-gradient(135deg, rgb(245, 181, 145), rgb(168, 184, 157));
+            color: rgb(79, 70, 59);
             padding: 20px;
             font-size: 1.3rem;
             font-weight: bold;
@@ -172,10 +172,10 @@
             transition: width 0.5s ease;
         }
 
-        .progress-ahead { background: linear-gradient(90deg, #4CAF50, #45a049); }
-        .progress-on-track { background: linear-gradient(90deg, #2196F3, #1976D2); }
-        .progress-at-risk { background: linear-gradient(90deg, #FF9800, #F57C00); }
-        .progress-behind { background: linear-gradient(90deg, #F44336, #D32F2F); }
+        .progress-ahead { background: linear-gradient(90deg, rgb(149, 189, 152), rgb(168, 184, 157)); }
+        .progress-on-track { background: linear-gradient(90deg, rgb(144, 193, 196), rgb(168, 184, 157)); }
+        .progress-at-risk { background: linear-gradient(90deg, rgb(245, 181, 145), rgb(237, 164, 154)); }
+        .progress-behind { background: linear-gradient(90deg, rgb(237, 164, 154), rgb(245, 181, 145)); }
 
         .mermaid-container {
             background: white;
@@ -274,24 +274,24 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 KairOS OKR Roadmap 2025</h1>
+            <h1>KairOS OKR Roadmap 2025</h1>
             <p class="north-star">Build KairOS: democratic cryptography, privacy-preserving social computing, NFC identity.</p>
             
             <div class="stats">
                 <div class="stat-card">
-                    <div class="stat-number">75%</div>
+                    <div class="stat-number">25%</div>
                     <div class="stat-label">Overall Progress</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">6</div>
+                    <div class="stat-number">4</div>
                     <div class="stat-label">Active Objectives</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">18</div>
+                    <div class="stat-number">17</div>
                     <div class="stat-label">Key Results</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">Sep 15</div>
+                    <div class="stat-number">Dec 31</div>
                     <div class="stat-label">2025 Horizon</div>
                 </div>
             </div>
@@ -309,11 +309,10 @@
                 <label>Category:</label>
                 <select id="categorySelect">
                     <option value="all">All Categories</option>
-                    <option value="repos">Repository Split</option>
-                    <option value="auth">Authentication</option>
-                    <option value="simulation">WoF</option>
-                    <option value="firmware">Firmware</option>
-                    <option value="oss">Open Source</option>
+                    <option value="stability">Core Platform Stability</option>
+                    <option value="performance">Performance & UX</option>
+                    <option value="advanced">Advanced Features</option>
+                    <option value="scale">Scale & OSS Maturity</option>
                 </select>
 
                 <button onclick="saveToGitHub()">💾 Save to GitHub</button>
@@ -323,104 +322,121 @@
         </div>
 
         <div class="timeline">
-            <h2>📅 2025 Timeline: July → September</h2>
+            <h2>2025 Timeline: Quarterly Software Development</h2>
             <div style="display: flex; justify-content: space-between; margin: 20px 0; font-weight: bold;">
+                <span>2025 Q1</span>
                 <span>2025 Q2</span>
                 <span>2025 Q3</span>
                 <span>2025 Q4</span>
             </div>
         </div>
 
-        <!-- July 2025: Repository Split & Authentication -->
+        <!-- Q1 2025: Core Platform Stability & Contributor Readiness -->
         <div class="quarter">
             <div class="quarter-header">
-                🔧 July 2025: Repository Split & Authentication
+                Q1 2025: Core Platform Stability & Contributor Readiness
                 <div class="progress-bar">
-                    <div class="progress-fill progress-on-track" style="width: 85%"></div>
+                    <div class="progress-fill progress-ahead" style="width: 90%"></div>
                 </div>
-                85% Complete - On Track
+                90% Complete - Ahead of Schedule
             </div>
             <div class="quarter-content">
                 <div class="mermaid-container">
                     <div class="mermaid">
 gantt
-    title July 2025 - Repository Split & Authentication
+    title Q1 2025 - Core Platform Stability & Contributor Readiness
     dateFormat YYYY-MM-DD
     axisFormat %b %d
     
-    section J1: Split repos and deploy
-    kairos-core repo live :active, j1a, 2025-07-03, 2025-07-10
-    ritual-designer repo live :active, j1b, 2025-07-03, 2025-07-10
-    way-of-flowers repo live :active, j1c, 2025-07-03, 2025-07-10
-    Shared types kairos/common v0.1 :active, j1d, 2025-07-03, 2025-07-20
-    MIT licence & dev scripts :active, j1e, 2025-07-03, 2025-07-31
-    
-    section J2: Authentication & identity
-    1000-tap stress test 98%+ :active, j2a, 2025-07-03, 2025-07-25
-    Wallet sign-in (all browsers) :active, j2b, 2025-07-03, 2025-07-25
-    Profiles via DID :active, j2c, 2025-07-03, 2025-07-31
-    NFC-URL scheme final :active, j2d, 2025-07-03, 2025-07-20
-    Card-writer script 100% :active, j2e, 2025-07-11, 2025-07-31
-    
-    section J3: WoF simulation
-    Full ritual web simulation :active, j3a, 2025-07-03, 2025-07-25
-    Simulation in ritual-designer :active, j3b, 2025-07-03, 2025-07-31
+    section Q1: Core Platform Stability
+    Setup docs 10min onboarding :done, q1a, 2025-01-01, 2025-01-15
+    NFC auth 98%+ success rate :active, q1b, 2025-01-15, 2025-02-28
+    WoF wallet 95%+ reliability :done, q1c, 2025-01-15, 2025-02-15
+    Morning Eight race-condition-free :done, q1d, 2025-01-15, 2025-02-28
+    Mobile experience optimized :active, q1e, 2025-02-01, 2025-03-15
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- August 2025: Firmware Pipeline -->
+        <!-- Q2 2025: User Experience & Performance -->
         <div class="quarter">
             <div class="quarter-header">
-                ⚡ August 2025: Firmware Pipeline & Flashing
+                Q2 2025: User Experience & Performance Optimization
                 <div class="progress-bar">
-                    <div class="progress-fill progress-on-track" style="width: 45%"></div>
+                    <div class="progress-fill progress-on-track" style="width: 15%"></div>
                 </div>
-                45% Complete - On Track
+                15% Complete - On Track
             </div>
             <div class="quarter-content">
                 <div class="mermaid-container">
                     <div class="mermaid">
 gantt
-    title August 2025 - Firmware Pipeline & Flashing
+    title Q2 2025 - User Experience & Performance Optimization
     dateFormat YYYY-MM-DD
     axisFormat %b %d
     
-    section A1: Ritual-designer builds & flashes firmware
-    Sketch editor compiles ESP32 :active, a1a, 2025-07-09, 2025-08-08
-    LAN OTA flash dev board :active, a1b, 2025-07-16, 2025-08-15
-    WoF firmware flash :active, a1c, 2025-07-03, 2025-08-30
+    section Q2: UX & Performance
+    Cold start dev server 2s :active, q2a, 2025-04-01, 2025-04-15
+    Profile system DID sync :active, q2b, 2025-04-15, 2025-05-31
+    Error recovery flows :active, q2c, 2025-04-01, 2025-05-15
+    Testing suite 90%+ coverage :active, q2d, 2025-05-01, 2025-06-15
+    Production deployment pipeline :active, q2e, 2025-05-15, 2025-06-30
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- September 2025: Way-of-Flowers Release -->
+        <!-- Q3 2025: Advanced Features & Community -->
         <div class="quarter">
             <div class="quarter-header">
-                🌸 September 2025: WoF Software Release
+                Q3 2025: Advanced Features & Community Platform
                 <div class="progress-bar">
-                    <div class="progress-fill progress-at-risk" style="width: 25%"></div>
+                    <div class="progress-fill progress-at-risk" style="width: 5%"></div>
                 </div>
-                25% Complete - Critical Path
+                5% Complete - Future Planning
             </div>
             <div class="quarter-content">
                 <div class="mermaid-container">
                     <div class="mermaid">
 gantt
-    title September 2025 - WoF Release & OSS Polish
+    title Q3 2025 - Advanced Features & Community Platform
     dateFormat YYYY-MM-DD
     axisFormat %b %d
     
-    section S1: WoF software release
-    Five nodes 48h ritual test :active, s1a, 2025-08-11, 2025-09-10
-    Log export Dappnode demo :active, s1b, 2025-08-16, 2025-09-15
+    section Q3: Advanced Features
+    ZK proof system privacy bonding :active, q3a, 2025-07-01, 2025-08-31
+    Community installation framework :active, q3b, 2025-08-01, 2025-09-15
+    Audio transcription polished :active, q3c, 2025-07-15, 2025-08-15
+    Cross-platform PWA offline :active, q3d, 2025-08-15, 2025-09-30
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Q4 2025: Scale & Open Source Maturity -->
+        <div class="quarter">
+            <div class="quarter-header">
+                Q4 2025: Scale & Open Source Maturity
+                <div class="progress-bar">
+                    <div class="progress-fill progress-behind" style="width: 0%"></div>
+                </div>
+                0% Complete - Future Planning
+            </div>
+            <div class="quarter-content">
+                <div class="mermaid-container">
+                    <div class="mermaid">
+gantt
+    title Q4 2025 - Scale & Open Source Maturity
+    dateFormat YYYY-MM-DD
+    axisFormat %b %d
     
-    section S2: Open-source polish
-    GitHub Actions all repos :active, s2a, 2025-08-01, 2025-08-31
-    Issue templates & linter :active, s2b, 2025-08-01, 2025-08-31
-    Docs site GitHub Pages :active, s2c, 2025-08-16, 2025-09-15
+    section Q4: Scale & OSS
+    Multi-installation dashboard :active, q4a, 2025-10-01, 2025-11-30
+    Developer API and SDK :active, q4b, 2025-11-01, 2025-12-15
+    Documentation site tutorials :active, q4c, 2025-10-15, 2025-11-15
+    Contribution guidelines :active, q4d, 2025-10-01, 2025-10-31
+    Performance monitoring :active, q4e, 2025-11-15, 2025-12-31
                     </div>
                 </div>
             </div>
@@ -449,11 +465,10 @@ gantt
             <div class="form-group">
                 <label for="category">Category:</label>
                 <select id="category">
-                    <option value="repos">Repository Split</option>
-                    <option value="auth">Authentication</option>
-                    <option value="simulation">WoF</option>
-                    <option value="firmware">Firmware</option>
-                    <option value="oss">Open Source</option>
+                    <option value="stability">Core Platform Stability</option>
+                    <option value="performance">Performance & UX</option>
+                    <option value="advanced">Advanced Features</option>
+                    <option value="scale">Scale & OSS Maturity</option>
                 </select>
             </div>
             
@@ -480,24 +495,23 @@ gantt
             startOnLoad: true,
             theme: 'default',
             themeVariables: {
-                primaryColor: '#667eea',
-                primaryTextColor: '#333',
-                primaryBorderColor: '#764ba2',
-                lineColor: '#667eea',
-                sectionBkgColor: '#f8f9fa',
-                altSectionBkgColor: '#e9ecef',
-                gridColor: '#dee2e6',
-                textColor: '#333',
-                taskBkgColor: '#667eea',
-                taskTextColor: '#fff',
-                taskTextLightColor: '#333',
-                activeTaskBkgColor: '#764ba2',
-                activeTaskBorderColor: '#667eea',
-                gridColor: '#ddd',
-                section0: '#667eea',
-                section1: '#764ba2',
-                section2: '#f093fb',
-                section3: '#f5576c'
+                primaryColor: 'rgb(245, 181, 145)',
+                primaryTextColor: 'rgb(45, 42, 38)',
+                primaryBorderColor: 'rgb(168, 184, 157)',
+                lineColor: 'rgb(144, 193, 196)',
+                sectionBkgColor: 'rgb(252, 250, 247)',
+                altSectionBkgColor: 'rgb(248, 246, 242)',
+                gridColor: 'rgb(234, 227, 218)',
+                textColor: 'rgb(45, 42, 38)',
+                taskBkgColor: 'rgb(245, 181, 145)',
+                taskTextColor: 'rgb(79, 70, 59)',
+                taskTextLightColor: 'rgb(45, 42, 38)',
+                activeTaskBkgColor: 'rgb(168, 184, 157)',
+                activeTaskBorderColor: 'rgb(144, 193, 196)',
+                section0: 'rgb(245, 181, 145)',
+                section1: 'rgb(168, 184, 157)',
+                section2: 'rgb(144, 193, 196)',
+                section3: 'rgb(149, 189, 152)'
             }
         });
 
@@ -508,13 +522,13 @@ gantt
 
         function exportCSV() {
             const csvContent = `Task,Start Date,End Date,Category,Progress,Status
-kairos-core repo live,2025-07-03,2025-07-10,Repository Split,85%,Active
-ritual-designer repo live,2025-07-03,2025-07-10,Repository Split,85%,Active
-way-of-flowers repo live,2025-07-03,2025-07-10,Repository Split,85%,Active
-1000-tap stress test,2025-07-03,2025-07-25,Authentication,70%,Active
-WoF simulation,2025-07-03,2025-07-25,Simulation,60%,Active
-ESP32 firmware flash,2025-07-03,2025-08-30,Firmware,30%,Active
-Software release,2025-08-11,2025-09-15,WoF,25%,Critical`;
+Setup docs 10min onboarding,2025-01-01,2025-01-15,Core Platform Stability,100%,Complete
+NFC auth 98%+ success rate,2025-01-15,2025-02-28,Core Platform Stability,95%,Active
+WoF wallet 95%+ reliability,2025-01-15,2025-02-15,Core Platform Stability,100%,Complete
+Morning Eight race-condition-free,2025-01-15,2025-02-28,Core Platform Stability,100%,Complete
+Mobile experience optimized,2025-02-01,2025-03-15,Core Platform Stability,75%,Active
+Cold start dev server 2s,2025-04-01,2025-04-15,Performance & UX,0%,Planned
+Profile system DID sync,2025-04-15,2025-05-31,Performance & UX,0%,Planned`;
             
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
@@ -531,24 +545,31 @@ Software release,2025-08-11,2025-09-15,WoF,25%,Critical`;
 Generated: ${new Date().toLocaleDateString()}
 
 ## Executive Summary
-- Overall Progress: 75%
-- Critical Path: WoF September deadline
-- Key Risks: Firmware integration timeline
+- Overall Progress: 25%
+- Current Focus: Core Platform Stability (Q1 2025)
+- Key Achievements: Setup docs, wallet reliability, NFC improvements
 
-## Q2 2025 (July) - 85% Complete ✅
-- Repository split and deployment infrastructure
-- Authentication hardening and stress testing
-- WoF web simulation
+## Q1 2025 - 90% Complete ✅
+- Setup documentation enables 10min contributor onboarding
+- Way-of-Flowers wallet connection 95%+ reliability achieved
+- Morning Eight NFC auto-routing race-condition-free
+- Mobile experience optimization in progress
 
-## Q3 2025 (August-September) - 35% Complete ⚠️
-- Firmware pipeline development
-- WoF software release (CRITICAL)
-- Open-source polish and documentation
+## Q2 2025 - 15% Complete 🚧
+- User experience and performance optimization
+- Development server performance improvements
+- Profile system with DID-based sync
+- Comprehensive testing suite development
+
+## Q3-Q4 2025 - 0-5% Complete 📋
+- Advanced features: ZK proof system, community platform
+- Scale and open source maturity
+- Developer API and SDK development
 
 ## Recommendations
-1. Prioritize WoF firmware integration
-2. Parallel development of simulation and hardware
-3. Early community testing of authentication system
+1. Complete Q1 mobile experience optimization
+2. Begin Q2 performance optimization early
+3. Focus on real user needs vs theoretical features
             `;
             
             const blob = new Blob([report], { type: 'text/markdown' });
