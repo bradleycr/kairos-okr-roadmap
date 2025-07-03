@@ -1,0 +1,101 @@
+north_star: >
+  Data Commons OS for democratic cryptography and privacy-preserving social computing.
+
+horizon_2025: 2025-09-15
+
+objectives:
+  # July 2025 — break the monolith, nail auth, web sim ready
+  - id: J1
+    title: Repos split & docs
+    owner: Sam
+    end: 2025-07-31
+    krs:
+      - id: J1a
+        title: commons-os repo live, CI green
+        end: 2025-07-10
+      - id: J1b
+        title: ritual-designer repo live, CI green
+        end: 2025-07-10
+      - id: J1c
+        title: flowers-demo repo live, CI green
+        end: 2025-07-10
+      - id: J1d
+        title: Shared types published as @kairos/common v0.1
+        end: 2025-07-20
+      - id: J1e
+        title: MIT licence + CONTRIBUTING + 10-min dev script
+        end: 2025-07-31
+
+  - id: J2
+    title: Identity & crypto solid
+    owner: Lea
+    end: 2025-07-31
+    krs:
+      - id: J2a
+        title: 1 000-tap stress test >98 % success, <50 ms
+        end: 2025-07-25
+      - id: J2b
+        title: Wallet sign-in ok (Chromium, Safari, PWA)
+        end: 2025-07-25
+      - id: J2c
+        title: W3C Credential Manifest export
+        end: 2025-07-31
+
+  - id: J3
+    title: Way-of-Flowers web simulation
+    owner: Mei
+    end: 2025-07-31
+    krs:
+      - id: J3a
+        title: Full ritual sim renders in browser
+        end: 2025-07-31
+
+  # August 2025 — Ritual Designer + first firmware flash
+  - id: A1
+    title: Ritual-designer builds firmware
+    owner: Noor
+    end: 2025-08-31
+    krs:
+      - id: A1a
+        title: Drag-and-drop sketch editor => ESP32 binary
+        end: 2025-08-15
+      - id: A1b
+        title: LAN OTA flash test passes on dev board
+        end: 2025-08-15
+      - id: A1c
+        title: First firmware burned, tap→bloom works
+        end: 2025-08-30
+
+  # September 2025 — Gallery install live
+  - id: S1
+    title: Way-of-Flowers installation shipped
+    owner: Mei
+    end: 2025-09-15
+    krs:
+      - id: S1a
+        title: Five nodes assembled & bench-tested 48 h
+        end: 2025-08-30
+      - id: S1b
+        title: Gallery mount complete (magnetic) 10 Sep
+        end: 2025-09-10
+      - id: S1c
+        title: 200 NFC pendants minted
+        end: 2025-09-05
+      - id: S1d
+        title: 90 % visitor ritual completion; logs exported
+        end: 2025-09-15
+
+  - id: S2
+    title: Open-source readiness
+    owner: Dan
+    end: 2025-09-15
+    krs:
+      - id: S2a
+        title: GitHub Actions green across repos
+        end: 2025-08-31
+      - id: S2b
+        title: Issue templates + linter merged
+        end: 2025-08-31
+      - id: S2c
+        title: Public docs site live on Pages
+        end: 2025-09-15 
