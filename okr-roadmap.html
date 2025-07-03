@@ -1,4 +1,136 @@
-<!DOCTYPE html>
+const okrData = {
+  "north_star": "Build KairOS: democratic cryptography, privacy-preserving social computing, NFC identity.\n",
+  "horizon_2025": "2025-12-31T00:00:00.000Z",
+  "objectives": [
+    {
+      "id": "Q1",
+      "title": "Core Platform Stability & Contributor Readiness",
+      "owner": "Brad",
+      "end": "2025-03-31T00:00:00.000Z",
+      "krs": [
+        {
+          "id": "Q1a",
+          "title": "Setup documentation enables <10min contributor onboarding",
+          "end": "2025-01-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q1b",
+          "title": "NFC authentication >98% success rate across devices",
+          "end": "2025-02-28T00:00:00.000Z"
+        },
+        {
+          "id": "Q1c",
+          "title": "Way-of-Flowers wallet connection >95% reliability",
+          "end": "2025-02-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q1d",
+          "title": "Morning Eight NFC auto-routing race-condition-free",
+          "end": "2025-02-28T00:00:00.000Z"
+        },
+        {
+          "id": "Q1e",
+          "title": "Mobile experience optimized for iOS and Android",
+          "end": "2025-03-15T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "title": "User Experience & Performance Optimization",
+      "owner": "Brad",
+      "end": "2025-06-30T00:00:00.000Z",
+      "krs": [
+        {
+          "id": "Q2a",
+          "title": "Cold start development server <2s consistently",
+          "end": "2025-04-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q2b",
+          "title": "Profile system with DID-based sync functional",
+          "end": "2025-05-31T00:00:00.000Z"
+        },
+        {
+          "id": "Q2c",
+          "title": "Error recovery flows for all critical user journeys",
+          "end": "2025-05-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q2d",
+          "title": "Comprehensive testing suite with >90% coverage",
+          "end": "2025-06-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q2e",
+          "title": "Production deployment pipeline automated",
+          "end": "2025-06-30T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "title": "Advanced Features & Community Platform",
+      "owner": "Brad",
+      "end": "2025-09-30T00:00:00.000Z",
+      "krs": [
+        {
+          "id": "Q3a",
+          "title": "ZK proof system for privacy-preserving social bonding",
+          "end": "2025-08-31T00:00:00.000Z"
+        },
+        {
+          "id": "Q3b",
+          "title": "Community installation framework (gallery demos)",
+          "end": "2025-09-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q3c",
+          "title": "Audio transcription and ritual generation polished",
+          "end": "2025-08-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q3d",
+          "title": "Cross-platform PWA with offline capabilities",
+          "end": "2025-09-30T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "title": "Scale & Open Source Maturity",
+      "owner": "Brad",
+      "end": "2025-12-31T00:00:00.000Z",
+      "krs": [
+        {
+          "id": "Q4a",
+          "title": "Multi-installation support with management dashboard",
+          "end": "2025-11-30T00:00:00.000Z"
+        },
+        {
+          "id": "Q4b",
+          "title": "Developer API and SDK for third-party integrations",
+          "end": "2025-12-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q4c",
+          "title": "Documentation site with tutorials and examples",
+          "end": "2025-11-15T00:00:00.000Z"
+        },
+        {
+          "id": "Q4d",
+          "title": "Community contribution guidelines and review process",
+          "end": "2025-10-31T00:00:00.000Z"
+        },
+        {
+          "id": "Q4e",
+          "title": "Performance benchmarks and monitoring dashboard",
+          "end": "2025-12-31T00:00:00.000Z"
+        }
+      ]
+    }
+  ]
+};!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">

@@ -2,104 +2,90 @@ north_star: >
   Build KairOS: democratic cryptography, privacy-preserving social
   computing, NFC identity.
 
-horizon_2025: 2025-09-15
+horizon_2025: 2025-12-31
 
 objectives:
-  # July 2025 — split repos, solid auth, first simulation
-  - id: J1
-    title: Split repos and deploy
-    owner: Sam
-    end: 2025-07-31
+  # Q1 2025 — Core Platform Stability & Contributor Readiness
+  - id: Q1
+    title: Core Platform Stability & Contributor Readiness
+    owner: Brad
+    end: 2025-03-31
     krs:
-      - id: J1a
-        title: kairos-core repo live, CI green, deployed at core.kairos.app
-        end: 2025-07-10
-      - id: J1b
-        title: ritual-designer repo live, CI green, deployed at designer.kairos.app
-        end: 2025-07-10
-      - id: J1c
-        title: way-of-flowers repo live, CI green, deployed at flowers.kairos.app
-        end: 2025-07-10
-      - id: J1d
-        title: Shared types package @kairos/common v0.1 published
-        end: 2025-07-20
-      - id: J1e
-        title: MIT licence, CONTRIBUTING, 10-min dev script in every repo
-        end: 2025-07-31
+      - id: Q1a
+        title: Setup documentation enables <10min contributor onboarding
+        end: 2025-01-15
+      - id: Q1b
+        title: NFC authentication >98% success rate across devices
+        end: 2025-02-28
+      - id: Q1c
+        title: Way-of-Flowers wallet connection >95% reliability
+        end: 2025-02-15
+      - id: Q1d
+        title: Morning Eight NFC auto-routing race-condition-free
+        end: 2025-02-28
+      - id: Q1e
+        title: Mobile experience optimized for iOS and Android
+        end: 2025-03-15
 
-  - id: J2
-    title: Authentication & identity complete
-    owner: Lea
-    end: 2025-07-31
+  # Q2 2025 — User Experience & Performance
+  - id: Q2
+    title: User Experience & Performance Optimization
+    owner: Brad
+    end: 2025-06-30
     krs:
-      - id: J2a
-        title: 1 000-tap stress test ≥98 % success, <50 ms
-        end: 2025-07-25
-      - id: J2b
-        title: Wallet sign-in works on Chromium, Safari, PWA
-        end: 2025-07-25
-      - id: J2c
-        title: Profiles stored locally and synced via DID
-        end: 2025-07-31
-      - id: J2d
-        title: Final NFC-URL scheme documented & implemented
-        end: 2025-07-20
-      - id: J2e
-        title: Card-writer script loads 100 % of NFC cards without error
-        end: 2025-07-31
+      - id: Q2a
+        title: Cold start development server <2s consistently
+        end: 2025-04-15
+      - id: Q2b
+        title: Profile system with DID-based sync functional
+        end: 2025-05-31
+      - id: Q2c
+        title: Error recovery flows for all critical user journeys
+        end: 2025-05-15
+      - id: Q2d
+        title: Comprehensive testing suite with >90% coverage
+        end: 2025-06-15
+      - id: Q2e
+        title: Production deployment pipeline automated
+        end: 2025-06-30
 
-  - id: J3
-    title: Way-of-Flowers web simulation
-    owner: Mei
-    end: 2025-07-31
+  # Q3 2025 — Advanced Features & Community
+  - id: Q3
+    title: Advanced Features & Community Platform
+    owner: Brad
+    end: 2025-09-30
     krs:
-      - id: J3a
-        title: Full ritual simulation runs in web app
-        end: 2025-07-25
-      - id: J3b
-        title: Simulation preview embedded in ritual-designer
-        end: 2025-07-31
-
-  # August 2025 — firmware pipeline & flashing
-  - id: A1
-    title: Ritual-designer builds & flashes firmware
-    owner: Noor
-    end: 2025-08-31
-    krs:
-      - id: A1a
-        title: Sketch editor compiles ESP32 binary
-        end: 2025-08-08
-      - id: A1b
-        title: LAN OTA flash succeeds on dev board
-        end: 2025-08-15
-      - id: A1c
-        title: Way-of-Flowers firmware flashed; tap→bloom works
-        end: 2025-08-30
-
-  # September 2025 — installation-ready software & OSS polish
-  - id: S1
-    title: Way-of-Flowers software release
-    owner: Mei
-    end: 2025-09-15
-    krs:
-      - id: S1a
-        title: Five simulated nodes run ritual 48 h without error
-        end: 2025-09-10
-      - id: S1b
-        title: Log export to Dappnode demo completed
+      - id: Q3a
+        title: ZK proof system for privacy-preserving social bonding
+        end: 2025-08-31
+      - id: Q3b
+        title: Community installation framework (gallery demos)
         end: 2025-09-15
+      - id: Q3c
+        title: Audio transcription and ritual generation polished
+        end: 2025-08-15
+      - id: Q3d
+        title: Cross-platform PWA with offline capabilities
+        end: 2025-09-30
 
-  - id: S2
-    title: Open-source polish
-    owner: Dan
-    end: 2025-09-15
+  # Q4 2025 — Scale & Open Source Maturity
+  - id: Q4
+    title: Scale & Open Source Maturity
+    owner: Brad
+    end: 2025-12-31
     krs:
-      - id: S2a
-        title: GitHub Actions green across all repos
-        end: 2025-08-31
-      - id: S2b
-        title: Issue templates + linter merged
-        end: 2025-08-31
-      - id: S2c
-        title: Docs site live on GitHub Pages
-        end: 2025-09-15 
+      - id: Q4a
+        title: Multi-installation support with management dashboard
+        end: 2025-11-30
+      - id: Q4b
+        title: Developer API and SDK for third-party integrations
+        end: 2025-12-15
+      - id: Q4c
+        title: Documentation site with tutorials and examples
+        end: 2025-11-15
+      - id: Q4d
+        title: Community contribution guidelines and review process
+        end: 2025-10-31
+      - id: Q4e
+        title: Performance benchmarks and monitoring dashboard
+        end: 2025-12-31 
