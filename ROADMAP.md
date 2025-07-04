@@ -4,6 +4,11 @@
 
 
 
+
+
+
+
+
 ---
 
 ## 🌟 Vision & Mission
@@ -28,6 +33,75 @@ KairOS represents a paradigm shift toward **democratic cryptography** and **priv
 | **Q4** | Open-Source Polish & Ecosystem | Multi-installation, APIs, documentation | 🔵 Planned |
 
 ---
+
+## 🕒 Timeline Overview
+
+```mermaid
+timeline
+    title KairOS 2025 Timeline
+    Q1: Contributor Onboarding & Auth Foundation
+        : Q1a Setup docs enable <10-min cont...
+        : Q1b NFC auth ≥98 % success across ...
+        : Q1c Wallet sign-in works (Chromium...
+        : Q1d Final NFC-URL scheme spec + ca...
+        : Q1e Profiles stored locally and DI...
+    Q2: Performance & Pipeline Optimisation
+        : Q2a Cold-start dev server <2 s con...
+        : Q2b Error-recovery flows for all c...
+        : Q2c Comprehensive test suite >90 %...
+        : Q2d Automated production deploy pi...
+        : Q2e Mobile UX optimised for iOS & ...
+    Q3: Modular Repos & Ritual Designer
+        : Q3a kairos-core repo live, CI gree...
+        : Q3b ritual-designer repo live, dep...
+        : Q3c way-of-flowers repo live, depl...
+        : Q3d Shared types package @kairos/c...
+        : Q3e 10-min dev script + MIT licenc...
+        : Q3f Web simulation of full Way-of-...
+        : Q3g Simulation preview embedded in...
+        : Q3h Sketch editor compiles ESP32 b...
+        : Q3i LAN OTA flash succeeds on dev ...
+        : Q3j Way-of-Flowers firmware flashe...
+        : Q3k Five simulated nodes run ritua...
+    Q4: Open-Source Polish & Ecosystem
+        : Q4a Multi-installation dashboard (...
+        : Q4b Developer API + SDK for third-...
+        : Q4c Docs site with step-by-step tu...
+        : Q4d Contribution guidelines + revi...
+        : Q4e Performance monitoring dashboa...
+```
+
+#### 🗂️ Timeline Legend
+
+| ID | Full Task Name | Due Date |
+|----|----------------|----------|
+| Q1a | Setup docs enable <10-min contributor onboarding | 2025-01-15 |
+| Q1b | NFC auth ≥98 % success across devices (1 000-tap test) | 2025-02-28 |
+| Q1c | Wallet sign-in works (Chromium / Safari / PWA) | 2025-02-28 |
+| Q1d | Final NFC-URL scheme spec + card-writer CLI 100 % accurate | 2025-02-15 |
+| Q1e | Profiles stored locally and DID-synced cross-device | 2025-03-15 |
+| Q2a | Cold-start dev server <2 s consistently | 2025-04-15 |
+| Q2b | Error-recovery flows for all critical journeys | 2025-05-15 |
+| Q2c | Comprehensive test suite >90 % coverage | 2025-06-15 |
+| Q2d | Automated production deploy pipeline (CI → Vercel) | 2025-06-30 |
+| Q2e | Mobile UX optimised for iOS & Android (<2 s FCP) | 2025-06-30 |
+| Q3a | kairos-core repo live, CI green, deployed at core.kairos.app | 2025-07-10 |
+| Q3b | ritual-designer repo live, deployed at designer.kairos.app | 2025-07-10 |
+| Q3c | way-of-flowers repo live, deployed at flowers.kairos.app | 2025-07-10 |
+| Q3d | Shared types package @kairos/common v0.1 published | 2025-07-20 |
+| Q3e | 10-min dev script + MIT licence + CONTRIBUTING in each repo | 2025-07-31 |
+| Q3f | Web simulation of full Way-of-Flowers ritual | 2025-07-25 |
+| Q3g | Simulation preview embedded in Ritual Designer | 2025-07-31 |
+| Q3h | Sketch editor compiles ESP32 binary (drag-and-drop) | 2025-08-08 |
+| Q3i | LAN OTA flash succeeds on dev board | 2025-08-15 |
+| Q3j | Way-of-Flowers firmware flashed; tap → bloom works | 2025-08-30 |
+| Q3k | Five simulated nodes run ritual 48 h without error | 2025-09-10 |
+| Q4a | Multi-installation dashboard (manage >1 ritual) | 2025-11-30 |
+| Q4b | Developer API + SDK for third-party integrations | 2025-12-15 |
+| Q4c | Docs site with step-by-step tutorials live | 2025-11-15 |
+| Q4d | Contribution guidelines + review process published | 2025-10-31 |
+| Q4e | Performance monitoring dashboard (Core Web Vitals) | 2025-12-31 |
+
 
 ## 🎯 Quarterly Objectives
 
@@ -125,43 +199,69 @@ KairOS represents a paradigm shift toward **democratic cryptography** and **priv
 
 ## 📊 Gantt Chart Overview
 
-```mermaid
-gantt
-    title KairOS 2025 Roadmap
-    dateFormat YYYY-MM-DD
-    axisFormat %b %d
-    
-    section Q1: Contributor Onboarding & ...
-    Setup docs enable 10-min contribut... :done, Q1a, 2025-01-01, Wed Jan 15 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    NFC auth 98 success across devic... :done, Q1b, 2025-01-01, Fri Feb 28 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    Wallet sign-in works (Chromium / Sa... :done, Q1c, 2025-01-01, Fri Feb 28 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    Final NFC-URL scheme spec + card-wr... :done, Q1d, 2025-01-01, Sat Feb 15 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    Profiles stored locally and DID-syn... :done, Q1e, 2025-01-01, Sat Mar 15 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    section Q2: Performance & Pipeline Op...
-    Cold-start dev server 2 s consiste... :done, Q2a, 2025-01-01, Tue Apr 15 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Error-recovery flows for all critic... :done, Q2b, 2025-01-01, Thu May 15 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Comprehensive test suite 90 cove... :done, Q2c, 2025-01-01, Sun Jun 15 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Automated production deploy pipelin... :done, Q2d, 2025-01-01, Mon Jun 30 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Mobile UX optimised for iOS & Andro... :done, Q2e, 2025-01-01, Mon Jun 30 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    section Q3: Modular Repos & Ritual De...
-    kairos-core repo live, CI green, de... :crit, Q3a, 2025-01-01, Thu Jul 10 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    ritual-designer repo live, deployed... :crit, Q3b, 2025-01-01, Thu Jul 10 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    way-of-flowers repo live, deployed ... :crit, Q3c, 2025-01-01, Thu Jul 10 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Shared types package @kairos/common... :crit, Q3d, 2025-01-01, Sun Jul 20 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    10-min dev script + MIT licence + C... :crit, Q3e, 2025-01-01, Thu Jul 31 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Web simulation of full Way-of-Flowe... :crit, Q3f, 2025-01-01, Fri Jul 25 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Simulation preview embedded in Ritu... :crit, Q3g, 2025-01-01, Thu Jul 31 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Sketch editor compiles ESP32 binary... :active, Q3h, 2025-01-01, Fri Aug 08 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    LAN OTA flash succeeds on dev board :active, Q3i, 2025-01-01, Fri Aug 15 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Way-of-Flowers firmware flashed; ta... :active, Q3j, 2025-01-01, Sat Aug 30 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    Five simulated nodes run ritual 48 ... :active, Q3k, 2025-01-01, Wed Sep 10 2025 02:00:00 GMT+0200 (Central European Summer Time)
-    section Q4: Open-Source Polish & Ecos...
-    Multi-installation dashboard (manag... :active, Q4a, 2025-01-01, Sun Nov 30 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    Developer API + SDK for third-party... :active, Q4b, 2025-01-01, Mon Dec 15 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    Docs site with step-by-step tutoria... :active, Q4c, 2025-01-01, Sat Nov 15 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    Contribution guidelines + review pr... :active, Q4d, 2025-01-01, Fri Oct 31 2025 01:00:00 GMT+0100 (Central European Standard Time)
-    Performance monitoring dashboard (C... :active, Q4e, 2025-01-01, Wed Dec 31 2025 01:00:00 GMT+0100 (Central European Standard Time)
-```
+
+
+#### ��️ Gantt Chart Legend
+
+| ID | Full Task Name | Due Date |
+|----|----------------|----------|
+| Q1a | Setup docs enable <10-min contributor onboarding | 2025-01-15 |
+| Q1b | NFC auth ≥98 % success across devices (1 000-tap test) | 2025-02-28 |
+| Q1c | Wallet sign-in works (Chromium / Safari / PWA) | 2025-02-28 |
+| Q1d | Final NFC-URL scheme spec + card-writer CLI 100 % accurate | 2025-02-15 |
+| Q1e | Profiles stored locally and DID-synced cross-device | 2025-03-15 |
+| Q2a | Cold-start dev server <2 s consistently | 2025-04-15 |
+| Q2b | Error-recovery flows for all critical journeys | 2025-05-15 |
+| Q2c | Comprehensive test suite >90 % coverage | 2025-06-15 |
+| Q2d | Automated production deploy pipeline (CI → Vercel) | 2025-06-30 |
+| Q2e | Mobile UX optimised for iOS & Android (<2 s FCP) | 2025-06-30 |
+| Q3a | kairos-core repo live, CI green, deployed at core.kairos.app | 2025-07-10 |
+| Q3b | ritual-designer repo live, deployed at designer.kairos.app | 2025-07-10 |
+| Q3c | way-of-flowers repo live, deployed at flowers.kairos.app | 2025-07-10 |
+| Q3d | Shared types package @kairos/common v0.1 published | 2025-07-20 |
+| Q3e | 10-min dev script + MIT licence + CONTRIBUTING in each repo | 2025-07-31 |
+| Q3f | Web simulation of full Way-of-Flowers ritual | 2025-07-25 |
+| Q3g | Simulation preview embedded in Ritual Designer | 2025-07-31 |
+| Q3h | Sketch editor compiles ESP32 binary (drag-and-drop) | 2025-08-08 |
+| Q3i | LAN OTA flash succeeds on dev board | 2025-08-15 |
+| Q3j | Way-of-Flowers firmware flashed; tap → bloom works | 2025-08-30 |
+| Q3k | Five simulated nodes run ritual 48 h without error | 2025-09-10 |
+| Q4a | Multi-installation dashboard (manage >1 ritual) | 2025-11-30 |
+| Q4b | Developer API + SDK for third-party integrations | 2025-12-15 |
+| Q4c | Docs site with step-by-step tutorials live | 2025-11-15 |
+| Q4d | Contribution guidelines + review process published | 2025-10-31 |
+| Q4e | Performance monitoring dashboard (Core Web Vitals) | 2025-12-31 |
+mermaid
+
+| ID | Full Task Name | Due Date |
+|----|----------------|----------|
+| Q1a | Setup docs enable <10-min contributor onboarding | 2025-01-15 |
+| Q1b | NFC auth ≥98 % success across devices (1 000-tap test) | 2025-02-28 |
+| Q1c | Wallet sign-in works (Chromium / Safari / PWA) | 2025-02-28 |
+| Q1d | Final NFC-URL scheme spec + card-writer CLI 100 % accurate | 2025-02-15 |
+| Q1e | Profiles stored locally and DID-synced cross-device | 2025-03-15 |
+| Q2a | Cold-start dev server <2 s consistently | 2025-04-15 |
+| Q2b | Error-recovery flows for all critical journeys | 2025-05-15 |
+| Q2c | Comprehensive test suite >90 % coverage | 2025-06-15 |
+| Q2d | Automated production deploy pipeline (CI → Vercel) | 2025-06-30 |
+| Q2e | Mobile UX optimised for iOS & Android (<2 s FCP) | 2025-06-30 |
+| Q3a | kairos-core repo live, CI green, deployed at core.kairos.app | 2025-07-10 |
+| Q3b | ritual-designer repo live, deployed at designer.kairos.app | 2025-07-10 |
+| Q3c | way-of-flowers repo live, deployed at flowers.kairos.app | 2025-07-10 |
+| Q3d | Shared types package @kairos/common v0.1 published | 2025-07-20 |
+| Q3e | 10-min dev script + MIT licence + CONTRIBUTING in each repo | 2025-07-31 |
+| Q3f | Web simulation of full Way-of-Flowers ritual | 2025-07-25 |
+| Q3g | Simulation preview embedded in Ritual Designer | 2025-07-31 |
+| Q3h | Sketch editor compiles ESP32 binary (drag-and-drop) | 2025-08-08 |
+| Q3i | LAN OTA flash succeeds on dev board | 2025-08-15 |
+| Q3j | Way-of-Flowers firmware flashed; tap → bloom works | 2025-08-30 |
+| Q3k | Five simulated nodes run ritual 48 h without error | 2025-09-10 |
+| Q4a | Multi-installation dashboard (manage >1 ritual) | 2025-11-30 |
+| Q4b | Developer API + SDK for third-party integrations | 2025-12-15 |
+| Q4c | Docs site with step-by-step tutorials live | 2025-11-15 |
+| Q4d | Contribution guidelines + review process published | 2025-10-31 |
+| Q4e | Performance monitoring dashboard (Core Web Vitals) | 2025-12-31 |
+
 
 ---
 
